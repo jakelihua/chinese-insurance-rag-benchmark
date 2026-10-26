@@ -349,5 +349,63 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(out_con, 'CONDITION_MUTATED')
         self.assertIn('plan_wait_days', mut_con)
 
+    def test_rubric_source_separation_and_watchlist_integrity(self):
+        import json
+        root = Path(__file__).parents[1]
+
+        # 1. Check source_type separation in heldout_controlled_cases.jsonl
+        held_cases = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'heldout_controlled_cases.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(held_cases), 64)
+        for c in held_cases:
+            by_slot = {r['slot']: r for r in c['atomic_rubrics']}
+            self.assertEqual(by_slot['policy_and_clause_rule']['source_type'], 'pdf_contract_clause')
+            self.assertIsNotNone(by_slot['policy_and_clause_rule']['pdf_file'])
+            self.assertIn('bbox_pdf_points', by_slot['policy_and_clause_rule'])
+            self.assertEqual(by_slot['scenario_case_parameters']['source_type'], 'synthetic_seed_frame')
+            self.assertNotIn('bbox_pdf_points', by_slot['scenario_case_parameters'])
+
+        # 2. Check deterministic watchlist schema and cross-009 accuracy
+        audit_rows = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'item_by_item_semantic_audit.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(audit_rows), 264)
+        audit_summary = json.loads((root / 'data_v3' / 'item_by_item_semantic_audit_summary.json').read_text(encoding='utf-8'))
+        self.assertIn('NOT_external_semantic_validation_or_human_annotation', audit_summary['record_provenance'])
+        self.assertNotIn('agreement_rate', json.dumps(audit_summary))
+        by_aid = {r['audit_id']: r for r in audit_rows}
+        for m in ['condition_prompt', 'generic_self_refine_budget_matched', 'generic_self_refine_all']:
+            r = by_aid[f'cross-cross-009-{m}']
+            self.assertEqual(r['missing_slots'], ['elapsed_day'])
+            self.assertIn('当事人实际经过天数', r['automated_verifier_explanation'])
+            self.assertNotIn('第45天', r['question'])
+        r_guard = by_aid['cross-cross-009-slot_guard_repair']
+        self.assertEqual(r_guard['standalone_outcome'], 'PRESERVED_DECISION')
+        self.assertEqual(r_guard['missing_slots'], [])
+        r_ho8 = by_aid['heldout-heldout-008-structured_json_rewrite']
+        self.assertEqual(r_ho8['watchlist_category'], 'json_truncated_at_token_cap')
+
+        # 3. Check draft_zh.md policy table alignment against sources.json + heldout_clauses_sources.json
+        dev_sources = json.loads((root / 'data_v3' / 'sources.json').read_text(encoding='utf-8'))
+        held_sources = json.loads((root / 'data_v3' / 'heldout_clauses_sources.json').read_text(encoding='utf-8'))
+        all_sources = {s['id']: s for s in dev_sources + held_sources if 'sha256' in s}
+        zh_text = (root / 'paper' / 'draft_zh.md').read_text(encoding='utf-8')
+        matched_pids = set()
+        for line in zh_text.splitlines():
+            if '|' in line and ('开发集' in line or '扩展集' in line):
+                cells = [c.strip().strip('`') for c in line.strip('|').split('|')]
+                if len(cells) >= 9 and cells[1] in all_sources:
+                    pid = cells[1]
+                    src = all_sources[pid]
+                    self.assertTrue((src['title'] in cells[2]) or (cells[2] in src['title']), f"Title mismatch on {pid}")
+                    self.assertEqual(cells[-1], src['sha256'][:12], f"SHA12 mismatch on {pid}")
+                    matched_pids.add(pid)
+        self.assertEqual(matched_pids, set(all_sources.keys()))
+
 
 if __name__=='__main__':unittest.main()

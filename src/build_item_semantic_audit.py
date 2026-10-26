@@ -1,19 +1,17 @@
-"""Build item-by-item semantic and conversational-tone audit records across
-development insurance, multi-threshold rule, and held-out insurance generations.
+"""Build item-by-item automated verifier explanation and manual-inspection watchlist
+records across the 5 development insurance policies (40 items), 4 multi-threshold rules
+(112 items), and 4 extension official insurance policies (112 items).
 
-Follows the three-part industrial data-quality audit workflow:
-1. Book-title spoiler & phrasing check (verifying whether questions avoid stiff
-   textbook phrasing while keeping domain identity via full titles or colloquial aliases).
-2. Atomic rubric decomposition bound to physical PDF page numbers and bounding-box
-   coordinates (from data_v3/sources.json and data_v3/heldout_clauses_sources.json).
-3. Grounded frontline claims-reviewer notes (written without robotic bracketed tags
-   or repetitive AI templates) and explicit provenance disclosure.
-
-Provenance disclosure:
-These item-level review notes are author-inspected and Qwen-assisted exploratory
-semantic audits written in a natural claims-practitioner review style. They are
-explicitly distinguished from independent multi-rater human annotation (which
-remains pending in annotations/).
+Provenance & Scope Disclosure:
+- Every record in `data_v3/item_by_item_semantic_audit.jsonl` is a deterministic
+  automated verifier explanation (`automated_verifier_explanation`) paired with a
+  rule-based manual-inspection watchlist flag (`watchlist_flag` and `watchlist_reason`).
+- Contract rule evidence is anchored to physical PDF filenames, page numbers, and
+  bounding-box coordinates (`source_type = 'pdf_contract_clause'`), while synthetic
+  case facts (enrollment status, policy day, claim cause, waiver status) are explicitly
+  marked as originating from the synthetic seed frame (`source_type = 'synthetic_seed_frame'`).
+- These records do NOT constitute an independent human annotation or external LLM
+  semantic accuracy benchmark, and no circular agreement rate with the verifier is claimed.
 """
 import json
 from collections import Counter
@@ -40,8 +38,8 @@ from equal_budget_and_heldout_study import (
 
 
 PROVENANCE = (
-    'author_inspected_and_qwen_assisted_exploratory_audit; '
-    'NOT_independent_multi_rater_human_annotation'
+    'automated_verifier_explanation_and_manual_inspection_watchlist; '
+    'NOT_external_semantic_validation_or_human_annotation'
 )
 
 SLOT_ZH = {
@@ -64,25 +62,23 @@ def format_slot_list(slots):
     return '、'.join(SLOT_ZH.get(s, s) for s in slots)
 
 
-def build_insurance_practitioner_note(
+def build_insurance_verifier_explanation(
     seed_id, pol_title, benefit_label, frame, obs, outcome, missing, mutated, q_text, method, pdf_file, page_no, bbox
 ):
-    ref_dec = '卡在等待期内（不予赔付）' if (
+    ref_dec = '等待期内免责（WAIT_EXCLUDED）' if (
         frame.get('policy_day', 0) <= frame.get('plan_wait_days', 0)
         and not (frame.get('cause') == 'accident' and frame.get('accident_exempt', True))
         and not (frame.get('approved_waiver') and frame.get('approval_exempt', True))
-    ) else '不受等待期限制（正常进理赔核算）'
+    ) else '不受等待期免责限制（WAIT_NOT_EXCLUDED）'
 
-    coord_tag = f'{pdf_file} 第{page_no}页坐标 [{bbox[0]:.1f}, {bbox[1]:.1f}, {bbox[2]:.1f}, {bbox[3]:.1f}]'
-    idx_num = int(seed_id.split('-')[-1])
+    coord_tag = f'{pdf_file} 第{page_no}页条款坐标 [{bbox[0]:.1f}, {bbox[1]:.1f}, {bbox[2]:.1f}, {bbox[3]:.1f}]'
     enr_zh = '首次投保' if frame['enrollment'] == 'first' else '重新投保'
     cause_zh = '意外伤害' if frame['cause'] == 'accident' else '非意外疾病'
-    has_book_marks = ('《' in q_text or '》' in q_text)
-    book_note = '未带《》书名号剧透，' if not has_book_marks else ''
 
     if not q_text or ('？' not in q_text and '?' not in q_text):
         return (
-            f'坐席复核（{coord_tag}）：这题在跑两段式 JSON 改写时断掉了，末尾没带出完整的客户问句，属于生成格式残缺，不能直接进评测库（原案应为{ref_dec}）。',
+            f'自动验证器解释（条款依据：{coord_tag}）：该记录在两段式 JSON 改写中未生成完整的问号结尾问句，'
+            f'格式校验未通过（种子参考结论为 {ref_dec}）。',
             'format_incomplete',
         )
 
@@ -90,153 +86,137 @@ def build_insurance_practitioner_note(
         if not missing and not mutated:
             waiver_note = ''
             if frame['enrollment'] == 'new':
-                waiver_note = '、且拿到免等待期批复' if frame.get('approved_waiver') else '、且没拿到免等待期批复'
-            variants = [
-                (
-                    f'核保坐席复核（{coord_tag}）：{book_note}问法贴近一线客户咨询，把{pol_title}、{enr_zh}、生效第{frame["policy_day"]}天、'
-                    f'{cause_zh}出险以及申领{benefit_label}（{frame["plan_wait_days"]}天等待期）{waiver_note}都交待清楚了，直接按原条款判定为{ref_dec}。'
-                ),
-                (
-                    f'理赔质检记录（锚定 {coord_tag}）：{book_note}这句改写没有丢关键核保因子——{pol_title}、{enr_zh}、第{frame["policy_day"]}天因{cause_zh}申请{benefit_label}'
-                    f'（约定等待期{frame["plan_wait_days"]}天）{waiver_note}全在，等待期结论唯一，维持“{ref_dec}”。'
-                ),
-                (
-                    f'一线审单笔记（对照 {coord_tag}）：{book_note}客户口吻自然，核心采分点（{pol_title} / {enr_zh} / 生效第{frame["policy_day"]}天 / {cause_zh} / '
-                    f'{benefit_label}{frame["plan_wait_days"]}天等待期{waiver_note}）核对无误，结论保持为{ref_dec}。'
-                ),
-            ]
-            tone = (
-                'natural_standard_consultation'
-                if method == 'seed_passthrough'
-                else ('natural_structured_consultation' if method == 'structured_json_rewrite' else 'natural_colloquial_consultation')
-            )
-            return variants[(idx_num + len(method)) % len(variants)], tone
-        else:
-            miss_zh = format_slot_list(missing)
+                waiver_note = '、已获批免等待期' if frame.get('approved_waiver') else '、未获批免等待期'
             return (
-                f'核保坐席复核（{coord_tag}）：客户提问里虽然顺手省掉了{miss_zh}，但在{pol_title}的{benefit_label}下，'
-                f'保单已生效第{frame["policy_day"]}天（对照{frame["plan_wait_days"]}天等待期阈值），不管这一项怎么补全，结果都是{ref_dec}，不用多此一举追问客户。',
-                'natural_concise_consultation',
+                f'自动验证器解释（条款依据：{coord_tag}）：解析器从问句中提取到完整案情要素（{pol_title}、{enr_zh}、'
+                f'保单生效第{frame["policy_day"]}天、{cause_zh}、{benefit_label}及{frame["plan_wait_days"]}天等待期{waiver_note}），'
+                f'无槽位冲突，可达结论唯一且等于参考结论 {ref_dec}。',
+                'all_slots_matched',
             )
+        miss_zh = format_slot_list(missing)
+        return (
+            f'自动验证器解释（条款依据：{coord_tag}）：问句未显式写出“{miss_zh}”，但在已提取条件'
+            f'（{pol_title}、保单生效第{frame["policy_day"]}天、等待期阈值{frame["plan_wait_days"]}天）下，'
+            f'枚举缺失槽位的所有合法取值均导出同一结论 {ref_dec}，故判定为结论可确定（PRESERVED_DECISION）。',
+            'non_pivotal_slot_omitted_but_decision_preserved',
+        )
 
     if outcome in ('CONDITION_MUTATED', 'COUNTERFACTUAL_FLIP'):
         mut_details = []
         for m in mutated:
             exp_v = frame.get(m)
             got_v = obs.get(m)
-            mut_details.append(f'{SLOT_ZH.get(m, m)}从“{exp_v}”被改成了“{got_v}”')
-        mut_str = '；'.join(mut_details) if mut_details else '核心数值或责任条件被改偏'
+            mut_details.append(f'{SLOT_ZH.get(m, m)}由种子值“{exp_v}”变为提取值“{got_v}”')
+        mut_str = '；'.join(mut_details) if mut_details else '提取槽位与种子案情冲突'
         return (
-            f'理赔质检拦截（对照 {coord_tag}）：句子表面读着挺顺，但小模型把案情数字改错了——{mut_str}。'
-            f'按{pol_title}条款算下来等待期结论会跑偏，这种篡改事实的合成题必须拦截。',
-            'fluent_but_factually_mutated',
+            f'自动验证器解释（条款依据：{coord_tag}）：解析器检出槽位数值或状态冲突（{mut_str}），'
+            f'判定为条件篡改（CONDITION_MUTATED）。',
+            'slot_value_mutated',
         )
 
-    # DEGRADED_TO_CLARIFY
-    miss_zh = format_slot_list(missing) if missing else '关键条款或天数条件'
+    miss_zh = format_slot_list(missing) if missing else '关键条款或天数要素'
     if 'policy_id' in missing and len(missing) == 1:
         return (
-            f'坐席复核（{coord_tag}）：口吻很像真实客户随口问“这款保险第{frame["policy_day"]}天住院能不能报”，出险经过都在，'
-            f'就是把“{pol_title}”险种名省掉了；单看这句话得先问清买的是哪款产品，若系统后台已绑定保单上下文则能直接算。',
-            'natural_casual_missing_product_name',
+            f'自动验证器解释（条款依据：{coord_tag}）：问句保留了出险天数（第{frame["policy_day"]}天）与原因，'
+            f'但未包含可识别的产品名称（缺失 {miss_zh}）；独立评测下因跨保单等待期规则不同而判定为需追问（DEGRADED_TO_CLARIFY），'
+            f'给定源保单上下文后结论可唯一确定。',
+            'missing_product_identifier_only',
         )
     return (
-        f'坐席追问拦截（对照 {coord_tag}）：口语缩写得太狠，把{miss_zh}给漏了。按{pol_title}条款，'
-        f'缺了这几个条件会在“能赔”和“卡等待期拒赔”之间摇摆，一线客服必须先反问客户补齐信息。',
-        'casual_under_specified',
+        f'自动验证器解释（条款依据：{coord_tag}）：问句缺失“{miss_zh}”，枚举未观测槽位的合法补全空间同时包含'
+        f'等待期内免责与不免责两种可达结论，判定为需追问澄清（DEGRADED_TO_CLARIFY）。',
+        'missing_pivotal_slot',
     )
 
 
-def build_cross_practitioner_note(seed, obs, outcome, missing, mutated, q_text, method, raw_resp):
+def build_cross_verifier_explanation(seed, obs, outcome, missing, mutated, q_text, method):
     title = CROSS_CLAUSES[seed['clause_id']]['title']
-    ref_dec = '符合准入/支持条件' if cross_decision(seed) == 'RULE_ELIGIBLE' else '受阈值或禁忌限制不予通过'
-    idx_num = int(seed['seed_id'].split('-')[-1])
+    ref_dec = '符合准入/支持条件（RULE_ELIGIBLE）' if cross_decision(seed) == 'RULE_ELIGIBLE' else '受阈值或禁忌限制排除（RULE_EXCLUDED）'
 
     if method == 'structured_json_rewrite' and ('？' not in q_text and '?' not in q_text):
         return (
-            f'质检复核（{title}）：模型第一行刚把槽位 JSON 吐完就直接停了（生成长度远没碰到 160 token 上限），'
-            f'第二行根本没按指令写出 QUESTION 问句，属于典型的两段式格式早停失败。',
+            f'自动验证器解释（合成规则：{title}）：模型仅输出第一行 JSON 对象即停止生成，未输出第二行 QUESTION 自然问句，'
+            f'两段式格式校验判为无效（format_valid=False）。',
             'json_only_early_stop',
         )
 
     if outcome == 'PRESERVED_DECISION':
         if not missing and not mutated:
-            variants = [
-                (
-                    f'规则复核（{title}）：问句语气自然，把当事人实际经过的第{seed["elapsed_day"]}天和规程里的{seed["threshold_days"]}天阈值分得很清楚，'
-                    f'没犯张冠李戴的毛病，可直接按规则判定为{ref_dec}。'
-                ),
-                (
-                    f'质检通过（{title}）：多阈值核验点齐全——实际天数（{seed["elapsed_day"]}天）、法定/临床阈值（{seed["threshold_days"]}天）及前置状态均未走样，'
-                    f'结论唯一指向{ref_dec}。'
-                ),
-            ]
-            return variants[(idx_num + len(method)) % len(variants)], 'natural_precise_consultation'
+            return (
+                f'自动验证器解释（合成规则：{title}）：解析器提取到全部必需槽位（实际经过第{seed["elapsed_day"]}天、'
+                f'规则阈值{seed["threshold_days"]}天及前置状态/资格条件），无槽位篡改，唯一可达结论为 {ref_dec}。',
+                'all_slots_matched',
+            )
         miss_zh = format_slot_list(missing)
         return (
-            f'规则复核（{title}）：虽然口语化省掉了{miss_zh}，但凭已写明的条件在当前规则下已经能唯一锁定“{ref_dec}”，不需要额外追问。',
-            'natural_concise_consultation',
+            f'自动验证器解释（合成规则：{title}）：问句未显式写出“{miss_zh}”，但已提取条件在阈值等价区间枚举下'
+            f'所有合法补全均导出唯一结论 {ref_dec}，判定为结论保持（PRESERVED_DECISION）。',
+            'non_pivotal_slot_omitted_but_decision_preserved',
         )
 
     if outcome == 'CONDITION_MUTATED':
         if 'elapsed_day' in mutated:
             return (
-                f'质检拦截（{title}）：典型的多阈值数字张冠李戴！模型把当事人实际经过的第{seed["elapsed_day"]}天，'
-                f'顺手抄成了条款里的{obs.get("elapsed_day")}天规则阈值，虽然话很通顺，但把案件事实给篡改了。',
-                'fluent_threshold_substitution_error',
+                f'自动验证器解释（合成规则：{title}）：解析器检出经过天数槽位冲突——种子设定为第{seed["elapsed_day"]}天，'
+                f'而问句中被提取为“{obs.get("elapsed_day")}”天（与规则阈值混淆），判定为条件篡改（CONDITION_MUTATED）。',
+                'threshold_overwrite_mutation',
             )
         mut_zh = format_slot_list(mutated)
         return (
-            f'质检拦截（{title}）：改写时把{mut_zh}的极性或数值弄反了，导致按规程推导出的结论发生偏移，不能作为合格评测题。',
-            'fluent_but_factually_mutated',
+            f'自动验证器解释（合成规则：{title}）：解析器检出槽位冲突（{mut_zh}与种子设定不一致），'
+            f'判定为条件篡改（CONDITION_MUTATED）。',
+            'slot_value_mutated',
         )
 
     miss_zh = format_slot_list(missing) if missing else '关键时间或资格要素'
     return (
-        f'追问拦截（{title}）：口语改写把{miss_zh}漏掉了，在《{title}》双阈值规则下会导出相反结论，必须先向提问人追问核实。',
-        'casual_under_specified',
+        f'自动验证器解释（合成规则：{title}）：问句缺失“{miss_zh}”，在多阈值规则下不同合法补全导出相反结论，'
+        f'判定为需追问澄清（DEGRADED_TO_CLARIFY）。',
+        'missing_pivotal_slot',
     )
 
 
-def semantic_audit_judgment(record):
-    """Identify colloquial surface phrasings where a human/LLM semantic reviewer
-    recognizes a condition that the conservative literal regex leaves unparsed."""
-    aid = record['audit_id']
-    # 7 documented colloquial surface phrasing edge cases across the 264 records:
-    colloquial_overrides = {
-        'dev-condition-018-ordinary_style': (
-            'DEGRADED_TO_CLARIFY',
-            '问句写“第一天投保”表达首次投保，但仍缺太康欣享全球险种全名，独立评测仍需追问险种（正则未识别“第一天投保”为首次投保）。',
-        ),
-        'cross-cross-009-condition_prompt': (
-            'PRESERVED_DECISION',
-            '问句写出“超过法定30天但未满1年（实际第45天）”，语义上完整保留了单位30天时限与第45天超期事实，正则未匹配该括号句式。',
-        ),
-        'cross-cross-009-generic_self_refine_budget_matched': (
-            'PRESERVED_DECISION',
-            '自检改写保留了“超过用人单位30天申请时限、事故后第45天”，语义上可判定需走工伤延期或个人通道，正则未覆盖该变体表述。',
-        ),
-        'cross-cross-009-generic_self_refine_all': (
-            'PRESERVED_DECISION',
-            '同 budget-matched 自检稿，语义上已交代单位30天法定申请期与第45天出险间隔，正则未覆盖该语序。',
-        ),
-        'cross-cross-011-slot_guard_repair': (
-            'PRESERVED_DECISION',
-            '修复稿写明“交警认定本人负主要责任、距事故第20天、30天申请期”，语义上已可直接排除工伤认定，正则对“负主要责任”字面变体保守拒识。',
-        ),
-        'heldout-heldout-005-ordinary_style': (
-            'DEGRADED_TO_CLARIFY',
-            '问句用“刚买”口语指代投保，但漏掉了平安住院医疗保险名称与90天等待期，仍需追问（正则未将“刚买”归入首次投保）。',
-        ),
-        'heldout-heldout-013-ordinary_style': (
-            'DEGRADED_TO_CLARIFY',
-            '问句写“第一次买这个学生住院险”，口语表达了首次投保但未写明广西地区2025版完整险种名，独立评测仍需追问核实。',
-        ),
-    }
-    if aid in colloquial_overrides:
-        sem_out, note = colloquial_overrides[aid]
-        return sem_out, False, note
-    return record['standalone_outcome'], True, None
+def build_watchlist_annotation(record):
+    """Identify verifiable format or surface-cue cases for future human inspection.
+    Does not override verifier outcomes or fabricate text not present in `record['question']`."""
+    q = record['question']
+    raw = record.get('raw_response', '')
+    method = record['method']
+    missing = record['missing_slots']
+    mutated = record['mutated_slots']
+
+    # 1. Two-line JSON format failures or JSON-header / question-line split discrepancies
+    if method == 'structured_json_rewrite':
+        if '？' not in q and '?' not in q:
+            if record.get('truncated_at_max_tokens'):
+                return True, 'json_truncated_at_token_cap', (
+                    '两段式 JSON 改写触及 160-token 生成上限导致末尾问句被截断，未形成完整问句；列为格式截断待核查样本。'
+                )
+            return True, 'json_stopped_after_json_line', (
+                '两段式 JSON 改写仅输出第一行 JSON 字段即停止生成（未触及 160-token 上限），未输出 QUESTION 问句行；列为格式早停待核查样本。'
+            )
+        if 'policy_id' in missing and raw and any(
+            pol['title'] in raw for pol in HELDOUT_POLICIES.values()
+        ):
+            return True, 'json_header_has_policy_but_question_omits_it', (
+                '原始输出第一行 JSON 中包含险种名称，但第二行 QUESTION 问句中省略了险种名称，导致仅解析问句行时缺失 policy_id。'
+            )
+
+    # 2. Repaired non-compete queries that state domain-specific non-compete keywords without the formal rule title
+    if (
+        record['dataset_split'] == 'multi_threshold_rules_4clauses'
+        and record['clause_id'] == 'law_noncompete'
+        and 'clause_id' in missing
+        and not mutated
+        and ('竞业限制' in q)
+    ):
+        assert '竞业限制' in q
+        return True, 'domain_phrase_without_formal_clause_title', (
+            '问句中包含“竞业限制经济补偿/解除竞业限制协议”等业务短语，但未写出《劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引》'
+            '完整规程标题，因此在多规则池独立评测下因缺失 clause_id 被保守归入 DEGRADED_TO_CLARIFY。'
+        )
+
+    return False, None, None
 
 
 def main():
@@ -277,7 +257,7 @@ def main():
         obs = extract_fields_surface_normalized(r['question'], policies=DEV_POLICIES)
         _, out_s, mut_s, miss_s = evaluate_slot_completeness(obs, seed['frame'], req, grant_source_policy=False)
         _, out_g, mut_g, miss_g = evaluate_slot_completeness(obs, seed['frame'], req, grant_source_policy=True)
-        note, tone = build_insurance_practitioner_note(
+        explanation, diag_cat = build_insurance_verifier_explanation(
             r['seed_id'], pol['title'], pol['benefit'], frame, obs, out_s, miss_s, mut_s,
             r['question'], r['method'], f'{pid}.pdf', anchor['pdf_page_1based'], anchor['bbox_pdf_points']
         )
@@ -293,16 +273,16 @@ def main():
             'granted_source_policy_outcome': out_g,
             'missing_slots': miss_s,
             'mutated_slots': mut_s,
-            'tone_category': tone,
+            'diagnostic_category': diag_cat,
             'atomic_rubrics': build_atomic_clause_rubrics(frame, pol, anchor, f'{pid}.pdf'),
-            'practitioner_review_note': note,
-            'review_provenance': PROVENANCE,
+            'automated_verifier_explanation': explanation,
+            'record_provenance': PROVENANCE,
         }
-        sem_out, agrees, edge_note = semantic_audit_judgment(rec)
-        rec['semantic_audit_outcome'] = sem_out
-        rec['agrees_with_formal_verifier'] = agrees
-        if edge_note:
-            rec['colloquial_edge_case_note'] = edge_note
+        w_flag, w_cat, w_reason = build_watchlist_annotation(rec)
+        rec['watchlist_flag'] = w_flag
+        if w_flag:
+            rec['watchlist_category'] = w_cat
+            rec['watchlist_reason'] = w_reason
         records.append(rec)
 
     # 2. Multi-threshold rule benchmark (112 equal-budget rows across 16 seeds x 7 methods)
@@ -318,8 +298,8 @@ def main():
         c_meta = CROSS_CLAUSES[cid]
         obs = extract_cross_slots_v2(r['question'])
         out_c, miss_c, mut_c = evaluate_cross_outcome(obs, s)
-        note, tone = build_cross_practitioner_note(
-            s, obs, out_c, miss_c, mut_c, r['question'], r['method'], r.get('raw_response', '')
+        explanation, diag_cat = build_cross_verifier_explanation(
+            s, obs, out_c, miss_c, mut_c, r['question'], r['method']
         )
         rec = {
             'audit_id': f"cross-{r['seed_id']}-{r['method']}",
@@ -328,28 +308,30 @@ def main():
             'clause_id': cid,
             'method': r['method'],
             'question': r['question'],
+            'raw_response': r.get('raw_response', ''),
+            'truncated_at_max_tokens': bool(r.get('truncated_at_max_tokens')),
             'reference_decision': cross_decision(s),
             'standalone_outcome': out_c,
             'granted_source_policy_outcome': out_c,
             'missing_slots': miss_c,
             'mutated_slots': mut_c,
-            'tone_category': tone,
+            'diagnostic_category': diag_cat,
             'atomic_rubrics': [
-                {'slot': 'clause_id', 'criterion': f"规程锁定：{c_meta['title']}", 'source_type': 'synthetic_composite_rule'},
-                {'slot': 'elapsed_vs_threshold', 'criterion': f"时间核验：实际经过第{s['elapsed_day']}天 vs 规则阈值{s['threshold_days']}天", 'source_type': 'synthetic_composite_rule'},
-                {'slot': 'status_and_condition', 'criterion': f"状态与资格：status={s['status']}, condition={s['condition']}, waiver={s['approved_waiver']}", 'source_type': 'synthetic_composite_rule'},
+                {'slot': 'clause_id', 'criterion': f"合成规程规则：{c_meta['title']}（阈值{s['threshold_days']}天）", 'source_type': 'synthetic_composite_rule'},
+                {'slot': 'scenario_case_parameters', 'criterion': f"合成案情参数（源自受控种子 frame）：实际经过第{s['elapsed_day']}天，status={s['status']}, condition={s['condition']}, waiver={s['approved_waiver']}", 'source_type': 'synthetic_seed_frame'},
             ],
-            'practitioner_review_note': note,
-            'review_provenance': PROVENANCE,
+            'automated_verifier_explanation': explanation,
+            'record_provenance': PROVENANCE,
         }
-        sem_out, agrees, edge_note = semantic_audit_judgment(rec)
-        rec['semantic_audit_outcome'] = sem_out
-        rec['agrees_with_formal_verifier'] = agrees
-        if edge_note:
-            rec['colloquial_edge_case_note'] = edge_note
+        w_flag, w_cat, w_reason = build_watchlist_annotation(rec)
+        rec.pop('raw_response', None)
+        rec['watchlist_flag'] = w_flag
+        if w_flag:
+            rec['watchlist_category'] = w_cat
+            rec['watchlist_reason'] = w_reason
         records.append(rec)
 
-    # 3. Held-out official insurance benchmark (112 rows across 16 seeds x 7 methods)
+    # 3. Extension official insurance benchmark (112 rows across 16 seeds x 7 methods)
     _, _, held_seeds_list, _ = build_heldout_seeds_and_cases(work_root / 'condition_study' / 'raw_heldout')
     held_seeds = {s['seed_id']: s for s in held_seeds_list}
     held_rows = [
@@ -377,7 +359,7 @@ def main():
         out_g = r['granted_source_policy_outcome']
         miss_s = r['missing_slots']
         mut_s = r['mutated_slots']
-        note, tone = build_insurance_practitioner_note(
+        explanation, diag_cat = build_insurance_verifier_explanation(
             r['seed_id'], pol['title'], b_label, frame, obs, out_s, miss_s, mut_s,
             r['question'], r['method'], f'{pid}.pdf', anchor['pdf_page_1based'], anchor['bbox_pdf_points']
         )
@@ -388,21 +370,24 @@ def main():
             'clause_id': pid,
             'method': r['method'],
             'question': r['question'],
+            'raw_response': r.get('raw_response', ''),
+            'truncated_at_max_tokens': bool(r.get('truncated_at_max_tokens') or r.get('hit_token_cap')),
             'reference_decision': insurance_decision(s['frame'], HELDOUT_POLICIES),
             'standalone_outcome': out_s,
             'granted_source_policy_outcome': out_g,
             'missing_slots': miss_s,
             'mutated_slots': mut_s,
-            'tone_category': tone,
+            'diagnostic_category': diag_cat,
             'atomic_rubrics': build_atomic_clause_rubrics(frame, pol, anchor, f'{pid}.pdf'),
-            'practitioner_review_note': note,
-            'review_provenance': PROVENANCE,
+            'automated_verifier_explanation': explanation,
+            'record_provenance': PROVENANCE,
         }
-        sem_out, agrees, edge_note = semantic_audit_judgment(rec)
-        rec['semantic_audit_outcome'] = sem_out
-        rec['agrees_with_formal_verifier'] = agrees
-        if edge_note:
-            rec['colloquial_edge_case_note'] = edge_note
+        w_flag, w_cat, w_reason = build_watchlist_annotation(rec)
+        rec.pop('raw_response', None)
+        rec['watchlist_flag'] = w_flag
+        if w_flag:
+            rec['watchlist_category'] = w_cat
+            rec['watchlist_reason'] = w_reason
         records.append(rec)
 
     jsonl_path = data_dir / 'item_by_item_semantic_audit.jsonl'
@@ -420,55 +405,52 @@ def main():
                 'count': len(m_sub),
                 'standalone_outcomes': dict(Counter(r['standalone_outcome'] for r in m_sub)),
                 'granted_source_policy_outcomes': dict(Counter(r['granted_source_policy_outcome'] for r in m_sub)),
-                'tone_categories': dict(Counter(r['tone_category'] for r in m_sub)),
-                'agrees_with_formal_verifier_count': sum(1 for r in m_sub if r['agrees_with_formal_verifier']),
+                'diagnostic_categories': dict(Counter(r['diagnostic_category'] for r in m_sub)),
+                'watchlist_count': sum(1 for r in m_sub if r['watchlist_flag']),
             }
         by_split[split] = {
             'total_records': len(sub),
-            'agrees_with_formal_verifier_count': sum(1 for r in sub if r['agrees_with_formal_verifier']),
+            'watchlist_count': sum(1 for r in sub if r['watchlist_flag']),
             'methods': by_method,
         }
 
-    discrepancies = [
+    watchlist_items = [
         {
             'audit_id': r['audit_id'],
             'dataset_split': r['dataset_split'],
             'method': r['method'],
             'question': r['question'],
-            'formal_verifier_outcome': r['standalone_outcome'],
-            'semantic_audit_outcome': r['semantic_audit_outcome'],
-            'colloquial_edge_case_note': r.get('colloquial_edge_case_note', ''),
+            'standalone_outcome': r['standalone_outcome'],
+            'missing_slots': r['missing_slots'],
+            'mutated_slots': r['mutated_slots'],
+            'watchlist_category': r.get('watchlist_category', ''),
+            'watchlist_reason': r.get('watchlist_reason', ''),
         }
         for r in records
-        if not r['agrees_with_formal_verifier']
+        if r['watchlist_flag']
     ]
 
     summary = {
-        'audit_date': '2026-10-27',
-        'total_audited_generations': len(records),
-        'formal_verifier_agreement_count': sum(1 for r in records if r['agrees_with_formal_verifier']),
-        'formal_verifier_agreement_rate': round(
-            sum(1 for r in records if r['agrees_with_formal_verifier']) / len(records), 4
-        ),
-        'colloquial_edge_case_count': len(discrepancies),
-        'review_provenance': PROVENANCE,
+        'generated_date': '2026-10-27',
+        'total_records': len(records),
+        'watchlist_count': len(watchlist_items),
+        'record_provenance': PROVENANCE,
         'methodology_note': (
-            'Every generated question across the 5 development insurance clauses (40 items), '
-            '4 multi-threshold medical/labor rules (112 items), and 4 held-out official insurance '
-            'clauses (112 items) was audited item-by-item against atomic clause rubrics (bound to '
-            'physical PDF filenames, page numbers, and bounding-box coordinates) and natural frontline '
-            'policyholder consultation phrasing (including stripped 《》 book-title spoilers and colloquial '
-            'product aliases). Notes are written in an authentic claims-practitioner style without bracketed '
-            'AI tags and are explicitly documented as author-inspected + Qwen-assisted exploratory audits '
-            'rather than independent multi-rater human annotations.'
+            'Deterministic item-by-item automated verifier explanations and a rule-based manual-inspection '
+            'watchlist across the 5 development insurance policies (40 items), 4 multi-threshold rules '
+            '(112 items), and 4 extension official insurance policies (112 items). Contract rules are linked '
+            'to physical PDF page and bounding-box coordinates (`source_type = pdf_contract_clause`), while '
+            'synthetic scenario facts are marked as `source_type = synthetic_seed_frame`. Because these explanations '
+            'are produced directly from the deterministic parser and reachability verifier rather than an independent '
+            'human or external judge, no circular agreement rate or false-positive/false-negative rate is reported.'
         ),
         'splits': by_split,
-        'colloquial_surface_edge_cases': discrepancies,
+        'manual_inspection_watchlist': watchlist_items,
     }
     (data_dir / 'item_by_item_semantic_audit_summary.json').write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
     )
-    print(f'Wrote {len(records)} records to {jsonl_path} (agreement: {summary["formal_verifier_agreement_count"]}/{len(records)})')
+    print(f'Wrote {len(records)} automated verifier explanation records to {jsonl_path} (watchlist items: {len(watchlist_items)})')
 
 
 if __name__ == '__main__':

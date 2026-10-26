@@ -118,7 +118,7 @@ HELDOUT_POLICIES = {
         accident_exempt=False,
         approval_exempt=True,
         benefit='初次发生原发性肺癌疾病保险金',
-        scope='第四条原发性肺癌30天等待期（疾病险不设意外豁免）；连续投保或另有约定按约定执行。',
+        scope='第四条原发性肺癌（不包括原位癌）30天等待期（疾病险不设意外豁免）；连续投保或另有约定按约定执行。',
         url='https://resources.pingan.com/app_upload/file/annuity/20150309P0321.pdf',
     ),
     'cpic_93896': dict(
@@ -337,38 +337,40 @@ def render_heldout_question(frame, policies, missing=None, surface=False):
 
 
 def build_atomic_clause_rubrics(frame, policy, anchor, pdf_file):
-    """Step 5 of controlled synthesis: decompose ground-truth decision into atomic rubrics
-    strictly bound to physical PDF filename, page number, and bounding-box coordinates."""
+    """Decompose the reference evaluation into contract-clause evidence (bound to PDF filename,
+    page number, and bounding-box coordinates) versus synthetic scenario parameters (from the seed frame)."""
     pg = anchor['pdf_page_1based']
     bbox = [round(float(x), 2) for x in anchor['bbox_pdf_points']]
     rubrics = [
         {
-            'slot': 'policy_id',
-            'criterion': f"险种识别：{policy['title']}（含口语简称：{policy.get('colloquial_name', policy['title'])}）",
+            'slot': 'policy_and_clause_rule',
+            'source_type': 'pdf_contract_clause',
+            'criterion': (
+                f"合同条款规则：{policy['title']}（简称：{policy.get('colloquial_name', policy['title'])}），"
+                f"约定等待期阈值{frame['plan_wait_days']}天"
+            ),
             'pdf_file': pdf_file,
             'pdf_page_1based': pg,
             'bbox_pdf_points': bbox,
         },
         {
-            'slot': 'enrollment_and_day',
-            'criterion': f"投保属性与出险时间：{'首次投保' if frame['enrollment'] == 'first' else '重新投保'}，保单生效第{frame['policy_day']}天",
-            'pdf_file': pdf_file,
-            'pdf_page_1based': pg,
-            'bbox_pdf_points': bbox,
-        },
-        {
-            'slot': 'cause_and_wait',
-            'criterion': f"出险原因与责任等待期：{'意外伤害' if frame['cause'] == 'accident' else '非意外疾病'}，对应等待期阈值{frame['plan_wait_days']}天",
-            'pdf_file': pdf_file,
-            'pdf_page_1based': pg,
-            'bbox_pdf_points': bbox,
+            'slot': 'scenario_case_parameters',
+            'source_type': 'synthetic_seed_frame',
+            'criterion': (
+                f"合成案情参数（源自受控种子 frame，非 PDF 原文）："
+                f"{'首次投保' if frame['enrollment'] == 'first' else '重新投保'}，"
+                f"保单生效第{frame['policy_day']}天，"
+                f"{'意外伤害' if frame['cause'] == 'accident' else '非意外疾病'}"
+            ),
+            'evaluated_against_pdf_anchor': f"{pdf_file}#page={pg}",
         },
     ]
     if 'benefits' in policy and frame.get('benefit_id') in policy['benefits']:
         b_label = policy['benefits'][frame['benefit_id']]['label']
         rubrics.insert(1, {
             'slot': 'benefit_id',
-            'criterion': f"分项责任锁定：{b_label}（等待期{frame['plan_wait_days']}天）",
+            'source_type': 'pdf_contract_clause',
+            'criterion': f"合同分项责任条款：{b_label}（等待期{frame['plan_wait_days']}天）",
             'pdf_file': pdf_file,
             'pdf_page_1based': pg,
             'bbox_pdf_points': bbox,
@@ -376,10 +378,12 @@ def build_atomic_clause_rubrics(frame, policy, anchor, pdf_file):
     if frame['enrollment'] == 'new':
         rubrics.append({
             'slot': 'approved_waiver',
-            'criterion': f"续保免等待期批复：{'已获保险公司批准免等待期' if frame.get('approved_waiver') else '未获批准免等待期'}",
-            'pdf_file': pdf_file,
-            'pdf_page_1based': pg,
-            'bbox_pdf_points': bbox,
+            'source_type': 'synthetic_seed_frame',
+            'criterion': (
+                f"合成案情参数（续保免等待期批复状态）："
+                f"{'已获保险公司批准免等待期' if frame.get('approved_waiver') else '未获批准免等待期'}"
+            ),
+            'evaluated_against_pdf_anchor': f"{pdf_file}#page={pg}",
         })
     return rubrics
 
