@@ -237,5 +237,60 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(len(cp_triggers), 10)
         self.assertIn('cross-001', cp_triggers)
 
+    def test_heldout_official_clauses_and_equal_budget_baselines(self):
+        import json
+        from equal_budget_and_heldout_study import (
+            HELDOUT_POLICIES,
+            evaluate_insurance_outcome_frozen,
+            extract_insurance_fields_frozen,
+            insurance_decision,
+        )
+        root = Path(__file__).parents[1]
+        held_cases = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'heldout_controlled_cases.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(held_cases), 64)
+        by_group = {}
+        for c in held_cases:
+            by_group.setdefault(c['group_id'], {})[c['variant']] = c
+        self.assertEqual(len(by_group), 16)
+        for gid, grp in by_group.items():
+            mc = grp['missing_critical']
+            self.assertEqual(mc['reference_label'], 'CLARIFY')
+            self.assertEqual(len(mc['counterexample_witnesses']), 2)
+            w0, w1 = mc['counterexample_witnesses']
+            self.assertEqual(insurance_decision(w0['completion'], HELDOUT_POLICIES), w0['label'])
+            self.assertEqual(insurance_decision(w1['completion'], HELDOUT_POLICIES), w1['label'])
+            self.assertNotEqual(w0['label'], w1['label'])
+            seed_frame = w0['completion']
+            req = ['policy_id', 'enrollment', 'policy_day', 'cause']
+            if len(HELDOUT_POLICIES[seed_frame['policy_id']]['days']) > 1:
+                req.append('plan_wait_days')
+            if seed_frame['enrollment'] == 'new':
+                req.append('approved_waiver')
+            for var_name in ['complete', 'surface']:
+                obs = extract_insurance_fields_frozen(grp[var_name]['question'], HELDOUT_POLICIES)
+                out, _, _ = evaluate_insurance_outcome_frozen(obs, seed_frame, req, HELDOUT_POLICIES)
+                self.assertEqual(out, 'PRESERVED_DECISION')
+            obs_mc = extract_insurance_fields_frozen(mc['question'], HELDOUT_POLICIES)
+            out_mc, _, _ = evaluate_insurance_outcome_frozen(obs_mc, seed_frame, req, HELDOUT_POLICIES)
+            self.assertEqual(out_mc, 'DEGRADED_TO_CLARIFY')
+            obs_cf = extract_insurance_fields_frozen(grp['counterfactual']['question'], HELDOUT_POLICIES)
+            out_cf, _, _ = evaluate_insurance_outcome_frozen(obs_cf, seed_frame, req, HELDOUT_POLICIES)
+            self.assertEqual(out_cf, 'CONDITION_MUTATED')
+
+        summary = json.loads((root / 'data_v3' / 'equal_budget_and_heldout_summary.json').read_text(encoding='utf-8'))
+        cross_methods = summary['cross_domain_equal_budget_comparison']['methods']
+        self.assertEqual(cross_methods['slot_guard_repair']['total_llm_calls'], 26)
+        self.assertEqual(cross_methods['generic_self_refine_budget_matched']['total_llm_calls'], 26)
+        self.assertEqual(cross_methods['slot_guard_repair']['preserved_decision'], 12)
+        self.assertEqual(cross_methods['slot_guard_repair']['condition_mutated'], 0)
+        self.assertEqual(cross_methods['generic_self_refine_budget_matched']['preserved_decision'], 8)
+        self.assertEqual(cross_methods['generic_self_refine_budget_matched']['condition_mutated'], 4)
+        self.assertEqual(cross_methods['generic_self_refine_all']['preserved_decision'], 8)
+        self.assertEqual(cross_methods['generic_self_refine_all']['condition_mutated'], 4)
+
 
 if __name__=='__main__':unittest.main()

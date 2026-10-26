@@ -1,0 +1,118 @@
+[
+  {
+    "id": "pa_2011_36",
+    "title": "平安住院安心医疗保险",
+    "insurer": "平安",
+    "url": "https://resources.pingan.com/app_upload/file/annuity/2011052415580436.pdf",
+    "sha256": "10916a68758a238f696dbd4593cb198e5a5061eb80dfbcd5ba39aef745a1cf37",
+    "bytes": 282952,
+    "document_type": "heldout_formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 1,
+      "normalized_start": 399,
+      "normalized_end": 1063,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "305621b9c6ac0737fde558f54d5ff92fb3e95503341b4867e17003de9fa9c2ab",
+      "bbox_pdf_points": [
+        55.680023193359375,
+        456.574951171875,
+        546.2400512695312,
+        731.6149291992188
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.0,
+        842.0
+      ]
+    }
+  },
+  {
+    "id": "pa_p0254",
+    "title": "平安住院医疗保险",
+    "insurer": "平安",
+    "url": "https://resources.pingan.com/app_upload/file/paylx/20150422P0254.pdf",
+    "sha256": "d6ad23849fec1e925d700e47d825c90088c790c0c533b2f548091031a35942cc",
+    "bytes": 222103,
+    "document_type": "heldout_formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 1,
+      "normalized_start": 237,
+      "normalized_end": 493,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "dcc751db8822a24fdbc8eadf9b7df5541b9c5ca953064b5adf027b1fde85e352",
+      "bbox_pdf_points": [
+        56.66400146484375,
+        381.7689514160156,
+        561.0055541992188,
+        487.86895751953125
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ]
+    }
+  },
+  {
+    "id": "pa_p0321",
+    "title": "平安肺癌疾病保险",
+    "insurer": "平安",
+    "url": "https://resources.pingan.com/app_upload/file/annuity/20150309P0321.pdf",
+    "sha256": "e04e0b452858d539886623bdce909e1a3927996234c24d36c271cb32e0dcdda6",
+    "bytes": 145791,
+    "document_type": "heldout_formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 1,
+      "normalized_start": 237,
+      "normalized_end": 504,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "addc2689c0483befc68b262b548f39260443f592403274c8b3a3813b8e3b0b26",
+      "bbox_pdf_points": [
+        56.66400146484375,
+        381.7689514160156,
+        555.7642211914062,
+        501.3089599609375
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ]
+    }
+  },
+  {
+    "id": "cpic_93896",
+    "title": "附加（广西地区）学生幼儿住院医疗保险（2025版）",
+    "insurer": "太平洋",
+    "url": "https://www.cpic.com.cn/upload/resources/file/2026/03/31/93896.pdf",
+    "sha256": "309d8f029fb8ea4266a6986c4a6863aa0f8c4dc416b5b3799250044ad76d2a48",
+    "bytes": 180250,
+    "document_type": "heldout_formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 1,
+      "normalized_start": 378,
+      "normalized_end": 952,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "79f5160b4c66dcaad120f6fb415675fbb073750daebc4ba2551a67c37be3226c",
+      "bbox_pdf_points": [
+        90.0,
+        375.3044738769531,
+        510.4900207519531,
+        662.4734497070312
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2999877929688,
+        841.9000244140625
+      ]
+    }
+  }
+]

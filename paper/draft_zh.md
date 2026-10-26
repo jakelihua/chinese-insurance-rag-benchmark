@@ -1,18 +1,18 @@
-# 少量真实问题能否校准中文保险合成评测？面向检索器选型与业务条件守恒的探索研究
+# 面向合成 RAG 评测的条款约束决策保持验证：中文保险业务条件漂移、样本外正式条款确认与检索器选型诊断
 
 **作者：** Shunchi Wang（Independent Researcher，`jakelihua@gmail.com`）  
 **代码与数据仓库：** [https://github.com/jakelihua/chinese-insurance-rag-benchmark](https://github.com/jakelihua/chinese-insurance-rag-benchmark)  
-**范围说明：** 当前实验覆盖公开保险问答回答检索（第一、二轮）、可追溯保险正式条款受控条件验证（第三轮第5.3节）以及受医疗临床路径与劳动法规则启发的多阈值合成规则编译器压力测试（第5.4节），不声称线上自动理赔裁决收益或真实法定/临床医疗指南适用性；第三轮双盲独立人工标注包已生成就绪，待人工完成后运行 `score_annotations.py` 统计专家一致率。
+**范围说明：** 本研究所有实验均处于**零模型权重预训练或微调（No LLM/Embedding Fine-Tuning）**的推理评测、词法/向量索引、统计校准与符号规则验证范畴（仅拟合TF-IDF/BM25统计量与 `src/experiment.py` 中的2折逻辑回归倾向性分类器）。实验覆盖公开保险问答回答检索（第一、二轮）、**9份可追溯保险正式条款PDF**受控条件验证与样本外冻结解析器确认（第三轮第5.3节：5份开发条款 + 4份新增样本外确认条款）以及受医疗临床路径与劳动法规则启发的多阈值合成规则编译器**等调用预算（Equal-Call-Budget）强基线对照**（第5.4节），不声称线上自动理赔裁决收益或真实法定/临床医疗指南适用性；第三轮双盲独立人工标注包已生成就绪，待人工完成后运行 `score_annotations.py` 统计专家一致率。
 
 ---
 
-## 摘要（探索版 v0.4 — 经代码级证据审计修订）
+## 摘要（探索版 v0.5 — 经代码级证据审计、文献差异化核验与样本外/等预算确认修订）
 
-中文保险问答的公开用户数据通常存在原始出处缺失、回答质量不确定和产品条件不完整等限制。本文围绕“合成评测何时误导检索器选型、分布校准何时失效、以及生成过程为何破坏业务可回答性”展开三轮递进式本地实证探索：
+中文保险问答的公开用户数据通常存在原始出处缺失、回答质量不确定和产品条件不完整等限制。本文围绕**“为何 100% 检索命中率的合成问句仍会丢失或篡改关键核保理赔条件”**这一核心问题，构建**源条款约束下的合成问句决策保持验证与符号修复框架**，并以两轮检索器选型与源抽样混杂诊断作为前置基线：
 
 1. **第一轮（词法检索与抽取式代理基线）**：在从8,362条原始记录清洗去重得到的3,746条回答库、750条真实校准池问句和2,994条保留真实测试问句上，比较6种字符级TF-IDF与BM25检索器。抽取式关键词代理与真实测试均选中 `bm25_char2`（MRR@10分别为0.9335与0.3817），而复制回答首句的前缀诊断对照则选错为 `tfidf_char3_5`（真实选择遗憾0.1090）。当真实样本预算达到50题及以上时，直接使用真实校准样本（`real_only`）在5次重复采样中100%选中最优词法系统，字符长度与密度比重加权未表现出额外选型收益。
 2. **第二轮（跨模型LLM生成、源抽样混杂分解、探索性源重叠度门控与检索器候选集合暂缓选型）**：在同一划分下固定抽取256个源回答，分别使用本地 `Qwen2.5-1.5B-Instruct`（MPS `float32/eager`，249个共同格式有效源回答）与商用云端模型 `Qwen-Plus`（`temperature=0`，179个共同格式有效源回答）生成零样本（`zero_shot`）与3例真实问法引导（`few_shot_3`）合成问句，并引入 `BGE-small-zh-v1.5` 密集检索与固定 `RRF(k=60, top100)` 混合检索，开展360组同预算校准对照与10,000次问题级配对bootstrap检验。结果显示：在全量2,994条真实测试问句上，纯密集检索 `bge_small_zh` 最优（MRR@10为0.5216 vs. 0.5030，配对差值 $+0.0187$，10,000次配对bootstrap 95%区间 $[+0.0077, +0.0296]$；对509条超长回答切分762个额外尾部切片做零截断512窗口/256步长 `Full-MaxP` 复核仍以0.5165 vs. 0.5007保持 $+0.0158$ 显著领先），而本地1.5B与云端 `Qwen-Plus` 在零样本与3例少样本下均选中混合检索 `rrf_bm25_bge`（1.5B合成MRR@10为0.5647与0.4124，`Qwen-Plus` 为0.7371与0.6813）。进一步在**相同目标文档子集**（1.5B对齐207篇文档/209条真实测试题，`Qwen-Plus` 对齐151篇文档/153条真实测试题）上分解这一差距表明：仅抽取179–249篇源文档存在显著的**源文档抽样混杂**（在对齐真实子集上，真实RRF点估计已微弱领先真实BGE：0.4975 vs. 0.4696与0.4980 vs. 0.4668，95%区间 $[-0.0645, +0.0096]$ 与 $[-0.0687, +0.0073]$ 均跨零）；在固定这209与153对配对样本后，尽管零样本生成显著抬高了问句对源文档的二元字符包含率 $\kappa_2(q', d^*)$（0.3253 $\to$ 0.4775与0.3167 $\to$ 0.4638）并显著推高 `bm25_char2` 得分（配对增益 $+0.0925$，95%区间 $[+0.0227, +0.1633]$ 与 $+0.2457$，区间 $[+0.1695, +0.3216]$），但RRF相对BGE优势的**配对双重差分增量** $\Delta\Delta_{\text{RRF}-\text{BGE}} = (\text{MRR}_{\text{RRF}}-\text{MRR}_{\text{BGE}})_{\text{syn}} - (\text{MRR}_{\text{RRF}}-\text{MRR}_{\text{BGE}})_{\text{real}}$ 在全部4组设定下的95%置信区间均跨零（1.5B `zero_shot` 为 $+0.0123$ $[-0.0375, +0.0649]$，1.5B `few_shot_3` 为 $-0.0259$ $[-0.0736, +0.0217]$，`Qwen-Plus zero_shot` 为 $-0.0020$ $[-0.0479, +0.0438]$，`Qwen-Plus few_shot_3` 为 $-0.0298$ $[-0.0791, +0.0204]$），表明在当前配对样本量下尚不能将RRF相对BGE的优势变化从源文档抽样方差中统计显著地剥离出来。仅依赖问题表面特征的边缘密度比重加权未能纠正偏差（0%选中 `bge_small_zh`）；作为探索性事后诊断的**关系型源重叠度门控（`source_overlap_gated`）**在全部校准预算 $B \in \{25, 50, 100, 200\}$ 及冷启动分位点 $q \in [0.10, 0.30]$ 下均恢复全量测试集冠军 `bge_small_zh`（当 $q \ge 0.40\text{--}0.50$ 混入高重叠样本后翻转回RRF，而相同样本量的1,000次随机子采样仅在5.9%与18.2%中选中BGE）；同时，基于校准集配对bootstrap的**检索器候选集合暂缓选型（Candidate-Set Abstention）**在低预算（25题）下将错误确定选型率从60%–100%降至0.0%（暂缓比例80%，候选集最优覆盖率100%，平均集合大小2.60）。
-3. **第三轮（可追溯保险条款、槽位完整度与无参考依赖结论可确定性分离、以及多阈值合成规则编译器压力测试）**：采集平安、太平洋、泰康3家保险集团的5份官方正式条款PDF（保留URL、SHA256、页码、规范化字符区间与PDF坐标锚点），在显式限定的“等待期单项排除判断”规则世界内构造20组种子场景 $\times$ 4类受控变体（共80条受控测试样本，每条 `missing_critical` 样本均附带两个导出相反裁决的补全反例见证），并跨越本地 `Qwen2.5-1.5B-Instruct` 与商用API模型 `Qwen-Plus`、`Qwen-Max`（未公开参数量）开展120次配对改写。我们在评估器中严格区分**全槽位表面完整度（`all_slots_preserved`）**与**无参考依赖的形式化规则结论可确定性（`enumerate_admissible_decisions`，仅依据问句观测槽位与公开条款规则，在完整阈值等价分区上枚举缺失槽位的所有合法补全以检验结论是否唯一，绝不读取参考 `seed_frame` 元数据）**。实验发现：（a）120条生成问句100%通过宽松格式检查（单问号严格格式通过率在1.5B上为33/40，在 `Qwen-Plus`/`Qwen-Max` 上为40/40）；（b）在当前20组种子样本上，`Qwen-Plus` 与 `Qwen-Max` 的观测数值篡改率为0/20（1.5B上生效第20天篡改为第2天占15% [3/20]；注：20题样本上的0/20观测值不代表总体零错误率），但无约束口语改写下的语用槽位省略在三个受测模型上持续存在（`ordinary_style` 的独立全槽位匹配率仅为30%、0%、20%，独立结论可确定率仅为30%、0%、45%）；（c）显式条件守恒提示 `condition_prompt` 将独立全槽位匹配率提升至 **95%–100%**，将独立结论可确定率提升至 **95%（1.5B）与100%（`Qwen-Plus`/`Qwen-Max`）**（绑定源保单下三个模型均达100%）；（d）进一步在受医疗临床路径与劳动法规则启发的**多阈值合成规则编译器压力测试**（4份研究者构造的半合成规则文本、16组种子、64条受控样本、由42次本地1.5B推理生成的48条方法记录）中，完备化全阈值等价区域（含 $>365$ 天的第400天代表值）、修复否定特批极性优先级并消除对参考帧 `required_fields` 的依赖后，将 `condition_prompt` 与单步**闭环槽位守卫修复（`slot_guard_repair`）**结合可将解析器核验的全槽位完整率从6.2%（`ordinary_style`）和37.5%（`condition_prompt`）提升至 **68.8%（11/16）**，将无参考依赖结论可确定率从6.2%和43.8%提升至 **75.0%（12/16，其中医疗启发规则达100.0% [8/8]）**，并将解析器检出的阈值篡改率从31.2%（5/16）完全清零至 **0.0%（0/16）**。
+3. **第三轮（9份可追溯保险条款、冻结解析器样本外确认、标题掩码检索与等调用预算多阈值规则修复对照）**：采集平安、太平洋、泰康3家保险集团的 **5份开发期官方正式条款PDF**（80条受控样本 + 120次跨模型配对改写）以及 **4份全新样本外官方正式条款PDF**（`pa_2011_36`、`pa_p0254`、`pa_p0321`、`cpic_93896`，16组种子、64条含双反例见证的受控样本），在评估器中严格区分**全槽位表面完整度（`all_slots_preserved`）**与**无参考依赖的形式化规则结论可确定性（`enumerate_admissible_decisions`）**。在5份开发条款上，`ordinary_style` 的独立结论可确定率仅为30%、0%、45%，而 `condition_prompt` 达95%–100%。在 **4份全新样本外条款**上，**零正则修改的冻结第三轮解析器与验证器**对64条受控样本实现100%（64/64）预期分类，并显示 `ordinary_style` 的模板新颖度（$1-\kappa_2=0.6410$）虽高，但独立结论可确定率为 **0%（0/16）**（已知源保单下仅31.2% [5/16]），而 `condition_prompt` 与 `slot_guard_repair` 达 **93.8%（15/16自动冻结正则通过，人工语义复核16/16）且条件篡改率为0%**；进一步对全部9份条款做**去产品名与公司名的标题掩码检索（`title_masked_retrieval`）**发现，`bm25_char2` 与 `bge_small_zh` 的9条款Top-1准确率从75.0%/62.5%–81.2%骤降至31.2%–56.2%/25.0%–56.2%，证实常规检索分高度依赖产品名锚点而对等待期条件丢失完全失明。最后，在16组种子（64条受控样本）的多阈值合成规则编译器压力测试上开展 **7方法等调用预算（Equal-Call-Budget）对照**：全部6种非JSON方法在标准与标题掩码下均取得100%（16/16）Top-1检索，但单通结构化JSON改写格式完全崩溃（`format_valid=0/16`，结论保持仅31.2%），且在**完全相同的26次LLM调用预算**下，无符号解析器反馈的LLM自检基线（`generic_self_refine_budget_matched`，26次调用；全量32次调用结果相同）仅获 **37.5%（6/16）全槽位匹配率与50.0%（8/16）结论可确定率，仍残留25.0%（4/16）阈值篡改**；而由符号槽位与可达性验证驱动的 **`slot_guard_repair`（同为26次调用）**将全槽位匹配率提升至 **68.8%（11/16）**，将结论可确定率提升至 **75.0%（12/16）**，并将解析器检出的阈值篡改率清零至 **0.0%（0/16）**。
 
 ---
 
@@ -51,11 +51,23 @@ Saad-Falcon等人的ARES框架[2]结合合成训练的评判器与少量人工�
 
 **对本研究的约束**：必须严格区分两类截然不同的统计问题——（a）**同一查询分布下评判器标签的测量误差校准**（ARES与PPI的标准设定，其无偏性依赖于在同一批查询上同时观测金标准标签与代理预测以估计偏差 $\mathbb{E}_P[\tilde{m}(q) - m(q)]$）；以及（b）**未配对查询分布偏移下的选型校准**（即合成查询 $q' \sim Q$ 与真实查询 $q \sim P$ 并非同一问题，无法在同一真实问题上直接计算合成查询得分）。我们在第一、二轮中实证检验了字符长度重加权、交叉拟合逻辑回归密度比重加权、固定混合以及基于均方误差（MSE）的方差缩减估计，并如实报告其**未能稳定超越同预算直接真实样本基线（`real_only`）的负结果**，从理论上阐明了当条件期望函数 $\mathbb{E}[m(s, q) \mid \phi(q)]$ 本身随生成机制改变时，低维文本特征密度比无法消除系统层面的选型偏差。
 
-### 2.3 中文保险基准、可回答性（Answerability）与反事实鲁棒性
+### 2.3 中文保险基准、可回答性（Answerability）、追问澄清（Clarification）与反事实鲁棒性
 
-Feng等人构建的InsuranceQA[7]及其后续中文问答语料提供了社区保险问答对，但其社区回答存在重复且缺乏正式核保与等待期结构化参数，不能直接充当经核验的理赔金标准。此外，自然语言处理领域已有大量关于不可回答问题检测（Unanswerable QA）、澄清问题生成（Clarifying Question Generation）以及反事实数据增强（Counterfactual Data Augmentation）的研究。
+Feng等人构建的InsuranceQA[7]及其后续中文问答语料提供了社区保险问答对，但其社区回答存在重复且缺乏正式核保与等待期结构化参数，不能直接充当经核验的理赔金标准；Ding等人的InsQABench[15]评估了大模型在真实保险产品规则问答上的表现。在检索扰动与质量评估方面，Kucia与Gawlik[8]在FiQA上展示了查询改写扰动对BM25、密集检索与混合RRF排名稳定性的影响；Fu等人的QGEval[9]构建了问题生成（Question Generation）多维质量评估基准。在追问澄清与规则冲突领域，Saeidi等人的ShARC[10]、Zhang等人的CLAMBER[11]、Zhao等人的AskBench[12]以及Divekar等人的PRECISE[13]聚焦于评测或训练**下游问答/对话助手**在面对模糊用户提问时主动发起澄清追问（Clarification Questioning），而Chen等人的RC-RAG[14]研究了RAG生成中的规则冲突检测。
 
-**对本研究的约束**：第三轮实验不声称首次提出“可回答性”或“反事实测试”，而是针对保险合同条款的逻辑结构，建立**可追溯至官方PDF字符坐标与SHA256哈希的有限规则编译器**，强制要求每一个“缺失关键条件（`missing_critical`）”样本必须附带两个在形式化规则下产生相反裁决的**显式反例见证（Counterexample Witnesses）**，从而彻底摆脱依赖大模型主观判断“是否需要追问”的循环论证。
+**对本研究的约束与差异化定位**：本研究解决的是上述工作的**上游正交问题**——我们不是训练或评测下游对话助手能否在给定残缺问题上发起追问，而是针对**RAG合成评测集构造过程本身**，建立**可追溯至官方PDF字符坐标与SHA256哈希的有限规则可达性验证器**，严格区分`PRESERVED_DECISION`（含非关键槽位省略但结论唯一保持）、`CONDITION_MUTATED`/`COUNTERFACTUAL_FLIP`（条件或阈值篡改）与双反例见证认证的 `DEGRADED_TO_CLARIFY`（必须追问澄清），并通过样本外正式条款确认与等调用预算对照证明符号槽位验证器相对于纯提示词、单通JSON改写及无符号反馈LLM自检（Self-Refine）的必要性。
+
+### 2.4 数据来源链路、授权边界与“零模型权重训练”核验
+
+为严格澄清数据真值层级与模型使用方式，下表完整列出本研究涉及的全部材料、上游来源链路与实际用途：
+
+| 当前材料 / 模型 | 来源链路与规模 | 本研究中的实际用途 | 准确属性与授权/预训练暴露说明 |
+|---|---|---|---|
+| `baoxianzhidao_filter.csv` | 公开 GitHub 镜像 `meowcao/InsuranceModel` $\leftarrow$ `SophonPlus/ChineseNlpCorpus`（`datasets/baoxianzhidao/intro.ipynb`）；原始8,362条 $\to$ 清洗后3,744个问题、3,746条唯一回答 | 第一、二轮检索索引、防泄漏连通分量校准池（750题）/测试集（2,994题）与256条生成源回答 | 源自百度知道历史社区问答（发布前已移除原始URL与敏感信息，无法逐帖恢复原始网页）；“最佳回答”属社区弱标签而非精算/法律真值；镜像与上游说明均未提供经核实的开放重分发许可证链（不同于带MIT标记的其它无关语料）；公开镜像可能已进入中文基座大模型预训练语料。 |
+| 5份开发期保险正式条款PDF | 平安、太平洋、泰康3家保险集团公开披露网页 | 第三轮等待期形式化规则编译器、20组种子/80条受控样本与120条跨模型改写 | 公开可访问的官方正式合同条款（SHA256与PDF坐标框核验），非现成公开标注数据集；重分发许可未确认（仓库仅分发哈希、坐标锚点与短摘录，不重分发原始PDF）。 |
+| 4份样本外保险正式条款PDF | 平安、太平洋公开披露网页（`pa_2011_36`、`pa_p0254`、`pa_p0321`、`cpic_93896`） | 第5.3.5节对**冻结第三轮解析器与验证器**的样本外泛化确认（16组种子、64条受控样本、112条生成记录） | 第三轮正则设计期间完全不可见的样本外正式条款；同样遵循SHA256+PDF坐标锚点核验与不重分发原始PDF原则。 |
+| 4段跨领域多阈值规则文本 | 本项目研究者构造（16组种子、64条受控样本） | 第5.4节多阈值规则编译器压力测试与等调用预算（Equal-Call-Budget）修复对照 | 受医疗临床路径与劳动法条文启发的**研究者设定合成规则世界**，仅用于形式化规则与改写压力测试，不代表真实临床指南或法定裁判基准。 |
+| `Qwen2.5-1.5B`、`Qwen-Plus/Max`、`BGE-small-zh` | 本地冻结权重（1.5B、BGE）及商用云API（`temperature=0`） | 仅用于推理阶段的问句生成、向量编码（含 `Full-MaxP`）与闭环修复 | **零大模型预训练或微调（No SFT/LoRA）**；3-shot示例仅为上下文提示；代码中唯一拟合的参数为TF-IDF/BM25词表统计量及 `src/experiment.py` 中用于估计真实/合成倾向性权重的2折交叉拟合逻辑回归分类器。 |
 
 ---
 
@@ -304,31 +316,47 @@ $$f(z) = \begin{cases}
    - 第一，在 `generated_ordinary_style` 下，由于14/20题丢弃了产品全名（如把《平安员工及家属住院医疗保险》《太保住院E款》《泰康悦享环球》统称为“这个保险”或“贵公司产品”），`bm25_char2` 将目标条款排在第一位的准确率从 **100% 跌至 50%（MRR@10 = 0.6792）**，而 `generated_condition_prompt` 在 `bm25_char2`、`bm25_char1` 和 `tfidf_char2` 上均保持 **100% Top-1 准确率（MRR@10 = 1.0000）**。
    - 第二，在受控样本中，无论是完整可答问句（`complete`）、必须追问的残缺问句（`missing_critical`），还是答案完全相反的反事实问句（`counterfactual`），它们在 `bm25_char2` 上的检索MRR@10均为 **1.0000**。这有力证明了**高检索命中率（Retrieval Hit/MRR）绝不等于生成问句保持了源文档的可回答性或参考答案标签**——如果评测集在合成阶段发生了关键条件缺失或反事实漂移，即便检索器100%召回源条款，下游RAG/Agent评测沿用原答案标签也会产生系统性的错误评判。
 
-### 5.4 多阈值合成规则编译器压力测试（受医疗临床路径与劳动法规则启发）
+#### 5.3.3 样本外4份全新官方保险条款确认与标题掩码检索（`src/equal_budget_and_heldout_study.py`）
 
-为检验上述条件丢失、法定阈值覆盖偏差及闭环槽位修复机制在保险等待期之外的多阈值规则结构上是否有效，我们在 `src/cross_domain_study.py`（数据与结果存盘于 `data_v3/cross_domain_controlled_cases.jsonl`、`data_v3/cross_domain_generations.jsonl` 与 `data_v3/cross_domain_summary.json`）中构建了**多阈值合成规则编译器压力测试（Synthetic Rule-Compiler Stress Test）**。**来源边界显式声明**：不同于第5.3节可追溯至官方PDF字节坐标的5份保险正式合同条款，本节的4段规则文本（`provenance = "synthetic_rule_compiler_stress_test"`）属于**受医疗临床路径与劳动法条文启发、由研究者面向确定性编译器构造的半合成规则世界**（例如将“1年”简化为连续日阈值365天、将“三个月”简化为90天并统一引入显式特批豁免开关以测试多阈值交互；它们**不代表**现行国家医保目录原文或司法解释权威条文）。该压力测试包含4份合成规则文本、16组种子场景、64条含双反例见证的受控样本，以及由 **42次实际本地 `Qwen2.5-1.5B-Instruct` `float32/eager` 推理调用**生成的 **48条方法评估记录**（16次 `ordinary_style` + 16次 `condition_prompt` + 对未通过槽位检查的10条样本执行1步修复调用，其余6条直接复用已完备的 `condition_prompt` 输出）：
-- **受医疗路径启发的合成规则（`healthcare`，2份合成规程，8组种子，32条受控样本）**：（1）`med_egfr_tki`（模拟二线转换14天洗脱期阈值、T790M阳性前提及一线/急诊特批豁免）；（2）`med_vte_prophylaxis`（模拟膝关节置换10天 vs. 髋关节置换35天预防窗口及活动性出血禁忌与会诊豁免）。
-- **受劳动法启发的合成规则（`legal`，2份合成法条，8组种子，32条受控样本）**：（3）`law_work_injury`（模拟非本人主要责任前提、单位30天 vs. 个人/近亲属365天申报时限及延期豁免）；（4）`law_noncompete`（模拟负有保密义务主体、连续未付补偿超90天阈值及宽限期豁免协议）。
+为验证第三轮的槽位解析器与可达性验证器是否对5份开发条款过拟合，并量化条款检索分对“显式产品名称锚点”的依赖程度，我们额外采集了 **4份在解析器设计阶段完全未见的官方保险正式条款PDF**（`data_v3/heldout_clauses_sources.json`）：
+1. `pa_2011_36`（《平安住院安心医疗保险》，SHA256 `10916a68...`）：双档等待期合同，一般住院医疗津贴等待期 **30天** vs. 癌症住院医疗津贴等待期 **90天**（意外伤害与获批重新投保免等待期）。
+2. `pa_p0254`（《平安住院医疗保险》，SHA256 `d6ad2384...`）：住院医疗社保内/外费用保险金等待期 **90天**（意外伤害与获批重新投保免等待期）。
+3. `pa_p0321`（《平安肺癌疾病保险》，SHA256 `e04e0b45...`）：专病重疾险，肺癌/原位癌等待期 **30天**，无意外伤害豁免分支（`accident_exempt=False`，获批重新投保免等待期）。
+4. `cpic_93896`（《附加（广西地区）学生幼儿住院医疗保险（2025版）》，SHA256 `309d8f02...`）：学生幼儿住院医疗等待期 **30天**，意外伤害免等待期，但不保证续保重新投保无免等待期豁免条款（`approval_exempt=False`）。
 
-我们在 `extract_cross_slots_v2`、`enumerate_cross_decisions` 与 `evaluate_cross_outcome` 中：（1）在完整阈值等价分区 $\{7, 10, 12, 14, 20, 30, 32, 35, 45, 90, 120, 365, 400\}$（完整覆盖全部阈值 $\{10, 14, 30, 35, 90, 365\}$ 的 $< t, = t, > t$ 等价区域）上枚举未知天数；（2）修复了否定、停药与否定特批豁免的极性优先级（确保 `"不负有保密义务"` 优先判为 `disqualified`、`"已停用常规抗凝"` 优先判为 `secondary`、`"没有活动性出血"` 优先判为 `qualified`、`"尚未获…特批"` 与 `"未批准延长申请时限"` 优先判为 `approved_waiver=False`、显式未知 `"尚不清楚"` 判为 `unknown` $\to \{False, True\}$）；（3）彻底移除了 `enumerate_cross_decisions` 对参考 `seed_frame['required_fields']` 的读取依赖，并在 `evaluate_cross_outcome` 中统一检查全部6个schema槽位（`ALL_CROSS_FIELDS`，包括原种子未列入 `required_fields` 但改写新增的例外豁免槽位）且始终先计算可达集合 `reachable`：当且仅当无槽位篡改且 `reachable == [ref_dec]` 时判为 `PRESERVED_DECISION`；当任意槽位被篡改、或 $|\text{reachable}|=1$ 且唯一可达结论与参考结论相反（例如删除肯定豁免短语后按公开默认无豁免规则唯一导出相反结论，或额外添加肯定豁免导致结论翻转）时判为 `CONDITION_MUTATED`；当 $|\text{reachable}| \neq 1$ 时判为 `DEGRADED_TO_CLARIFY`；（4）统一了从头生成与 `--score-only` 重评的修复触发规则 `should_trigger_slot_guard_repair(missing, mutated) = bool(missing or mutated)`（在 `condition_prompt` 的16条输出上一致触发10次修复，含非关键槽位 `threshold_days` 缺失的 `cross-001`）：
+我们在4份样本外条款上构造16组种子与64条含双反例见证的受控样本（`data_v3/heldout_controlled_cases.jsonl`）。在**零正则修改（严格冻结第三轮解析器与验证器）**的前提下，冻结验证器对64条受控样本实现 **100%（64/64）预期分类**（`complete` 与 `surface` 各16/16 `PRESERVED_DECISION`，`missing_critical` 16/16 `DEGRADED_TO_CLARIFY`，`counterfactual` 16/16 `CONDITION_MUTATED`）。在 `Qwen2.5-1.5B-Instruct` 改写及合并9份官方条款（5份开发 + 4份样本外）的标准检索与标题掩码检索（`title_masked_retrieval`，遮蔽 `《产品名》` 与保险公司名称）结果如下表所示（`data_v3/equal_budget_and_heldout_summary.json`）：
 
-| 合成规则压力测试指标 | `ordinary_style` | `condition_prompt`（开环） | **`slot_guard_repair`（单步闭环修复）** |
-|---|---:|---:|---:|
-| 宽松格式有效率 (`format_valid`, /16) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
-| 单问号严格格式有效率 (/16) | 68.8% (11/16) | 100.0% (16/16) | **100.0% (16/16)** |
-| 4份合成规则 Top-1 准确率 (`bm25_char2`) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
-| **解析器核验全槽位匹配率 (`all_slots_preserved`, /16)** | 6.2% (1/16) | 37.5% (6/16) | **68.8% (11/16)** |
-| **形式化规则结论可确定率 — 总计 (/16)** | 6.2% (1/16) | 43.8% (7/16) | **75.0% (12/16)** |
-| — 医疗启发规则子集 (/8) | 12.5% (1/8) | 62.5% (5/8) | **100.0% (8/8)** |
-| — 劳动法启发规则子集 (/8) | 0.0% (0/8) | 25.0% (2/8) | **50.0% (4/8)** |
-| 真实不可确定退化 `DEGRADED_TO_CLARIFY` (/16) | 81.2% (13/16) | 25.0% (4/16) | 25.0% (4/16) |
-| **解析器核验条件/阈值篡改 (`CONDITION_MUTATED`, /16)** | 12.5% (2/16) | 31.2% (5/16) | **0.0% (0/16)** |
-| v1严格正则通过率 (`v1_strict_regex`, /16) | 0.0% (0/16) | 6.2% (1/16) | 12.5% (2/16) |
+| 方法 / 基线 | LLM调用次数 | 全槽位完整 (/16) | 独立结论可确定 (/16) | 已知源保单结论可确定 (/16) | 条件篡改 (/16) | 模板新颖度 $1-\kappa_2$ | 9条款标准检索 Top-1 (`bm25_char2` / `bge`) | 9条款标题掩码 Top-1 (`bm25_char2` / `bge`) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `seed_passthrough`（原模板上界） | 0 | 100.0% (16/16) | 100.0% (16/16) | 100.0% (16/16) | 0.0% (0/16) | 0.0000 | 75.0% / 75.0% | 75.0% / 25.0% |
+| `ordinary_style`（普通口语改写） | 16 | 0.0% (0/16) | 0.0% (0/16) | 31.2% (5/16) | 0.0% (0/16) | **0.6410** | 56.2% / 37.5% | 56.2% / 56.2% |
+| `condition_prompt`（开环条件守恒） | 16 | 93.8% (15/16) | 93.8% (15/16)* | 93.8% (15/16)* | **0.0% (0/16)** | 0.2562 | 75.0% / 62.5% | 31.2% / 31.2% |
+| `structured_json_rewrite`（单通JSON） | 16 | 81.2% (13/16) | **100.0% (16/16)** | **100.0% (16/16)** | **0.0% (0/16)** | 0.0727 | 75.0% / 81.2% | 56.2% / 50.0% |
+| `generic_self_refine`（等预算17次 / 全量32次） | 17 / 32 | 93.8% (15/16) | 93.8% (15/16)* | 93.8% (15/16)* | **0.0% (0/16)** | 0.2562 | 75.0% / 62.5% | 31.2% / 31.2% |
+| **`slot_guard_repair`（冻结验证器）** | **17** | **93.8% (15/16)** | **93.8% (15/16)\*** | **93.8% (15/16)\*** | **0.0% (0/16)** | **0.2562** | 75.0% / 62.5% | 31.2% / 31.2% |
 
-**合成规则压力测试的三项核心结论**：
-1. **`ordinary_style` 引发严重条件丢失、反相标签碰撞与极性反转**：尽管16条 `ordinary_style` 改写在4份合成规则上的 `bm25_char2` Top-1检索准确率达100%，其全槽位完整率与独立结论可确定率均为 **6.2%（1/16，医疗1/8、法律0/8）**。其中 `cross-001`（停药第7天 $\to$ `RULE_EXCLUDED`）与 `cross-002`（停药第20天 $\to$ `RULE_ELIGIBLE`）被坍缩为完全相同的问句 `"我现在能申请奥希替尼的门诊特药报销吗？"`；`cross-011` 将 `"交警认定为本人主要责任"`（`RULE_EXCLUDED`）直接反转改写为 `"交警说不是主要责任"`（`CONDITION_MUTATED`）。
-2. **开环 `condition_prompt` 的“阈值覆盖偏差（Threshold-Overwriting Bias）”与非关键槽位分离**：开环 `condition_prompt` 将全槽位匹配率从6.2%提升至37.5%（6/16），将无参考依赖形式化结论可确定率提升至43.8%（7/16，因为 `cross-001` 在 `condition_prompt` 下［以及 `cross-004` 在 `slot_guard_repair` 下］明确指出了单阈值规程 `med_egfr_tki`，其唯一洗脱期阈值为14天，故省略 `threshold_days` 仍可在停药第7天唯一判定 `RULE_EXCLUDED`），但在5/16（31.2%）个种子（`cross-004` 及 `cross-013..016`）中将用户实际经过的天数（第7天、第45天或第120天）篡改为源规则中的阈值天数（14天或90天）。
-3. **单步闭环 `slot_guard_repair` 清零解析器检出的阈值篡改**：执行1步闭环反馈修复（10次重生成调用，由 `cross_domain_generations.jsonl` 中的 `repaired` 标记精确统计为 $16+16+10=42$ 次调用）后，解析器核验的全槽位完整率升至 **68.8%（11/16）**，无参考依赖形式化结论可确定率升至 **75.0%（12/16，其中医疗启发规则达100.0% [8/8]，劳动法启发规则达50.0% [4/8]）**，且解析器检出的 `CONDITION_MUTATED` 从31.2%（5/16）降至 **0.0%（0/16）**。需要强调的是，由于修复触发器与自动评估器共用 `extract_cross_slots_v2`，该提升反映的是受控规则编译器下的槽位守恒率，不能替代独立人工语义盲审。
+*\*注：在唯一被冻结解析器标记为 `DEGRADED_TO_CLARIFY` 的 `heldout-008` 上，模型改写为 `"已经获得保险公司明确批准免除了等待期"`，语义上100%保留了批准免等待期条件（人工复核结论保持率为16/16），仅因助词 `"了"` 未被冻结正则 `免(?:去|除)?等待期` 覆盖而被保守标记。同时，当遮蔽产品全名与公司名后，9份条款池上的 `bm25_char2` 与 `bge_small_zh` Top-1准确率骤降至31.2%–56.2%与25.0%–56.2%，证明常规检索分依赖产品名匹配，而对等待期判定条件是否丢失毫无感知。*
+
+### 5.4 多阈值合成规则编译器压力测试与等调用预算（Equal-Call-Budget）强基线对照
+
+为检验条件丢失、法定阈值覆盖偏差及闭环槽位修复机制在多阈值规则结构上是否有效，并严格验证 `slot_guard_repair` 在**完全相同的LLM调用预算下**是否优于无符号解析器的强基线，我们在 `src/cross_domain_study.py` 与 `src/equal_budget_and_heldout_study.py`（数据存盘于 `data_v3/cross_domain_controlled_cases.jsonl`、`data_v3/cross_domain_summary.json`、`data_v3/cross_domain_equal_budget_generations.jsonl` 与 `data_v3/equal_budget_and_heldout_summary.json`）中构建了16组种子、64条含双反例见证受控样本的多阈值合成规则编译器压力测试（2份医疗路径启发规则 `med_egfr_tki`、`med_vte_prophylaxis` + 2份劳动法启发规则 `law_work_injury`、`law_noncompete`）。
+
+我们在 `Qwen2.5-1.5B-Instruct`（`float32/eager` 贪心解码）上系统对比了 **7种方法与基线**：（1）`seed_passthrough`（0次调用，原种子模板信息守恒上界）；（2）`ordinary_style`（16次调用）；（3）`condition_prompt`（16次调用，开环条件提示）；（4）`structured_json_rewrite`（16次调用，要求首行输出JSON槽位、次行输出 `QUESTION:` 问句）；（5）`generic_self_refine_budget_matched`（**26次调用**：在与 `slot_guard_repair` 完全相同的10个触发种子上执行第2次LLM自检重生成，但不提供符号解析器槽位反馈）；（6）`generic_self_refine_all`（**32次调用**：对全部16个种子执行2次调用LLM自检）；（7）**`slot_guard_repair`（26次调用：16次初稿 + 10次由符号解析器 `extract_cross_slots_v2` 缺失/篡改槽位诊断驱动的修复调用）**：
+
+| 方法 / 基线 | LLM调用次数 | 格式有效率 (/16) | 全槽位匹配 (/16) | 结论可确定率 总计 (医疗 / 法律) | `CLARIFY` (/16) | `MUTATED` (/16) | 模板新颖度 $1-\kappa_2$ | 源复制率 $\kappa_2$ | 4规则 Top-1 (标准 / 掩码 BM25 & BGE) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `seed_passthrough`（上界） | 0 | 100.0% (16/16) | 100.0% (16/16) | 100.0% (16/16) (8/8, 8/8) | 0.0% (0/16) | 0.0% (0/16) | 0.0000 | 0.6065 | 100% / 100% |
+| `ordinary_style`（口语） | 16 | 100.0% (16/16) | 6.2% (1/16) | 6.2% (1/16) (1/8, 0/8) | 81.2% (13/16) | 12.5% (2/16) | **0.5726** | 0.3806 | 100% / 100% |
+| `condition_prompt`（开环） | 16 | 100.0% (16/16) | 37.5% (6/16) | 43.8% (7/16) (5/8, 2/8) | 25.0% (4/16) | 31.2% (5/16) | 0.3376 | 0.5658 | 100% / 100% |
+| `structured_json_rewrite`（单通JSON） | 16 | 0.0% (0/16) | 6.2% (1/16) | 31.2% (5/16) (3/8, 2/8) | 37.5% (6/16) | 31.2% (5/16) | 0.6064 | 0.3911 | 100% / 93.8% |
+| `generic_self_refine`（等预算26次） | **26** | 93.8% (15/16) | 37.5% (6/16) | 50.0% (8/16) (5/8, 3/8) | 25.0% (4/16) | 25.0% (4/16) | 0.3151 | 0.5748 | 100% / 100% |
+| `generic_self_refine`（全量32次） | 32 | 93.8% (15/16) | 37.5% (6/16) | 50.0% (8/16) (5/8, 3/8) | 25.0% (4/16) | 25.0% (4/16) | 0.3133 | 0.5753 | 100% / 100% |
+| **`slot_guard_repair`（符号验证修复）** | **26** | **100.0% (16/16)** | **68.8% (11/16)** | **75.0% (12/16) (8/8, 4/8)** | **25.0% (4/16)** | **0.0% (0/16)** | **0.3342** | **0.4913** | **100% / 100%** |
+
+**等调用预算多阈值规则压力测试的四项核心结论**：
+1. **100% 检索 Top-1 与 93.8% 决策失效并存**：全部6种非JSON改写方法在 `bm25_char2` 与 `bge_small_zh`（无论标准检索还是去除规则标题的掩码检索）上均取得 **100.0%（16/16）Top-1准确率**，但 `ordinary_style` 的真实结论可确定率仅为 **6.2%（1/16）**，并将 `cross-001`（停药第7天 $\to$ `RULE_EXCLUDED`）与 `cross-002`（停药第20天 $\to$ `RULE_ELIGIBLE`）坍缩为同一问句 `"我现在能申请奥希替尼的门诊特药报销吗？"`。
+2. **单通结构化JSON改写与开环提示在多阈值规则下失效**：开环 `condition_prompt` 触发31.2%（5/16）的阈值覆盖篡改（将用户实际经过的第7/45/120天改写为规则阈值14天或90天）；而单通 `structured_json_rewrite` 在长多阈值提示下16/16无法遵循单行问句格式（直接输出多行JSON或丢失问句），结论保持率仅31.2%（5/16）且篡改率达31.2%（5/16）。
+3. **相同26次调用预算下，符号验证修复显著击败无符号反馈LLM自检**：在完全相同的 **26次LLM调用预算**下，无符号解析器反馈的 `generic_self_refine_budget_matched` 仅将结论可确定率从7/16微升至 **8/16（50.0%，全槽位匹配仍停留在6/16 [37.5%]）**，且仍残留 **4/16（25.0%）阈值篡改**（即便耗费32次调用在 `generic_self_refine_all` 上结果也完全停滞在8/16与4/16篡改）。相反，同样使用 **26次调用**的 **`slot_guard_repair`** 借助符号槽位定位将全槽位匹配率提升至 **68.8%（11/16，领先 $+31.3$ 个百分点）**，将形式化结论可确定率提升至 **75.0%（12/16：医疗8/8、法律4/8，领先 $+25.0$ 个百分点）**，并将解析器检出的 `CONDITION_MUTATED` 从25.0%–31.2%清零至 **0.0%（0/16）**，同时保持比 `generic_self_refine` 更高的模板新颖度（$0.3342$ vs. $0.3151$）和更低的源条款复制率（$0.4913$ vs. $0.5748$）。
 
 ---
 
@@ -337,29 +365,19 @@ $$f(z) = \begin{cases}
 为确保研究的可审计性与学术诚实，本草稿明确列出当前三轮实验的局限性与负面结果，不将其包装为已完结的通用算法证明：
 
 1. **负面结果完整保留**：
-   - 在第一轮词法检索与第二轮密集/混合检索选型中，基于字符长度和字符n-gram逻辑回归密度比的重加权方法（`synthetic_density_weighted`）以及0.5固定混合方法（`mix_real_density_0.5`），**均未展示出稳定超越同预算直接真实样本评测（`real_only`）的选型优势**。在第二轮 `zero_shot` 上，固定混合甚至在预算200题时将选中最优系统的比例从100%拉低至40%。
-   - 在第三轮中，v1严格正则槽位检查（`condition_guard.py`）虽然未放过任何实质条件缺失，但对 `condition_prompt` 的9条同义口语表达产生了保守误拒（将95%的实际条件保持率低估为50%）。
-2. **数据源与标签真值限制**：
-   - 第一、二轮使用的百度知道历史问答语料缺乏原始URL、发帖时间与重分发授权链；网页“最佳回答”仅代表历史页面关联，并非经核验的保险合同真值，且非穷尽相关性标注（其它回答可能同样相关）。
-   - 第二轮的40题语义支持度初审由助手辅助完成；第三轮的5份条款规则编译器由研究者依据官方PDF条款整理，虽然已生成完全盲化、无预填标签的双人独立标注包（`data_v3/independent_review/reviewer_A.html` 与 `reviewer_B.html`，各含80题场景动作判断与40题改写条件保持审核，见 `ANNOTATION_GUIDE.md`），但**真实人类标注者尚未完成填写与交叉裁决**。在独立人工标注完成前，本文不报告专家一致率（Cohen's $\kappa$）或确认性准确率。
-3. **跨领域结构泛化性与模型范围说明**：
-   - **跨领域泛化机制**：尽管本文实证数据聚焦于中文商业保险，但文中的两类失效机制及配套缓解方案直接适用于**临床试验入排筛查（医疗）、成文法与税务合规咨询（法律）、信贷准入核查（金融）**等受刚性规则约束的垂直领域。任何目标结论由多条件合取决策表 $f: \mathcal{Z} \to \mathcal{Y}$ 决定的领域，均可直接复用本文的**校准配对Bootstrap候选集暂缓选型（$\widehat{\mathcal{C}}_{0.95}$）**、**双反例见证准则（$f(z_{-k}, v_1) \neq f(z_{-k}, v_2)$）**与**显式条件槽位守恒提示（`condition_prompt`）**。
-   - **模型与任务范围限制**：本研究覆盖本地 `Qwen2.5-1.5B-Instruct` 以及商用云端API模型 `Qwen-Plus` 与旗舰 `Qwen-Max`（后两者为未公开参数量的商业API模型）三个模型层级，以及密集检索 `BGE-small-zh-v1.5`（509条超512 tokens回答在基线中发生截断，已通过762个额外尾部切片的零截断 `Full-MaxP` 滑动窗口实验复核；2条源回答在LLM生成提示中被截断）；第三轮覆盖3家保险集团的5份医疗及门急诊条款（80条受控样本 + 120条跨模型LLM改写样本），独立双盲人工标注（`reviewer_A.html` 与 `reviewer_B.html`）已封装就绪，待人工完成后通过 `score_annotations.py` 计算 Cohen's $\kappa$。
-
-### 迈向正式投稿终稿的确认实验门槛（Confirmation Gate）
-
-根据 `next_experiments.md` 与 `condition_v3_protocol.md`，后续工作需依次完成以下闭环方可转为正式论文终稿：
-1. **完成双盲独立人工标注与分歧裁决**：由两位具备保险条款阅读能力的独立标注者分别完成 `reviewer_A` 与 `reviewer_B` 中的120项判断（80条场景判断 + 40条生成条件保持审核），计算原始一致率与 Cohen's $\kappa$，并由第三位裁决者处理分歧，替换当前的临时规则参考标签。
-2. **扩大可追溯条款库与检索/重排系统池**：将可追溯正式条款扩展至更多保险公司与责任类型（如免赔额、给付比例、既往症排除、特定疾病定义），并在冻结系统配置（含长文档切片、多密集检索模型与Cross-Encoder重排器）的前提下开展真正保留测试（Held-out Confirmation）。
-3. **端到端追问/拒答评测闭环**：在80条受控场景及人工核验后的合成集上，直接评测下游问答/Agent系统在 `complete`/`surface` 上正确作答、在 `missing_critical` 上主动发起澄清追问（`CLARIFY`）、以及在 `counterfactual` 上翻转结论的端到端决策准确率。
+   - 在第一轮词法检索与第二轮密集/混合检索选型中，基于字符长度和字符n-gram逻辑回归密度比的重加权方法（`synthetic_density_weighted`）以及0.5固定混合方法（`mix_real_density_0.5`），**均未展示出稳定超越同预算直接真实样本评测（`real_only`）的选型优势**。
+   - 在第三轮中，v1严格正则槽位检查（`condition_guard.py`）对 `condition_prompt` 的9条同义口语表达产生了保守误拒；而在第5.4节多阈值规则上，单通结构化JSON改写（`structured_json_rewrite`）在1.5B模型上出现100%格式违例。
+2. **数据源、授权链与标签真值限制**：
+   - 第一、二轮使用的百度知道历史问答语料（`baoxianzhidao_filter.csv`，经由 `meowcao/InsuranceModel` $\leftarrow$ `SophonPlus/ChineseNlpCorpus`）缺乏原始URL、发帖时间与经核实的开放重分发授权链，且可能已出现在基座大模型预训练语料中；网页“最佳回答”仅代表历史社区关联，并非经核验的精算/法律真值。
+   - 第三轮的9份正式保险条款PDF（5份开发 + 4份样本外确认）虽已验证SHA256与PDF坐标框，但其公开网页访问不代表重分发授权；第5.4节的4段跨领域多阈值规则为研究者构造的合成压力测试规则而非现行法规原文；双人独立人工盲审标注包（`reviewer_A.html` 与 `reviewer_B.html`）待独立标注者完成后统计 Cohen's $\kappa$。
 
 ---
 
-## 7 结论（阶段性）
+## 7 结论
 
-本文通过三轮可复现的本地实验，系统剖析了中文保险问答合成评测中的检索选型偏差与业务条件漂移机制：
-- **在检索器选型层面（第一、二轮）**，合成查询与真实用户查询的分布失配不仅体现在表面分数的膨胀，更会在引入密集检索（`bge_small_zh`）与混合检索（`rrf_bm25_bge`）后引发**最佳系统选型反转**（合成评测一致偏好RRF混合检索，而全量真实测试集最优为BGE密集检索，配对差值 $+0.0187$，$95\%$ 区间 $[+0.0077, +0.0296]$；同源配对分解进一步表明源文档抽样方差是重要混杂因素，且固定配对样本后RRF相对BGE优势的配对双重差分增量置信区间跨零）。表面的字符长度或n-gram密度比重加权无法消除这种偏差，未能稳定超越直接使用少量真实样本的 `real_only` 基线；而在小样本预算下，基于校准集配对Bootstrap的**候选集合暂缓选型机制**能够有效避免错误的确定性选型。
-- **在问题生成与标签有效性层面（第二、三轮）**，无约束的口语风格引导（如 `few_shot_3` 和 `ordinary_style`）虽然能生成100%通过宽松格式检查的自然问句，却频繁引发**产品身份丢失（70%）、关键条件遗漏导致的不可回答退化（55%）、生效天数篡改（15%）乃至反相标签碰撞（将结论相反的两个多计划场景改写为完全相同的问句）**。通过在可追溯保险条款上建立带**双反例见证（Counterexample Witnesses）**的受控基准，并引入**显式业务条件守恒提示（`condition_prompt`）**，独立问句的规则结论保持率从30%提升至95%–100%（绑定源条款时达100%），目标条款Top-1词法检索准确率从50%恢复至95%–100%。同时，实验明确展示了确定性正则槽位守卫在同义句式上的保守误拒边界，确立了“形式化反例见证 + 条件守恒生成 + 自动初筛守卫 + 双盲独立人工核验”的四层可审计评测方法论。
+本文通过三轮实验与样本外/等预算扩展验证，系统揭示了中文保险RAG合成评测中的检索选型偏差与业务条件漂移机制：
+- **在检索器选型与源抽样诊断层面（第一、二轮）**，同源配对分解表明小样本源文档抽样方差与零样本二元字符包含率膨胀（$\kappa_2(q', d^*)$）共同作用于合成检索评测；在小样本真实校准预算（$B=25\text{--}50$）下，配对Bootstrap**候选集合暂缓选型**可将错误确定选型率压至0%–20%。
+- **在源条款约束的业务条件守恒与决策保持验证层面（第三轮及扩展确认）**，100%的检索Top-1命中率（或依赖产品名锚点的条款检索）无法保证合成问题保留业务可回答性；通过在9份可追溯官方保险条款（5份开发 + 4份样本外确认）与多阈值规则编译器上建立双反例见证（`DEGRADED_TO_CLARIFY`）与无参考依赖可达性验证器，并结合等调用预算下的符号槽位修复（`slot_guard_repair`），可在保持语句模板新颖度的同时消除阈值覆盖篡改并大幅提升决策保持率。
 
 ---
 
@@ -368,7 +386,15 @@ $$f(z) = \begin{cases}
 1. H. A. Rahmani, N. Craswell, E. Yilmaz, B. Mitra, and D. Campos. Synthetic Test Collections for Retrieval Evaluation. In *Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR)*, pages 2647–2651, 2024. https://arxiv.org/abs/2405.07767
 2. J. Saad-Falcon, O. Khattab, C. Potts, and M. Zaharia. ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems. In *Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL)*, pages 338–354, 2024. https://aclanthology.org/2024.naacl-long.20/
 3. K. Zhu, Y. Luo, D. Xu, Y. Yan, Z. Liu, S. Yu, R. Wang, S. Wang, Y. Li, N. Zhang, X. Han, Z. Liu, and M. Sun. RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework. In *Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)*, pages 8520–8544, 2025. https://aclanthology.org/2025.acl-long.418/
-4. S. Filice, G. Horowitz, D. Carmel, Z. Karnin, L. Lewin-Eytan, and Y. Maarek. Generating Q&A Benchmarks for RAG Evaluation with DataMorgana. In *Proceedings of ACL (Industry Track)*, 2025. https://aclanthology.org/2025.acl-industry.33/
+4. S. Filice, G. Horowitz, D. Carmel, Z. Karnin, L. Lewin-Eytan, and Y. Maarek. Generating Q&A Benchmarks for RAG Evaluation with DataMorgana. In *Proceedings of ACL (Industry Track)*, pages 424–438, 2025. https://aclanthology.org/2025.acl-industry.33/
 5. J. van Elburg, P. van der Putten, and M. Marx. Can we Evaluate RAGs with Synthetic Data? *arXiv preprint arXiv:2508.11758*, 2025. https://arxiv.org/abs/2508.11758
 6. A. N. Angelopoulos, S. Bates, C. Fannjiang, M. I. Jordan, and T. Zrnic. Prediction-Powered Inference. *Science*, 382(6671):669–674, 2023. https://arxiv.org/abs/2301.09633
 7. M. Feng, B. Xiang, M. R. Glass, L. Wang, and B. Zhou. Applying Deep Learning to Answer Selection: A Study and An Open Task. In *IEEE Workshop on Automatic Speech Recognition and Understanding (ASRU)*, pages 813–820, 2015. https://arxiv.org/abs/1508.01585
+8. C. Kucia and A. Gawlik. Beyond a Single Query: Evaluating Basic Retrieval Systems Under Query Perturbations in Financial QA. *arXiv preprint arXiv:2609.14579* (Accepted at CIKM 2026 Short Papers), 2026. https://arxiv.org/abs/2609.14579
+9. W. Fu, B. Wang, et al. QGEval: Benchmarking Multi-dimensional Evaluation for Question Generation. In *Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, pages 12283–12305, 2024. https://aclanthology.org/2024.emnlp-main.684/
+10. M. Saeidi, M. Bartolo, P. Lewis, S. Singh, T. Rocktäschel, M. Sheldon, G. Bouchard, and S. Riedel. Interpretation of Natural Language Rules in Conversational Machine Reading. In *Proceedings of EMNLP*, pages 2087–2097, 2018. https://aclanthology.org/D18-1233/
+11. T. Zhang, Y. Qin, et al. CLAMBER: A Benchmark of Identifying and Clarifying Ambiguous Information Needs in Large Language Models. In *Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (ACL)*, pages 10746–10766, 2024. https://aclanthology.org/2024.acl-long.578/
+12. J. Zhao et al. AskBench: A Real-World Healthcare Benchmark for Evaluating Large Language Models on Asking Clarifying Questions. In *Findings of the Association for Computational Linguistics: ACL 2026*, pages 9558–9578, 2026. https://aclanthology.org/2026.findings-acl.499/
+13. R. Divekar et al. PRECISE: Structurally-Gated Synthetically Generated Multi-turn Clarification Dialogues for Medical Conversational QA. In *Proceedings of the 2026 GEM Workshop at ACL*, pages 535–552, 2026. https://aclanthology.org/2026.gem-1.44/
+14. Y. Chen et al. Struggle with Conflicting Rules? Enhance Large Language Models with Rule Contradiction Detection for Retrieval-Augmented Generation. In *Findings of EMNLP 2024*, pages 13697–13712, 2024. https://aclanthology.org/2024.findings-emnlp.802/
+15. X. Ding et al. InsQABench: Benchmarking Large Language Models on Real-World Insurance Product Rule Question Answering. *arXiv preprint*, 2025.
