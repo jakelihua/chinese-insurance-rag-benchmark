@@ -109,39 +109,49 @@ def enumerate_admissible_decisions(observed, seed_frame=None, required_fields=No
     return sorted(decisions)
 
 
+ALL_INSURANCE_FIELDS = ['policy_id', 'enrollment', 'cause', 'policy_day', 'plan_wait_days', 'approved_waiver']
+
+
 def evaluate_rule_outcome_under_observed(observed, seed_frame, required_fields, grant_source_policy=False):
     """Evaluate whether a rewritten question preserves the rule-derived waiting-period outcome
-    by enumerating all admissible completions of any missing required fields.
+    by enumerating all admissible completions of any missing fields and checking reachability
+    against the reference decision.
 
     Returns one of:
-    - 'PRESERVED_DECISION': no required fields are mutated, and every admissible completion of any
-      missing fields yields the exact same decision(frame) as the seed frame (including when a
-      non-pivotal slot is omitted).
-    - 'COUNTERFACTUAL_FLIP': resolved fields contain a mutated value that flips decision(frame).
-    - 'CONDITION_MUTATED': resolved fields contain a mutated value without flipping decision(frame).
-    - 'DEGRADED_TO_CLARIFY': one or more missing required fields admit disagreeing completions
-      ('WAIT_EXCLUDED' vs 'WAIT_NOT_EXCLUDED'), making the question genuinely ambiguous.
+    - 'PRESERVED_DECISION': no fields are mutated, and the reachable decision set is the singleton
+      [decision(seed_frame)] (including when a non-pivotal slot is omitted).
+    - 'COUNTERFACTUAL_FLIP': resolved fields or default completions yield a unique decision opposite
+      to decision(seed_frame).
+    - 'CONDITION_MUTATED': resolved fields contain a mutated value without flipping decision(seed_frame).
+    - 'DEGRADED_TO_CLARIFY': admissible completions yield multiple disagreeing decisions
+      ('WAIT_EXCLUDED' vs 'WAIT_NOT_EXCLUDED') or policy identity is unresolved in standalone mode.
     """
     eff = dict(observed)
     if grant_source_policy and eff.get('policy_id') is None:
         eff['policy_id'] = seed_frame['policy_id']
-    mutated = [f for f in required_fields if eff.get(f) is not None and eff.get(f) != seed_frame[f]]
+    mutated = [
+        f for f in ALL_INSURANCE_FIELDS
+        if eff.get(f) is not None and eff.get(f) != seed_frame.get(f)
+    ]
     missing = [f for f in required_fields if eff.get(f) is None]
     ref_dec = decision(seed_frame)
+    reachable = enumerate_admissible_decisions(
+        eff, seed_frame, required_fields, grant_source_policy=grant_source_policy
+    )
     if mutated:
         candidate = dict(seed_frame)
         for f in mutated:
             candidate[f] = eff[f]
-        flipped = (candidate.get('policy_id') in POLICIES and decision(candidate) != ref_dec)
-        return ('COUNTERFACTUAL_FLIP' if flipped else 'CONDITION_MUTATED'), mutated, missing
-    if missing:
-        reachable = enumerate_admissible_decisions(
-            eff, seed_frame, required_fields, grant_source_policy=grant_source_policy
+        flipped = (
+            (candidate.get('policy_id') in POLICIES and decision(candidate) != ref_dec)
+            or (len(reachable) == 1 and reachable[0] != ref_dec)
         )
-        if reachable == [ref_dec]:
+        return ('COUNTERFACTUAL_FLIP' if flipped else 'CONDITION_MUTATED'), mutated, missing
+    if len(reachable) == 1:
+        if reachable[0] == ref_dec:
             return 'PRESERVED_DECISION', mutated, missing
-        return 'DEGRADED_TO_CLARIFY', mutated, missing
-    return 'PRESERVED_DECISION', mutated, missing
+        return 'COUNTERFACTUAL_FLIP', (mutated or list(missing)), missing
+    return 'DEGRADED_TO_CLARIFY', mutated, missing
 
 
 def evaluate_slot_completeness(observed, seed_frame, required_fields, grant_source_policy=False):

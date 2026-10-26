@@ -172,5 +172,70 @@ class ConditionTests(unittest.TestCase):
         )
         self.assertIs(ins_neg.get('approved_waiver'), False)
 
+    def test_third_review_reachability_invariants_and_repair_trigger(self):
+        import json
+        from cross_domain_study import (
+            build_seed_frames, cross_decision, enumerate_cross_decisions,
+            evaluate_cross_outcome, extract_cross_slots_v2, render_question,
+            should_trigger_slot_guard_repair,
+        )
+        seeds = {s['seed_id']: s for s in build_seed_frames()}
+
+        # 1. Counterexample A: adding positive waiver to cross-001 (not in required_fields) flips decision
+        s1 = seeds['cross-001']
+        q_added_waiver = render_question(s1).replace('，请问', '，且已获肿瘤专家组急诊特批豁免洗脱期，请问')
+        obs1 = extract_cross_slots_v2(q_added_waiver)
+        self.assertIs(obs1.get('approved_waiver'), True)
+        self.assertEqual(enumerate_cross_decisions(obs1), ['RULE_ELIGIBLE'])
+        out1, miss1, mut1 = evaluate_cross_outcome(obs1, s1)
+        self.assertEqual(out1, 'CONDITION_MUTATED')
+        self.assertIn('approved_waiver', mut1)
+
+        # 2. Counterexample B: deleting positive waiver from cross-004 yields singleton ['RULE_EXCLUDED'] under default-False rule
+        s4 = seeds['cross-004']
+        q_deleted_waiver = render_question(s4).replace('，且已获肿瘤专家组急诊特批豁免洗脱期', '')
+        obs4 = extract_cross_slots_v2(q_deleted_waiver)
+        self.assertIsNone(obs4.get('approved_waiver'))
+        self.assertEqual(enumerate_cross_decisions(obs4), ['RULE_EXCLUDED'])
+        out4, miss4, mut4 = evaluate_cross_outcome(obs4, s4)
+        self.assertEqual(out4, 'CONDITION_MUTATED')
+        self.assertIn('approved_waiver', miss4)
+        self.assertIn('approved_waiver', mut4)
+
+        # 3. Insurance evaluator also catches non-required slot mutation (adding approved_waiver=True on first enrollment)
+        ins_seed = dict(
+            policy_id='pa_h865', enrollment='first', cause='illness',
+            policy_day=20, plan_wait_days=30, approved_waiver=False,
+        )
+        ins_req = ['policy_id', 'enrollment', 'policy_day', 'cause']
+        ins_obs = dict(ins_seed, approved_waiver=True)
+        ins_out, ins_mut, _ = evaluate_rule_outcome_under_observed(ins_obs, ins_seed, ins_req, grant_source_policy=False)
+        self.assertEqual(ins_out, 'COUNTERFACTUAL_FLIP')
+        self.assertIn('approved_waiver', ins_mut)
+
+        # 4. Unified repair trigger across all 16 condition_prompt outputs and zero reachability invariant violations across all 48 outputs
+        gen_path = Path(__file__).parents[1] / 'data_v3' / 'cross_domain_generations.jsonl'
+        rows = [json.loads(line) for line in gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+        self.assertEqual(len(rows), 48)
+        cp_triggers = []
+        for r in rows:
+            s = seeds[r['seed_id']]
+            ref_dec = cross_decision(s)
+            obs = extract_cross_slots_v2(r['question'])
+            reach = enumerate_cross_decisions(obs)
+            out, miss, mut = evaluate_cross_outcome(obs, s)
+            if out == 'PRESERVED_DECISION':
+                self.assertEqual(reach, [ref_dec])
+                self.assertEqual(mut, [])
+            elif out == 'DEGRADED_TO_CLARIFY':
+                self.assertNotEqual(len(reach), 1)
+            elif out == 'CONDITION_MUTATED':
+                self.assertTrue(bool(mut) or (len(reach) == 1 and reach[0] != ref_dec))
+            if r['method'] == 'condition_prompt':
+                if should_trigger_slot_guard_repair(miss, mut):
+                    cp_triggers.append(r['seed_id'])
+        self.assertEqual(len(cp_triggers), 10)
+        self.assertIn('cross-001', cp_triggers)
+
 
 if __name__=='__main__':unittest.main()

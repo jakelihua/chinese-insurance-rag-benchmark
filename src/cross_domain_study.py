@@ -466,21 +466,33 @@ def enumerate_cross_decisions(obs, seed_frame=None):
     return sorted(decisions)
 
 
+ALL_CROSS_FIELDS = ['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']
+
+
+def should_trigger_slot_guard_repair(missing, mutated):
+    """Unified slot-guard repair trigger used identically by both fresh generation and --score-only."""
+    return bool(missing or mutated)
+
+
 def evaluate_cross_outcome(obs, seed_frame):
     req = seed_frame['required_fields']
     mutated = [
-        f for f in req
-        if obs.get(f) is not None and obs.get(f) != 'unknown' and obs.get(f) != seed_frame[f]
+        f for f in ALL_CROSS_FIELDS
+        if obs.get(f) is not None and obs.get(f) != 'unknown' and obs.get(f) != seed_frame.get(f)
     ]
     missing = [f for f in req if obs.get(f) is None or obs.get(f) == 'unknown']
+    ref_dec = cross_decision(seed_frame)
+    reachable = enumerate_cross_decisions(obs)
     if mutated:
         return 'CONDITION_MUTATED', missing, mutated
-    if missing:
-        reachable = enumerate_cross_decisions(obs)
-        if reachable == [cross_decision(seed_frame)]:
+    if len(reachable) == 1:
+        if reachable[0] == ref_dec:
             return 'PRESERVED_DECISION', missing, mutated
-        return 'DEGRADED_TO_CLARIFY', missing, mutated
-    return 'PRESERVED_DECISION', [], []
+        implied_mutated = [
+            f for f in missing if f == 'approved_waiver' and seed_frame.get('approved_waiver') is True
+        ] or list(missing)
+        return 'CONDITION_MUTATED', missing, implied_mutated
+    return 'DEGRADED_TO_CLARIFY', missing, mutated
 
 
 SLOT_NAMES_ZH = {
@@ -555,7 +567,7 @@ def main():
                 records.append(r)
             cp_rec = records[-1]
             rep_orig = dict(by_seed[sid]['slot_guard_repair'])
-            if not cp_rec['missing_slots'] and not cp_rec['mutated_slots']:
+            if not should_trigger_slot_guard_repair(cp_rec['missing_slots'], cp_rec['mutated_slots']):
                 rep_rec = dict(cp_rec)
                 rep_rec['method'] = 'slot_guard_repair'
                 rep_rec['repaired'] = False
@@ -628,7 +640,7 @@ def main():
                     'format_valid': bool(len(q_out) >= 6 and q_out.endswith(('？', '?'))),
                 })
                 if method == 'condition_prompt':
-                    if outcome != 'PRESERVED_DECISION':
+                    if should_trigger_slot_guard_repair(missing, mutated):
                         bad_fields = missing + mutated
                         needed_desc = '、'.join(SLOT_NAMES_ZH[f](s) for f in bad_fields)
                         repair_usr = (

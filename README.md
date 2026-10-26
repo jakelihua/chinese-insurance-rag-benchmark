@@ -57,7 +57,7 @@ When cold-starting a vertical-domain retrieval-augmented generation (RAG) system
 │   ├── maxp_ablation.py            # Source-sampling confounding, quantile sensitivity & Full-MaxP ablation
 │   ├── analyze_v3.py               # Slot completeness vs. decision determinacy, source_overlap_gated & abstention
 │   └── score_annotations.py        # Blinded human annotation unblinding & Cohen's kappa scorer
-├── tests/                          # Unit test suite (26/26 deterministic tests)
+├── tests/                          # Unit test suite (27/27 deterministic tests)
 └── paper/                          # English & Chinese manuscripts + Overleaf LaTeX package
 ```
 
@@ -65,7 +65,7 @@ When cold-starting a vertical-domain retrieval-augmented generation (RAG) system
 
 ## Reproducing the Experiments & Running Unit Tests
 
-### 1. Run the Deterministic Unit Test Suite (26 Tests)
+### 1. Run the Deterministic Unit Test Suite (27 Tests)
 ```bash
 python3 -m unittest discover -s tests -p "test_*.py" -v
 ```
