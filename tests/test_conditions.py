@@ -5,7 +5,11 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parents[1]/'src'))
 from condition_data import decision, pivotal_change, seed_frames
 from condition_guard import extract_fields, chinese_number
-from analyze_v3 import extract_fields_surface_normalized, evaluate_rule_outcome_under_observed
+from analyze_v3 import (
+    extract_fields_surface_normalized,
+    evaluate_rule_outcome_under_observed,
+    evaluate_slot_completeness,
+)
 
 
 class ConditionTests(unittest.TestCase):
@@ -68,6 +72,17 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(status2,'COUNTERFACTUAL_FLIP')
         self.assertEqual(mut2,['policy_day'])
 
+    def test_non_pivotal_missing_slot_separates_slot_completeness_from_decision_determinacy(self):
+        frame=dict(policy_id='pa_h865',enrollment='first',cause='illness',policy_day=45,
+                   plan_wait_days=30,approved_waiver=False)
+        req=['policy_id','enrollment','policy_day','cause']
+        obs=dict(frame,cause=None)
+        slot_status,dec_status,mut,miss=evaluate_slot_completeness(obs,frame,req,grant_source_policy=False)
+        self.assertEqual(slot_status,'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED')
+        self.assertEqual(dec_status,'PRESERVED_DECISION')
+        self.assertEqual(mut,[])
+        self.assertEqual(miss,['cause'])
+
     def test_cohens_kappa(self):
         from score_annotations import compute_task_metrics
         keys=['k1','k2','k3','k4']
@@ -102,6 +117,25 @@ class ConditionTests(unittest.TestCase):
             outcome_m, missing_m, _ = evaluate_cross_outcome(obs_m, s)
             self.assertEqual(outcome_m, 'DEGRADED_TO_CLARIFY')
             self.assertIn(s['pivotal_field'], missing_m)
+
+    def test_cross_domain_polarity_and_seed_frame_independence(self):
+        from cross_domain_study import extract_cross_slots_v2
+        obs_neg_conf = extract_cross_slots_v2('普通行政文员，不负有保密义务')
+        self.assertEqual(obs_neg_conf.get('condition'), 'disqualified')
+        obs_pos_conf = extract_cross_slots_v2('员工属于负有保密义务的高级技术人员')
+        self.assertEqual(obs_pos_conf.get('condition'), 'qualified')
+        obs_stop_vte = extract_cross_slots_v2('目前已停用常规抗凝预防方案')
+        self.assertEqual(obs_stop_vte.get('status'), 'secondary')
+        obs_active_vte = extract_cross_slots_v2('目前处于路径内常规抗凝状态')
+        self.assertEqual(obs_active_vte.get('status'), 'primary')
+        obs_no_bleed = extract_cross_slots_v2('术后第20天没有活动性出血并发症')
+        self.assertEqual(obs_no_bleed.get('condition'), 'qualified')
+        obs_bleed = extract_cross_slots_v2('术后第7天出现了活动性出血并发症')
+        self.assertEqual(obs_bleed.get('condition'), 'disqualified')
+        obs_knee = extract_cross_slots_v2('患者接受膝关节置换，术后第7天')
+        self.assertEqual(obs_knee.get('threshold_days'), 10)
+        obs_hip = extract_cross_slots_v2('患者接受髋关节置换，术后第20天')
+        self.assertEqual(obs_hip.get('threshold_days'), 35)
 
 
 if __name__=='__main__':unittest.main()

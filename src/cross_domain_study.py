@@ -17,6 +17,8 @@ import experiment as base
 CROSS_CLAUSES = {
     'med_egfr_tki': {
         'domain': 'healthcare',
+        'provenance': 'synthetic_rule_compiler_stress_test',
+        'inspiration_note': 'Synthetic multi-condition clinical rule inspired by EGFR-TKI prior-authorization structures (combining T790M mutation status, first-line vs. second-line washout interval, and specialist waiver for controlled formal rule testing).',
         'title': '国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程',
         'aliases': ['奥希替尼门诊特药', '奥希替尼特药规程', '国家医保目录奥希替尼'],
         'wait_days_options': [14],
@@ -29,6 +31,8 @@ CROSS_CLAUSES = {
     },
     'med_vte_prophylaxis': {
         'domain': 'healthcare',
+        'provenance': 'synthetic_rule_compiler_stress_test',
+        'inspiration_note': 'Synthetic multi-threshold clinical pathway rule inspired by orthopedic post-operative LMWH VTE prophylaxis regimens (10-day TKA vs. 35-day THA windows, active bleeding contraindication, and hematology consult override).',
         'title': '骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径',
         'aliases': ['骨科术后低分子肝素路径', '骨科VTE预防临床路径', '低分子肝素VTE路径'],
         'wait_days_options': [10, 35],
@@ -41,6 +45,8 @@ CROSS_CLAUSES = {
     },
     'law_work_injury': {
         'domain': 'legal',
+        'provenance': 'synthetic_rule_compiler_stress_test',
+        'inspiration_note': 'Synthetic composite legal rule inspired by PRC Work Injury Insurance Regulations Art. 14(6) (non-principal traffic fault during commute) and Art. 17 (30-day employer filing window vs. 1-year/365-day employee/family filing window and administrative extension).',
         'title': '工伤保险条例第十四条上下班途中交通事故工伤认定规范',
         'aliases': ['上下班交通事故工伤认定规范', '工伤条例第十四条认定规范', '上下班工伤认定规范'],
         'wait_days_options': [30, 365],
@@ -53,6 +59,8 @@ CROSS_CLAUSES = {
     },
     'law_noncompete': {
         'domain': 'legal',
+        'provenance': 'synthetic_rule_compiler_stress_test',
+        'inspiration_note': 'Synthetic composite legal rule inspired by PRC Labor Contract Law Art. 24 (eligible confidential personnel) and SPC Judicial Interpretation I on Labor Disputes Art. 38 (3-month/90-day compensation default threshold, plus a synthetic grace-period waiver clause).',
         'title': '劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引',
         'aliases': ['竞业限制经济补偿合规指引', '劳动合同法第二十四条指引', '竞业限制解除指引'],
         'wait_days_options': [90],
@@ -299,26 +307,32 @@ def extract_cross_slots_v1(text, seed_frame):
     return obs
 
 
-def extract_cross_slots_v2(text, seed_frame):
-    """Synonym-aware slot parser (v2_synonym_aware)."""
+def extract_cross_slots_v2(text, seed_frame=None):
+    """Synonym-aware slot parser (v2_synonym_aware). Does not access seed_frame."""
     obs = {}
     # 1. clause_id
     for cid, meta in CROSS_CLAUSES.items():
         if meta['title'] in text or any(a in text for a in meta['aliases']):
             obs['clause_id'] = cid
             break
-    # 2. status
-    if any(k in text for k in [
+    # 2. status (check discontinuation/exception phrases BEFORE '常规抗凝' so '已停用常规抗凝预防方案' -> 'secondary')
+    if any(k in text for k in ['二线转换', '二线', '耐药后', '已停用常规', '停用常规', '停止常规', '顺路接送家属', '已按月足额']):
+        obs['status'] = 'secondary'
+    elif any(k in text for k in [
         '一线初治', '常规抗凝', '上下班途中', '上班路上', '合理路线',
         '未支付补偿', '未支付经济补偿', '未支付竞业限制', '没有按时支付', '没按时支付',
         '拖欠补偿', '连续拖欠', '未付',
     ]):
         obs['status'] = 'primary'
-    elif any(k in text for k in ['二线转换', '二线', '耐药后', '已停用常规', '顺路接送家属', '已按月足额']):
-        obs['status'] = 'secondary'
 
-    # 3. condition (check negated/specific phrases first so '非本人主要责任' is not matched by '本人主要责任')
+    # 3. condition: check negated/multi-word phrases before their un-negated substrings
     if any(k in text for k in [
+        '不负有保密义务', '无保密义务', '没有保密义务', '未负有保密义务',
+        '普通行政文员', '普通的行政文员',
+        'T790M阴性', 'T790M突变阴性', '野生型',
+    ]):
+        obs['condition'] = 'disqualified'
+    elif any(k in text for k in [
         'T790M突变阳性', 'T790M阳性',
         '无活动性出血', '没有活动性出血', '没有发现活动性出血', '未出现活动性出血',
         '非本人主要责任', '不是本人主要责任', '不是他主要责任', '不是主要责任', '不主要责任', '并非本人主要责任',
@@ -327,14 +341,12 @@ def extract_cross_slots_v2(text, seed_frame):
     ]):
         obs['condition'] = 'qualified'
     elif any(k in text for k in [
-        'T790M阴性', '野生型',
         '出现活动性出血', '出现了活动性出血', '有活动性出血', '发生活动性出血',
         '本人主要责任', '本人的主要责任', '全部责任',
-        '普通行政文员', '普通的行政文员', '无保密义务', '没有保密义务', '不负有保密义务',
     ]):
         obs['condition'] = 'disqualified'
 
-    # 4. elapsed_day & threshold_days
+    # 4. elapsed_day & threshold_days (extracted purely from text without referencing seed_frame)
     cn_map = {
         '七': 7, '十': 10, '十四': 14, '二十': 20, '三十': 30, '三十五': 35,
         '四十五': 45, '九十': 90, '一百二十': 120, '三百六十五': 365, '二': 2, '两': 2,
@@ -353,9 +365,9 @@ def extract_cross_slots_v2(text, seed_frame):
             obs['threshold_days'] = int(raw_t) if raw_t.isdigit() else cn_map.get(raw_t)
             break
     if 'threshold_days' not in obs:
-        if '膝关节置换' in text and 10 in [seed_frame['threshold_days']]:
+        if '膝关节置换' in text:
             obs['threshold_days'] = 10
-        elif '髋关节置换' in text and 35 in [seed_frame['threshold_days']]:
+        elif '髋关节置换' in text:
             obs['threshold_days'] = 35
         elif '3个月' in text or '三个月' in text:
             obs['threshold_days'] = 90
@@ -393,6 +405,44 @@ def extract_cross_slots_v2(text, seed_frame):
     return obs
 
 
+def enumerate_cross_decisions(obs, seed_frame):
+    """Enumerate all formal rule decisions reachable by completing missing required fields."""
+    cid = obs.get('clause_id')
+    if cid not in CROSS_CLAUSES:
+        return []
+    req = seed_frame['required_fields']
+    statuses = [obs['status']] if obs.get('status') is not None else domain_values({'clause_id': cid}, 'status')
+    conditions = [obs['condition']] if obs.get('condition') is not None else domain_values({'clause_id': cid}, 'condition')
+    days = [obs['elapsed_day']] if obs.get('elapsed_day') is not None else domain_values({'clause_id': cid}, 'elapsed_day')
+    thresholds = (
+        [obs['threshold_days']]
+        if obs.get('threshold_days') is not None
+        else domain_values({'clause_id': cid}, 'threshold_days')
+    )
+    if obs.get('approved_waiver') is not None:
+        waivers = [obs['approved_waiver']]
+    elif 'approved_waiver' in req:
+        waivers = [False, True]
+    else:
+        waivers = [False]
+    decisions = set()
+    for st in statuses:
+        for cond in conditions:
+            for d in days:
+                for thr in thresholds:
+                    for w in waivers:
+                        cand = {
+                            'clause_id': cid,
+                            'status': st,
+                            'condition': cond,
+                            'elapsed_day': d,
+                            'threshold_days': thr,
+                            'approved_waiver': w,
+                        }
+                        decisions.add(cross_decision(cand))
+    return sorted(decisions)
+
+
 def evaluate_cross_outcome(obs, seed_frame):
     req = seed_frame['required_fields']
     mutated = [f for f in req if obs.get(f) is not None and obs.get(f) != seed_frame[f]]
@@ -400,6 +450,9 @@ def evaluate_cross_outcome(obs, seed_frame):
     if mutated:
         return 'CONDITION_MUTATED', missing, mutated
     if missing:
+        reachable = enumerate_cross_decisions(obs, seed_frame)
+        if reachable == [cross_decision(seed_frame)]:
+            return 'PRESERVED_DECISION', missing, mutated
         return 'DEGRADED_TO_CLARIFY', missing, mutated
     return 'PRESERVED_DECISION', [], []
 
@@ -474,7 +527,7 @@ def main():
                 records.append(r)
             cp_rec = records[-1]
             rep_orig = dict(by_seed[sid]['slot_guard_repair'])
-            if cp_rec['outcome'] == 'PRESERVED_DECISION':
+            if not cp_rec['missing_slots'] and not cp_rec['mutated_slots']:
                 rep_rec = dict(cp_rec)
                 rep_rec['method'] = 'slot_guard_repair'
                 rep_rec['repaired'] = False
@@ -581,8 +634,20 @@ def main():
     bm25_mat = base.bm25_documents(vec.fit_transform(clause_docs))
 
     summary = {
+        'rule_provenance_status': 'synthetic_multi_threshold_rule_compiler_stress_test (researcher-constructed composite rule world inspired by clinical and statutory rules, not primary source documents)',
+        'closed_loop_proxy_warning': 'slot_guard_repair is guided by the same v2 slot parser used for automatic slot verification; automatic slot match should not be conflated with independent human semantic verification.',
         'seed_count': len(seeds),
         'controlled_case_count': len(cases),
+        'total_method_records': len(records),
+        'reused_unrepaired_condition_prompt_records': sum(
+            r['method'] == 'slot_guard_repair' and not r.get('repaired', False) for r in records
+        ),
+        'repaired_condition_prompt_records': sum(
+            r['method'] == 'slot_guard_repair' and r.get('repaired', False) for r in records
+        ),
+        'actual_llm_generation_calls': sum(
+            r['method'] != 'slot_guard_repair' or r.get('repaired', False) for r in records
+        ),
         'methods': {},
         'methods_v1_strict_regex': {},
         'by_domain': {},
@@ -594,6 +659,7 @@ def main():
         scores = (qx @ bm25_mat.T).toarray()
         top1, mrr = [], []
         v1_outcomes = []
+        v1_all_slots = []
         for idx, r in enumerate(sub):
             gold_idx = clause_ids.index(r['clause_id'])
             order = np.argsort(-scores[idx], kind='stable')
@@ -601,11 +667,20 @@ def main():
             top1.append(float(rank == 1))
             mrr.append(1.0 / rank)
             v1_obs = extract_cross_slots_v1(r['question'], seed_map[r['seed_id']])
-            v1_out, _, _ = evaluate_cross_outcome(v1_obs, seed_map[r['seed_id']])
+            v1_out, v1_miss, v1_mut = evaluate_cross_outcome(v1_obs, seed_map[r['seed_id']])
             v1_outcomes.append(v1_out)
+            v1_all_slots.append(not v1_miss and not v1_mut)
         summary['methods'][method] = {
             'attempts': len(sub),
             'format_valid': sum(r['format_valid'] for r in sub),
+            'strict_single_question_mark_valid': sum(
+                r['format_valid'] and (r['question'].count('？') + r['question'].count('?') == 1) for r in sub
+            ),
+            'all_slots_preserved': sum(not r['missing_slots'] and not r['mutated_slots'] for r in sub),
+            'non_pivotal_slot_omitted_decision_preserved': sum(
+                bool(r['missing_slots']) and not r['mutated_slots'] and r['outcome'] == 'PRESERVED_DECISION'
+                for r in sub
+            ),
             'preserved_decision': sum(r['outcome'] == 'PRESERVED_DECISION' for r in sub),
             'degraded_to_clarify': sum(r['outcome'] == 'DEGRADED_TO_CLARIFY' for r in sub),
             'condition_mutated': sum(r['outcome'] == 'CONDITION_MUTATED' for r in sub),
@@ -614,6 +689,7 @@ def main():
         }
         summary['methods_v1_strict_regex'][method] = {
             'attempts': len(sub),
+            'all_slots_preserved': sum(v1_all_slots),
             'preserved_decision': sum(o == 'PRESERVED_DECISION' for o in v1_outcomes),
             'degraded_to_clarify': sum(o == 'DEGRADED_TO_CLARIFY' for o in v1_outcomes),
             'condition_mutated': sum(o == 'CONDITION_MUTATED' for o in v1_outcomes),
@@ -622,6 +698,11 @@ def main():
             d_sub = [r for r in sub if r['domain'] == dom]
             summary['by_domain'].setdefault(dom, {})[method] = {
                 'attempts': len(d_sub),
+                'all_slots_preserved': sum(not r['missing_slots'] and not r['mutated_slots'] for r in d_sub),
+                'non_pivotal_slot_omitted_decision_preserved': sum(
+                    bool(r['missing_slots']) and not r['mutated_slots'] and r['outcome'] == 'PRESERVED_DECISION'
+                    for r in d_sub
+                ),
                 'preserved_decision': sum(r['outcome'] == 'PRESERVED_DECISION' for r in d_sub),
                 'degraded_to_clarify': sum(r['outcome'] == 'DEGRADED_TO_CLARIFY' for r in d_sub),
                 'condition_mutated': sum(r['outcome'] == 'CONDITION_MUTATED' for r in d_sub),

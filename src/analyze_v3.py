@@ -45,33 +45,99 @@ def extract_fields_surface_normalized(text):
     return fields
 
 
-def evaluate_rule_outcome_under_observed(observed, seed_frame, required_fields, grant_source_policy=False):
-    """Evaluate whether a rewritten question preserves the rule-derived waiting-period outcome.
-
-    Returns one of:
-    - 'PRESERVED_DECISION': all required fields (optionally granting source policy_id) are resolved
-      and yield the exact same decision(frame) as the seed frame, with no corrupted values.
-    - 'COUNTERFACTUAL_FLIP': resolved fields contain a mutated value that flips decision(frame),
-      or mutates a required numeric/categorical condition to a different value.
-    - 'DEGRADED_TO_CLARIFY': one or more required pivotal fields are missing/unresolved, making
-      the standalone question unanswerable without follow-up clarification.
+def enumerate_admissible_decisions(observed, seed_frame, required_fields, grant_source_policy=False):
+    """Enumerate all formal rule decisions reachable by completing missing required fields
+    for a known policy contract (either extracted from the query or granted by source context).
     """
     eff = dict(observed)
     if grant_source_policy and eff.get('policy_id') is None:
         eff['policy_id'] = seed_frame['policy_id']
-    # Check if any required field was resolved to a WRONG (mutated) value
+    pid = eff.get('policy_id')
+    if pid not in POLICIES:
+        return []
+    policy = POLICIES[pid]
+    decisions = set()
+    enrollments = [eff['enrollment']] if eff.get('enrollment') is not None else ['first', 'new']
+    causes = [eff['cause']] if eff.get('cause') is not None else (
+        ['illness', 'accident'] if policy['accident_exempt'] else ['illness']
+    )
+    days = [eff['policy_day']] if eff.get('policy_day') is not None else [5, 10, 20, 45, 100]
+    if len(policy['days']) == 1:
+        waits = (
+            [eff['plan_wait_days']]
+            if (eff.get('plan_wait_days') is not None and 'plan_wait_days' in required_fields)
+            else policy['days']
+        )
+    else:
+        waits = [eff['plan_wait_days']] if eff.get('plan_wait_days') is not None else policy['days']
+    for enr in enrollments:
+        if eff.get('approved_waiver') is not None:
+            waivers = [eff['approved_waiver']]
+        elif policy['approval_exempt'] and enr == 'new':
+            waivers = [False, True]
+        else:
+            waivers = [False]
+        for c in causes:
+            for d in days:
+                for w in waits:
+                    for aw in waivers:
+                        cand = {
+                            'policy_id': pid,
+                            'enrollment': enr,
+                            'cause': c,
+                            'policy_day': d,
+                            'plan_wait_days': w,
+                            'approved_waiver': aw,
+                        }
+                        decisions.add(decision(cand))
+    return sorted(decisions)
+
+
+def evaluate_rule_outcome_under_observed(observed, seed_frame, required_fields, grant_source_policy=False):
+    """Evaluate whether a rewritten question preserves the rule-derived waiting-period outcome
+    by enumerating all admissible completions of any missing required fields.
+
+    Returns one of:
+    - 'PRESERVED_DECISION': no required fields are mutated, and every admissible completion of any
+      missing fields yields the exact same decision(frame) as the seed frame (including when a
+      non-pivotal slot is omitted).
+    - 'COUNTERFACTUAL_FLIP': resolved fields contain a mutated value that flips decision(frame).
+    - 'CONDITION_MUTATED': resolved fields contain a mutated value without flipping decision(frame).
+    - 'DEGRADED_TO_CLARIFY': one or more missing required fields admit disagreeing completions
+      ('WAIT_EXCLUDED' vs 'WAIT_NOT_EXCLUDED'), making the question genuinely ambiguous.
+    """
+    eff = dict(observed)
+    if grant_source_policy and eff.get('policy_id') is None:
+        eff['policy_id'] = seed_frame['policy_id']
     mutated = [f for f in required_fields if eff.get(f) is not None and eff.get(f) != seed_frame[f]]
     missing = [f for f in required_fields if eff.get(f) is None]
+    ref_dec = decision(seed_frame)
     if mutated:
-        # Check if substituting the mutated fields flips the formal decision
         candidate = dict(seed_frame)
         for f in mutated:
             candidate[f] = eff[f]
-        flipped = ( candidate.get('policy_id') in POLICIES and decision(candidate) != decision(seed_frame) )
-        return 'COUNTERFACTUAL_FLIP' if flipped else 'CONDITION_MUTATED', mutated, missing
+        flipped = (candidate.get('policy_id') in POLICIES and decision(candidate) != ref_dec)
+        return ('COUNTERFACTUAL_FLIP' if flipped else 'CONDITION_MUTATED'), mutated, missing
     if missing:
+        reachable = enumerate_admissible_decisions(
+            eff, seed_frame, required_fields, grant_source_policy=grant_source_policy
+        )
+        if reachable == [ref_dec]:
+            return 'PRESERVED_DECISION', mutated, missing
         return 'DEGRADED_TO_CLARIFY', mutated, missing
     return 'PRESERVED_DECISION', mutated, missing
+
+
+def evaluate_slot_completeness(observed, seed_frame, required_fields, grant_source_policy=False):
+    """Separate strict slot-level completeness from formal rule decision determinacy."""
+    outcome, mutated, missing = evaluate_rule_outcome_under_observed(
+        observed, seed_frame, required_fields, grant_source_policy=grant_source_policy
+    )
+    if not mutated and not missing:
+        return 'ALL_SLOTS_PRESERVED', outcome, mutated, missing
+    if not mutated and missing and outcome == 'PRESERVED_DECISION':
+        return 'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED', outcome, mutated, missing
+    return outcome, outcome, mutated, missing
 
 
 def analyze_v3_generations(root, data_dir):
@@ -79,20 +145,51 @@ def analyze_v3_generations(root, data_dir):
     seeds = {r['seed_id']: r for r in inputs['jobs']}
     gen_rows = [json.loads(s) for s in (data_dir / 'generated_questions.jsonl').read_text(encoding='utf-8').splitlines()]
 
-    report = {'methods': {}, 'collisions': [], 'per_seed_comparison': []}
+    fields_order = ['policy_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days', 'approved_waiver']
+    required_denominators = {
+        f: sum(f in s['required_fields'] for s in seeds.values()) for f in fields_order
+    }
+    report = {
+        'required_field_denominators': required_denominators,
+        'methods': {},
+        'collisions': [],
+        'per_seed_comparison': [],
+    }
     for method in ['ordinary_style', 'condition_prompt']:
         rows = [r for r in gen_rows if r['method'] == method]
         strict_pass = 0
         norm_pass = 0
-        norm_field_flags = {f: 0 for f in ['policy_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days', 'approved_waiver']}
+        strict_single_qmark = 0
+        strict_field_flags = {f: 0 for f in fields_order}
+        norm_field_flags = {f: 0 for f in fields_order}
         standalone_outcomes = {'PRESERVED_DECISION': 0, 'DEGRADED_TO_CLARIFY': 0, 'CONDITION_MUTATED': 0, 'COUNTERFACTUAL_FLIP': 0}
         granted_policy_outcomes = {'PRESERVED_DECISION': 0, 'DEGRADED_TO_CLARIFY': 0, 'CONDITION_MUTATED': 0, 'COUNTERFACTUAL_FLIP': 0}
+        standalone_slot_outcomes = {
+            'ALL_SLOTS_PRESERVED': 0,
+            'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED': 0,
+            'DEGRADED_TO_CLARIFY': 0,
+            'CONDITION_MUTATED': 0,
+            'COUNTERFACTUAL_FLIP': 0,
+        }
+        granted_slot_outcomes = {
+            'ALL_SLOTS_PRESERVED': 0,
+            'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED': 0,
+            'DEGRADED_TO_CLARIFY': 0,
+            'CONDITION_MUTATED': 0,
+            'COUNTERFACTUAL_FLIP': 0,
+        }
 
         by_question_text = {}
         for r in rows:
             seed = seeds[r['seed_id']]
             frame = seed['frame']
             req = seed['required_fields']
+            qmark_count = r['question'].count('？') + r['question'].count('?')
+            if r['format_valid'] and qmark_count == 1:
+                strict_single_qmark += 1
+            for f in r.get('mismatched_or_unresolved_fields', []):
+                if f in strict_field_flags:
+                    strict_field_flags[f] += 1
             if r['format_valid'] and r['proxy_all_required_fields_preserved']:
                 strict_pass += 1
             norm_obs = extract_fields_surface_normalized(r['question'])
@@ -102,10 +199,12 @@ def analyze_v3_generations(root, data_dir):
             if r['format_valid'] and not norm_fail:
                 norm_pass += 1
 
-            out_standalone, _, _ = evaluate_rule_outcome_under_observed(norm_obs, frame, req, grant_source_policy=False)
-            out_granted, _, _ = evaluate_rule_outcome_under_observed(norm_obs, frame, req, grant_source_policy=True)
+            slot_s, out_standalone, _, _ = evaluate_slot_completeness(norm_obs, frame, req, grant_source_policy=False)
+            slot_g, out_granted, _, _ = evaluate_slot_completeness(norm_obs, frame, req, grant_source_policy=True)
             standalone_outcomes[out_standalone] += 1
             granted_policy_outcomes[out_granted] += 1
+            standalone_slot_outcomes[slot_s] += 1
+            granted_slot_outcomes[slot_g] += 1
             by_question_text.setdefault(r['question'], []).append((r['seed_id'], decision(frame), frame))
 
         for q_text, items in by_question_text.items():
@@ -122,12 +221,16 @@ def analyze_v3_generations(root, data_dir):
         report['methods'][method] = {
             'attempts': len(rows),
             'format_valid': sum(r['format_valid'] for r in rows),
+            'strict_single_question_mark_valid': strict_single_qmark,
             'strict_v1_proxy_pass': strict_pass,
             'strict_v1_proxy_flagged': len(rows) - strict_pass,
+            'strict_v1_field_flags': strict_field_flags,
             'surface_normalized_proxy_pass': norm_pass,
             'surface_normalized_proxy_flagged': len(rows) - norm_pass,
             'v1_false_negative_on_surface_phrasing': norm_pass - strict_pass,
             'surface_normalized_field_flags': norm_field_flags,
+            'standalone_slot_completeness_outcomes': standalone_slot_outcomes,
+            'source_policy_granted_slot_completeness_outcomes': granted_slot_outcomes,
             'standalone_decision_outcomes': standalone_outcomes,
             'source_policy_granted_decision_outcomes': granted_policy_outcomes,
         }
@@ -298,6 +401,90 @@ def analyze_v2_abstention_and_ppi(v2_dir):
     }
 
 
+def rescore_multi_scale_summary(root, data_dir, v3_diag):
+    """Deterministically rescore saved Qwen-Plus and Qwen-Max generation logs alongside local 1.5B."""
+    inputs = json.loads((root / 'generation_inputs.json').read_text(encoding='utf-8'))
+    seeds = {r['seed_id']: r for r in inputs['jobs']}
+    fields_order = ['policy_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days', 'approved_waiver']
+    denoms = v3_diag['required_field_denominators']
+
+    multi = {
+        'required_field_denominators': denoms,
+        'qwen2.5-1.5b-instruct': v3_diag['methods'],
+    }
+    for model_key, subdir in [
+        ('qwen-plus', 'generation_qwen_plus'),
+        ('qwen-max', 'generation_qwen_max'),
+    ]:
+        gpath = root / subdir / 'generations.jsonl'
+        if not gpath.exists():
+            continue
+        rows_all = [json.loads(line) for line in gpath.read_text(encoding='utf-8').splitlines() if line.strip()]
+        model_summary = {}
+        for method in ['ordinary_style', 'condition_prompt']:
+            rows = [r for r in rows_all if r['method'] == method]
+            strict_v1 = 0
+            surface_v2 = 0
+            strict_single_qmark = 0
+            granted_all_slots = 0
+            standalone_dec = 0
+            granted_dec = 0
+            standalone_non_pivotal = 0
+            granted_non_pivotal = 0
+            flips = 0
+            mutations = 0
+            slot_mismatches = {f: 0 for f in fields_order}
+            for r in rows:
+                seed = seeds[r['seed_id']]
+                frame = seed['frame']
+                req = seed['required_fields']
+                qmark_count = r['question'].count('？') + r['question'].count('?')
+                if r['format_valid'] and qmark_count == 1:
+                    strict_single_qmark += 1
+                if r['format_valid'] and r.get('proxy_all_required_fields_preserved'):
+                    strict_v1 += 1
+                norm_obs = extract_fields_surface_normalized(r['question'])
+                norm_fail = [f for f in req if norm_obs.get(f) != frame[f]]
+                for f in norm_fail:
+                    slot_mismatches[f] += 1
+                if r['format_valid'] and not norm_fail:
+                    surface_v2 += 1
+                slot_s, out_s, _, _ = evaluate_slot_completeness(norm_obs, frame, req, grant_source_policy=False)
+                slot_g, out_g, _, _ = evaluate_slot_completeness(norm_obs, frame, req, grant_source_policy=True)
+                if slot_g == 'ALL_SLOTS_PRESERVED':
+                    granted_all_slots += 1
+                if out_s == 'PRESERVED_DECISION':
+                    standalone_dec += 1
+                if out_g == 'PRESERVED_DECISION':
+                    granted_dec += 1
+                if slot_s == 'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED':
+                    standalone_non_pivotal += 1
+                if slot_g == 'NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED':
+                    granted_non_pivotal += 1
+                if out_g == 'COUNTERFACTUAL_FLIP':
+                    flips += 1
+                if out_g in ('COUNTERFACTUAL_FLIP', 'CONDITION_MUTATED'):
+                    mutations += 1
+            model_summary[method] = {
+                'attempts': len(rows),
+                'format_valid': sum(r['format_valid'] for r in rows),
+                'strict_single_question_mark_valid': strict_single_qmark,
+                'strict_v1_preserved': strict_v1,
+                'surface_v2_preserved': surface_v2,
+                'granted_policy_all_slots_preserved': granted_all_slots,
+                'standalone_decision_preserved': standalone_dec,
+                'standalone_non_pivotal_slot_omitted_decision_preserved': standalone_non_pivotal,
+                'granted_policy_decision_preserved': granted_dec,
+                'granted_policy_non_pivotal_slot_omitted_decision_preserved': granted_non_pivotal,
+                'counterfactual_flips': flips,
+                'condition_mutations': mutations,
+                'slot_mismatch_counts_v2': slot_mismatches,
+            }
+        multi[model_key] = model_summary
+    base.write_json(data_dir / 'multi_scale_condition_summary.json', multi)
+    return multi
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--work-condition', type=Path, required=True)
@@ -307,6 +494,7 @@ def main():
 
     v3_diag = analyze_v3_generations(args.work_condition, args.data_v3)
     base.write_json(args.data_v3 / 'condition_drift_diagnostics.json', v3_diag)
+    multi = rescore_multi_scale_summary(args.work_condition, args.data_v3, v3_diag)
 
     v2_abst = analyze_v2_abstention_and_ppi(args.results_v2)
     base.write_json(args.results_v2 / 'abstention_and_shrinkage_diagnostics.json', v2_abst)
@@ -314,46 +502,69 @@ def main():
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+        fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
         fields = ['policy_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days', 'approved_waiver']
+        denoms = [v3_diag['required_field_denominators'][f] for f in fields]
         x = np.arange(len(fields))
-        ord_strict = [20 - r for r in [14, 7, 5, 2, 4, 3]]
-        cnd_strict = [20 - r for r in [1, 0, 8, 0, 1, 3]]
-        cnd_norm = [20 - v3_diag['methods']['condition_prompt']['surface_normalized_field_flags'][f] for f in fields]
-        axes[0].bar(x - 0.25, ord_strict, 0.24, label='ordinary_style (v1/norm)')
-        axes[0].bar(x, cnd_strict, 0.24, label='condition_prompt (v1 strict)')
-        axes[0].bar(x + 0.25, cnd_norm, 0.24, label='condition_prompt (surface norm)')
-        axes[0].set_xticks(x, [f.replace('_', '\n') for f in fields], fontsize=8)
-        axes[0].set_ylim(0, 26)
-        axes[0].set_ylabel('Seeds resolved / satisfied (out of 20)')
-        axes[0].set_title('Slot preservation across 20 seed scenarios')
-        axes[0].legend(fontsize=7.5, loc='upper left')
+        ord_norm_sat = [
+            denoms[i] - v3_diag['methods']['ordinary_style']['surface_normalized_field_flags'][f]
+            for i, f in enumerate(fields)
+        ]
+        cnd_strict_sat = [
+            denoms[i] - v3_diag['methods']['condition_prompt']['strict_v1_field_flags'][f]
+            for i, f in enumerate(fields)
+        ]
+        cnd_norm_sat = [
+            denoms[i] - v3_diag['methods']['condition_prompt']['surface_normalized_field_flags'][f]
+            for i, f in enumerate(fields)
+        ]
+        ord_pct = [100.0 * s / d for s, d in zip(ord_norm_sat, denoms)]
+        cnd_strict_pct = [100.0 * s / d for s, d in zip(cnd_strict_sat, denoms)]
+        cnd_norm_pct = [100.0 * s / d for s, d in zip(cnd_norm_sat, denoms)]
+        axes[0].bar(x - 0.25, ord_pct, 0.24, label='ordinary_style (surface norm)')
+        axes[0].bar(x, cnd_strict_pct, 0.24, label='condition_prompt (v1 strict)')
+        axes[0].bar(x + 0.25, cnd_norm_pct, 0.24, label='condition_prompt (surface norm)')
+        axes[0].set_xticks(
+            x,
+            [f"{f.replace('_', chr(10))}\n(n={d})" for f, d in zip(fields, denoms)],
+            fontsize=7.5,
+        )
+        axes[0].set_ylim(0, 118)
+        axes[0].set_ylabel('Required slot satisfaction rate (%)')
+        axes[0].set_title('Per-slot preservation rate (1.5B, true denominator n)')
+        axes[0].legend(fontsize=7.5, loc='lower right')
 
         cats = ['Qwen2.5-1.5B\n(Local Edge)', 'Qwen-Plus\n(Cloud Mid-Tier)', 'Qwen-Max\n(Flagship)']
         cx = np.arange(len(cats))
-        ord_pres = [
-            v3_diag['methods']['ordinary_style']['standalone_decision_outcomes']['PRESERVED_DECISION'],
-            0,
-            4,
+        ord_slot = [
+            v3_diag['methods']['ordinary_style']['surface_normalized_proxy_pass'],
+            multi.get('qwen-plus', {}).get('ordinary_style', {}).get('surface_v2_preserved', 0),
+            multi.get('qwen-max', {}).get('ordinary_style', {}).get('surface_v2_preserved', 0),
         ]
-        cnd_pres = [
+        cnd_slot = [
+            v3_diag['methods']['condition_prompt']['surface_normalized_proxy_pass'],
+            multi.get('qwen-plus', {}).get('condition_prompt', {}).get('surface_v2_preserved', 0),
+            multi.get('qwen-max', {}).get('condition_prompt', {}).get('surface_v2_preserved', 0),
+        ]
+        cnd_dec = [
             v3_diag['methods']['condition_prompt']['standalone_decision_outcomes']['PRESERVED_DECISION'],
-            19,
-            20,
+            multi.get('qwen-plus', {}).get('condition_prompt', {}).get('standalone_decision_preserved', 0),
+            multi.get('qwen-max', {}).get('condition_prompt', {}).get('standalone_decision_preserved', 0),
         ]
-        axes[1].bar(cx - 0.16, ord_pres, 0.30, label='ordinary_style (v2)')
-        axes[1].bar(cx + 0.16, cnd_pres, 0.30, label='condition_prompt (v2)')
+        axes[1].bar(cx - 0.24, ord_slot, 0.23, label='ordinary_style (slot match)')
+        axes[1].bar(cx, cnd_slot, 0.23, label='condition_prompt (slot match)')
+        axes[1].bar(cx + 0.24, cnd_dec, 0.23, label='condition_prompt (decision determined)')
         axes[1].set_xticks(cx, cats, fontsize=8)
-        axes[1].set_ylim(0, 26)
-        axes[1].set_ylabel('Standalone preserved decisions (out of 20)')
-        axes[1].set_title('Cross-scale rule decision preservation')
-        axes[1].legend(fontsize=8, loc='upper left')
+        axes[1].set_ylim(0, 25)
+        axes[1].set_ylabel('Seeds preserved (out of 20)')
+        axes[1].set_title('Cross-scale slot match vs. decision determinacy')
+        axes[1].legend(fontsize=7.5, loc='upper left')
         fig.tight_layout()
         fig.savefig(args.data_v3 / 'condition_preservation_comparison.png', dpi=180)
         plt.close(fig)
     except ImportError:
         pass
-    print('Wrote condition_drift_diagnostics.json and abstention_and_shrinkage_diagnostics.json')
+    print('Wrote condition_drift_diagnostics.json, multi_scale_condition_summary.json, and abstention_and_shrinkage_diagnostics.json')
 
 
 if __name__ == '__main__':

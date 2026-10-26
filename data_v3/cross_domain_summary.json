@@ -1,10 +1,19 @@
 {
+  "rule_provenance_status": "synthetic_multi_threshold_rule_compiler_stress_test (researcher-constructed composite rule world inspired by clinical and statutory rules, not primary source documents)",
+  "closed_loop_proxy_warning": "slot_guard_repair is guided by the same v2 slot parser used for automatic slot verification; automatic slot match should not be conflated with independent human semantic verification.",
   "seed_count": 16,
   "controlled_case_count": 64,
+  "total_method_records": 48,
+  "reused_unrepaired_condition_prompt_records": 6,
+  "repaired_condition_prompt_records": 10,
+  "actual_llm_generation_calls": 42,
   "methods": {
     "ordinary_style": {
       "attempts": 16,
       "format_valid": 16,
+      "strict_single_question_mark_valid": 11,
+      "all_slots_preserved": 1,
+      "non_pivotal_slot_omitted_decision_preserved": 0,
       "preserved_decision": 1,
       "degraded_to_clarify": 13,
       "condition_mutated": 2,
@@ -14,8 +23,11 @@
     "condition_prompt": {
       "attempts": 16,
       "format_valid": 16,
-      "preserved_decision": 6,
-      "degraded_to_clarify": 5,
+      "strict_single_question_mark_valid": 16,
+      "all_slots_preserved": 6,
+      "non_pivotal_slot_omitted_decision_preserved": 1,
+      "preserved_decision": 7,
+      "degraded_to_clarify": 4,
       "condition_mutated": 5,
       "bm25_char2_top1": 1.0,
       "bm25_char2_mrr": 1.0
@@ -23,8 +35,11 @@
     "slot_guard_repair": {
       "attempts": 16,
       "format_valid": 16,
-      "preserved_decision": 11,
-      "degraded_to_clarify": 5,
+      "strict_single_question_mark_valid": 16,
+      "all_slots_preserved": 11,
+      "non_pivotal_slot_omitted_decision_preserved": 1,
+      "preserved_decision": 12,
+      "degraded_to_clarify": 4,
       "condition_mutated": 0,
       "bm25_char2_top1": 1.0,
       "bm25_char2_mrr": 1.0
@@ -33,20 +48,23 @@
   "methods_v1_strict_regex": {
     "ordinary_style": {
       "attempts": 16,
+      "all_slots_preserved": 0,
       "preserved_decision": 0,
       "degraded_to_clarify": 16,
       "condition_mutated": 0
     },
     "condition_prompt": {
       "attempts": 16,
-      "preserved_decision": 1,
-      "degraded_to_clarify": 15,
+      "all_slots_preserved": 1,
+      "preserved_decision": 2,
+      "degraded_to_clarify": 14,
       "condition_mutated": 0
     },
     "slot_guard_repair": {
       "attempts": 16,
-      "preserved_decision": 2,
-      "degraded_to_clarify": 14,
+      "all_slots_preserved": 2,
+      "preserved_decision": 3,
+      "degraded_to_clarify": 13,
       "condition_mutated": 0
     }
   },
@@ -54,38 +72,50 @@
     "healthcare": {
       "ordinary_style": {
         "attempts": 8,
+        "all_slots_preserved": 1,
+        "non_pivotal_slot_omitted_decision_preserved": 0,
         "preserved_decision": 1,
         "degraded_to_clarify": 6,
         "condition_mutated": 1
       },
       "condition_prompt": {
         "attempts": 8,
-        "preserved_decision": 4,
-        "degraded_to_clarify": 3,
+        "all_slots_preserved": 4,
+        "non_pivotal_slot_omitted_decision_preserved": 1,
+        "preserved_decision": 5,
+        "degraded_to_clarify": 2,
         "condition_mutated": 1
       },
       "slot_guard_repair": {
         "attempts": 8,
-        "preserved_decision": 7,
-        "degraded_to_clarify": 1,
+        "all_slots_preserved": 7,
+        "non_pivotal_slot_omitted_decision_preserved": 1,
+        "preserved_decision": 8,
+        "degraded_to_clarify": 0,
         "condition_mutated": 0
       }
     },
     "legal": {
       "ordinary_style": {
         "attempts": 8,
+        "all_slots_preserved": 0,
+        "non_pivotal_slot_omitted_decision_preserved": 0,
         "preserved_decision": 0,
         "degraded_to_clarify": 7,
         "condition_mutated": 1
       },
       "condition_prompt": {
         "attempts": 8,
+        "all_slots_preserved": 2,
+        "non_pivotal_slot_omitted_decision_preserved": 0,
         "preserved_decision": 2,
         "degraded_to_clarify": 2,
         "condition_mutated": 4
       },
       "slot_guard_repair": {
         "attempts": 8,
+        "all_slots_preserved": 4,
+        "non_pivotal_slot_omitted_decision_preserved": 0,
         "preserved_decision": 4,
         "degraded_to_clarify": 4,
         "condition_mutated": 0

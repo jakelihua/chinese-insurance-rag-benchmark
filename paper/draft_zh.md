@@ -2,17 +2,17 @@
 
 **作者：** Shunchi Wang（Independent Researcher，`jakelihua@gmail.com`）  
 **代码与数据仓库：** [https://github.com/jakelihua/chinese-insurance-rag-benchmark](https://github.com/jakelihua/chinese-insurance-rag-benchmark)  
-**范围说明：** 当前实验覆盖公开保险问答回答检索（第一、二轮）与可追溯保险/医疗/劳动法条款受控条件验证（第三轮），不声称线上自动理赔裁决收益；第三轮双盲独立人工标注包已生成就绪，待人工完成后运行 `score_annotations.py` 统计专家一致率。
+**范围说明：** 当前实验覆盖公开保险问答回答检索（第一、二轮）、可追溯保险正式条款受控条件验证（第三轮第5.3节）以及受医疗临床路径与劳动法规则启发的多阈值合成规则编译器压力测试（第5.4节），不声称线上自动理赔裁决收益或真实法定/临床医疗指南适用性；第三轮双盲独立人工标注包已生成就绪，待人工完成后运行 `score_annotations.py` 统计专家一致率。
 
 ---
 
-## 摘要（探索版 v0.3）
+## 摘要（探索版 v0.4 — 经代码级证据审计修订）
 
 中文保险问答的公开用户数据通常存在原始出处缺失、回答质量不确定和产品条件不完整等限制。本文围绕“合成评测何时误导检索器选型、分布校准何时失效、以及生成过程为何破坏业务可回答性”展开三轮递进式本地实证探索：
 
 1. **第一轮（词法检索与抽取式代理基线）**：在从8,362条原始记录清洗去重得到的3,746条回答库、750条真实校准池问句和2,994条保留真实测试问句上，比较6种字符级TF-IDF与BM25检索器。抽取式关键词代理与真实测试均选中 `bm25_char2`（MRR@10分别为0.9335与0.3817），而复制回答首句的前缀诊断对照则选错为 `tfidf_char3_5`（真实选择遗憾0.1090）。当真实样本预算达到50题及以上时，直接使用真实校准样本（`real_only`）在5次重复采样中100%选中最优词法系统，字符长度与密度比重加权未表现出额外选型收益。
-2. **第二轮（跨尺寸LLM生成、密集/混合检索选型反转、源重叠度门控与检索器候选集合暂缓选型）**：在同一划分下固定抽取256个源回答，分别使用本地 `Qwen2.5-1.5B-Instruct`（MPS `float32/eager`，249个共同格式有效源回答）与商用云端模型 `Qwen-Plus`（`temperature=0`，179个共同格式有效源回答）生成零样本（`zero_shot`）与3例真实问法引导（`few_shot_3`）合成问句，并引入 `BGE-small-zh-v1.5` 密集检索与固定 `RRF(k=60, top100)` 混合检索，在8个候选系统上开展360组同预算校准对照与1,000次问题级配对bootstrap检验。结果显示：**跨模型尺寸均发生检索器选型反转**——无论是本地1.5B还是云端 `Qwen-Plus`，在零样本与3例少样本下均选中混合检索 `rrf_bm25_bge`（1.5B合成MRR@10为0.5647与0.4124，`Qwen-Plus` 为0.7371与0.6813），而真实测试集最优系统为纯密集检索 `bge_small_zh`（MRR@10为0.5216 vs. 0.5030，配对差值 $+0.0187$，95%配对bootstrap区间 $[+0.0080, +0.0300]$；对509条超长回答做零截断512窗口/256步长 `Full-MaxP` 敏感性检验仍以0.5125 vs. 0.5002保持 $+0.0123$ 领先）。仅依赖问题表面特征的边缘密度比重加权未能纠正选型偏差（0%选中最优系统），而我们提出的**关系型源重叠度门控（`source_overlap_gated`，按问句对源文档的二元字符包含率 $\kappa_2(q', d^*)$ 过滤高复制合成题）**在全部预算 $B \in \{0, 25, 50, 100, 200\}$、两类模型尺寸（1.5B与 `Qwen-Plus`）及两种提示策略下均以 **100%（5/5）** 恢复真实最优系统 `bge_small_zh`（选型遗憾0.0000）；同时，基于校准集配对bootstrap的**检索器候选集合暂缓选型（Candidate-Set Abstention，注：指在检索器选型阶段暂缓输出唯一胜出系统并返回候选检索器集合 $\widehat{\mathcal{C}}_{0.95}$，区别于单题层面的追问拒答 `CLARIFY`）**在低预算（25题）下将错误确定选型率从60%–100%降至0.0%（暂缓比例80%，候选集最优覆盖率100%，平均集合大小2.60）。
-3. **第三轮（可追溯保险条款、双反例见证基准、跨领域泛化与闭环槽位修复）**：采集平安、太平洋、泰康3家保险集团的5份官方正式条款PDF（保留URL、SHA256、页码、规范化字符区间与PDF坐标锚点），在显式限定的“等待期单项排除判断”规则世界内构造20组种子场景 $\times$ 4类受控变体（`complete`、`surface`、`missing_critical`、`counterfactual`），共计80条受控测试样本；其中每条 `missing_critical`（`CLARIFY`）样本均附带两个可枚举且导出相反等待期裁决（`WAIT_EXCLUDED` vs. `WAIT_NOT_EXCLUDED`）的补全反例见证（Counterexample Witnesses）。在此基础上，跨越本地 `Qwen2.5-1.5B-Instruct`、云端 `Qwen-Plus` 与旗舰模型 `Qwen-Max` 开展普通口语化改写（`ordinary_style`）与显式业务条件守恒提示（`condition_prompt`）的120次配对生成实验。实验发现：（a）120条生成问句100%通过基础格式检查，证明格式门禁完全无法拦截业务条件失真；（b）模型规模扩大能消除数值幻觉（生效第20天篡改为第2天的比例从1.5B的15%降至 `Qwen-Plus`/`Qwen-Max` 的0%），但**无法消除无约束口语改写下的语用槽位省略**（`ordinary_style` 独立问句规则结论保持率在1.5B、`Qwen-Plus`、`Qwen-Max` 上仅为30%、0%、20%）；（c）显式条件守恒提示 `condition_prompt` 将独立问句规则结论保持率提升至 **95%（19/20，1.5B与 `Qwen-Plus`）** 与 **100%（20/20，`Qwen-Max`）**，并将5份条款上的 `bm25_char2` Top-1目标条款识别准确率恢复至95%–100%；（d）进一步将双反例见证与规则编译器扩展至**医疗临床特药/路径准入**与**劳动法工伤/竞业限制合规**两个跨领域基准（4份规程/法条、16组种子、64条受控样本、48次生成），证实 `ordinary_style` 在93.8%（15/16）的跨领域种子中丢失或篡改关键条件，而将 `condition_prompt` 与单步**闭环槽位守卫修复（`slot_guard_repair`）**结合可将独立结论保持率从6.2%提升至 **68.8%（11/16，其中医疗域达87.5%）**，并将条件篡改率从31.2%（5/16）完全清零至 **0.0%（0/16）**。
+2. **第二轮（跨尺寸LLM生成、源抽样混杂分解、探索性源重叠度门控与检索器候选集合暂缓选型）**：在同一划分下固定抽取256个源回答，分别使用本地 `Qwen2.5-1.5B-Instruct`（MPS `float32/eager`，249个共同格式有效源回答）与商用云端模型 `Qwen-Plus`（`temperature=0`，179个共同格式有效源回答）生成零样本（`zero_shot`）与3例真实问法引导（`few_shot_3`）合成问句，并引入 `BGE-small-zh-v1.5` 密集检索与固定 `RRF(k=60, top100)` 混合检索，开展360组同预算校准对照与10,000次问题级配对bootstrap检验。结果显示：在全量2,994条真实测试问句上，纯密集检索 `bge_small_zh` 最优（MRR@10为0.5216 vs. 0.5030，配对差值 $+0.0187$，10,000次配对bootstrap 95%区间 $[+0.0077, +0.0296]$；对509条超长回答切分762个额外尾部切片做零截断512窗口/256步长 `Full-MaxP` 复核仍以0.5165 vs. 0.5007保持 $+0.0158$ 显著领先），而本地1.5B与云端 `Qwen-Plus` 在零样本与3例少样本下均选中混合检索 `rrf_bm25_bge`（1.5B合成MRR@10为0.5647与0.4124，`Qwen-Plus` 为0.7371与0.6813）。进一步在**相同目标文档子集**（1.5B对齐207篇文档/209条真实测试题，`Qwen-Plus` 对齐151篇文档/153条真实测试题）上分解这一差距表明：仅抽取179–249篇源文档存在显著的**源文档抽样混杂**（在对齐真实子集上，真实RRF点估计已微弱领先真实BGE：0.4975 vs. 0.4696与0.4980 vs. 0.4668，95%区间 $[-0.0645, +0.0096]$ 与 $[-0.0687, +0.0073]$ 均跨零），而零样本生成带来的**同源词法复制膨胀**（$\kappa_2(q', d^*)$ 从0.3253升至0.4789、0.3167升至0.4640）将RRF相对BGE的微弱点估计差距放大为1.5B `zero_shot` 上统计显著的 $+0.0445$（95%区间 $[+0.0093, +0.0806]$）。仅依赖问题表面特征的边缘密度比重加权未能纠正偏差（0%选中 `bge_small_zh`）；作为探索性事后诊断的**关系型源重叠度门控（`source_overlap_gated`）**在全部校准预算 $B \in \{25, 50, 100, 200\}$ 及冷启动分位点 $q \in [0.10, 0.30]$ 下均恢复全量测试集冠军 `bge_small_zh`（当 $q \ge 0.40\text{--}0.50$ 混入高重叠样本后翻转回RRF，而相同样本量的1,000次随机子采样仅在5.9%与18.2%中选中BGE）；同时，基于校准集配对bootstrap的**检索器候选集合暂缓选型（Candidate-Set Abstention）**在低预算（25题）下将错误确定选型率从60%–100%降至0.0%（暂缓比例80%，候选集最优覆盖率100%，平均集合大小2.60）。
+3. **第三轮（可追溯保险条款、槽位完整度与形式化结论可确定性分离、以及多阈值合成规则编译器压力测试）**：采集平安、太平洋、泰康3家保险集团的5份官方正式条款PDF（保留URL、SHA256、页码、规范化字符区间与PDF坐标锚点），在显式限定的“等待期单项排除判断”规则世界内构造20组种子场景 $\times$ 4类受控变体（共80条受控测试样本，每条 `missing_critical` 样本均附带两个导出相反裁决的补全反例见证），并跨越 `Qwen2.5-1.5B-Instruct`、`Qwen-Plus` 与 `Qwen-Max` 开展120次配对改写。我们在评估器中严格区分**全槽位表面完整度（`all_slots_preserved`）**与**形式化规则结论可确定性（`enumerate_admissible_decisions`，枚举缺失槽位的所有合法补全以检验结论是否唯一）**。实验发现：（a）120条生成问句100%通过宽松格式检查（单问号严格格式通过率在1.5B上为33/40，在 `Qwen-Plus`/`Qwen-Max` 上为40/40）；（b）模型规模扩大能消除数值幻觉（生效第20天篡改为第2天从15%降至0%），但无法消除无约束口语改写下的语用槽位省略（`ordinary_style` 在三个模型上的独立全槽位匹配率仅为30%、0%、20%，独立结论可确定率仅为30%、0%、45%）；（c）显式条件守恒提示 `condition_prompt` 将独立全槽位匹配率提升至 **95%–100%**，将独立结论可确定率提升至 **95%（1.5B）与100%（`Qwen-Plus`/`Qwen-Max`）**（绑定源保单下三个模型均达100%）；（d）进一步在受医疗临床路径与劳动法规则启发的**多阈值合成规则编译器压力测试**（4份研究者构造的半合成规则文本、16组种子、64条受控样本、由42次本地1.5B推理生成的48条方法记录）中，消除解析器极性优先级缺陷与参考帧依赖后，将 `condition_prompt` 与单步**闭环槽位守卫修复（`slot_guard_repair`）**结合可将解析器核验的全槽位完整率从6.2%（`ordinary_style`）和37.5%（`condition_prompt`）提升至 **68.8%（11/16）**，将形式化结论可确定率从6.2%和43.8%提升至 **75.0%（12/16，其中医疗启发规则达100.0% [8/8]）**，并将解析器检出的阈值篡改率从31.2%（5/16）完全清零至 **0.0%（0/16）**。
 
 ---
 
@@ -192,16 +192,16 @@ $$f(z) = \begin{cases}
 | `bge_small_zh` | **0.5216** | **0.6453** | $+0.1399 \; [+0.1250, +0.1551]$ | 0.5165 | 0.5202 / 0.4024 | 0.7005 / 0.6794 |
 | `rrf_bm25_bge` | 0.5030 | 0.6075 | $+0.1212 \; [+0.1115, +0.1308]$ | 0.7639 | **0.5647** / **0.4124** | **0.7371** / **0.6813** |
 
-**系统选型反转机制解析与全长文档 `Full-MaxP` 敏感性检验**：
-- 在2,994条真实测试问句上，纯密集检索 **`bge_small_zh` 取得最高点估计（MRR@10 = 0.5216，Hit@5 = 0.6453）**，显著优于最佳词法模型 `bm25_char2`（$+0.1399$），并且稳定领先固定混合检索 `rrf_bm25_bge`（MRR@10 = 0.5030，Hit@5 = 0.6075）：二者在2,994题上的直接配对差值为 **$+0.0187$**，1,000次问题级配对bootstrap 95%描述性区间为 **$[+0.0080, +0.0300]$**（完全位于0以上）。原因在于真实用户口语问句与标准回答之间存在较大词汇鸿沟，`bm25_char2` 与 `bge_small_zh` 存在高达0.1399的性能落差，按固定1:1排名倒数（RRF）将 `bm25_char2` 混入 `bge_small_zh` 会把部分原本被BGE排在第1位的语义匹配回答拉低。
-- **消除512-Token截断混淆因子的 `Full-MaxP` 滑动窗口实验（见 `mitigation_and_maxp_diagnostics.json`）**：针对3,746条回答中有509条超过BGE默认512 tokens上限的潜在质疑，我们将全部509条超长回答按512 tokens窗口、256 tokens步长切分为 **1,205个额外尾部切片（零截断回答）**，使用同一 `BAAI/bge-small-zh-v1.5` 编码并按文档内最大块余弦相似度 $\max_{c \in d} \cos(\mathbf{e}_q, \mathbf{e}_c)$（`Full-MaxP`）重评测2,994条真实测试问句。结果显示：`Full-MaxP` 下 `bge_small_zh` 的 MRR@10 为 **0.5125**（Hit@5 = **0.6306**），依然稳定高于 `rrf_bm25_bge` 的 **0.5002**（Hit@5 = **0.6062**，差值 **$+0.0123$**），证实纯密集检索在真实测试集上领先混合检索并非由512 tokens截断所致。
-- 然而，在**全部三种合成评测集上，最佳系统全部发生偏移**：
-  1. `keywords_matched` 选中 `bm25_char2`（真实选型遗憾 **0.1399**）；
-  2. `zero_shot` 选中 `rrf_bm25_bge`（合成MRR@10为0.5647 vs. BGE的0.5202，真实选型遗憾 **0.0187**）；
-  3. `few_shot_3` 同样选中 `rrf_bm25_bge`（合成MRR@10为0.4124 vs. BGE的0.4024，真实选型遗憾 **0.0187**）。
-- **为什么LLM生成的问句会系统性偏爱RRF混合检索？二元字符包含率分层诊断（$\kappa_2(q, d^*)$）**：因为LLM在阅读源回答 $d^*$ 生成问句 $q'$ 时，不可避免地复用源回答中的核心实体词与专业术语（使 `bm25_char2` 在零样本合成集上的MRR@10从真实集的0.3817跃升至0.5013与0.6528）。按问句对目标文档的二元字符包含率 $\kappa_2(q, d^*) = |\text{Bi}(q) \cap \text{Bi}(d^*)| / |\text{Bi}(q)|$ 对 `real_test`（2,994题）与合成集分层可见：
+**系统选型反转机制解析、同源子集混杂分解与全长文档 `Full-MaxP` 敏感性检验**：
+- 在2,994条全量真实测试问句上，纯密集检索 **`bge_small_zh` 取得最高点估计（MRR@10 = 0.5216，Hit@5 = 0.6453）**，显著优于最佳词法模型 `bm25_char2`（$+0.1399$），并且稳定领先固定混合检索 `rrf_bm25_bge`（MRR@10 = 0.5030，Hit@5 = 0.6075）：二者在2,994题上的直接配对差值为 **$+0.0187$**，10,000次问题级配对bootstrap 95%描述性区间为 **$[+0.0077, +0.0296]$**（完全位于0以上）。
+- **消除512-Token截断混淆因子的 `Full-MaxP` 滑动窗口实验（见 `src/maxp_ablation.py` 与 `mitigation_and_maxp_diagnostics.json`）**：针对3,746条回答中有509条超过BGE默认512 tokens上限的潜在质疑，我们将全部509条超长回答按512 tokens窗口、256 tokens步长切分为 **762个额外尾部切片（共1,271个滑动窗口，零截断回答）**，使用同一 `BAAI/bge-small-zh-v1.5` 编码并按文档内最大块余弦相似度 $\max_{c \in d} \cos(\mathbf{e}_q, \mathbf{e}_c)$（`Full-MaxP`）重评测2,994条真实测试问句。结果显示：`Full-MaxP` 下 `bge_small_zh` 的 MRR@10 为 **0.5165**（Hit@5 = **0.6389**），依然显著高于 `rrf_bm25_bge` 的 **0.5007**（Hit@5 = **0.6055**，差值 **$+0.0158$**，95%配对bootstrap区间 $[+0.0049, +0.0267]$），证实纯密集检索在全量真实测试集上领先混合检索并非由512 tokens截断所致。
+- **同源子集对齐分解：区分“源文档抽样混杂”与“同源词法复制膨胀”**：如果直接将全量2,994条真实测试题与249条（1.5B）或179条（`Qwen-Plus`）合成题对比，会同时改变目标文档集合与问句风格。为此，我们在 `mitigation_and_maxp_diagnostics.json` 中将真实测试题与合成题严格对齐到**相同的目标回答文档**上（1.5B对应207篇唯一测试文档、209条真实测试题；`Qwen-Plus` 对应151篇唯一测试文档、153条真实测试题）：
+  - 在这批对齐真实子集上，`bm25_char2` 得分略高于全量均值（0.4073与0.3909 vs. 0.3817），`bge_small_zh` 略低于全量均值（0.4696与0.4668 vs. 0.5216），使得真实 `rrf_bm25_bge` 在这两个小样本真实子集上已经出现微弱但**统计不显著**的点估计领先（1.5B匹配真实子集：0.4975 vs. 0.4696，$\Delta_{\text{BGE}-\text{RRF}} = -0.0279$，95%区间 $[-0.0645, +0.0096]$ 跨零；`Qwen-Plus` 匹配真实子集：0.4980 vs. 0.4668，$\Delta_{\text{BGE}-\text{RRF}} = -0.0312$，95%区间 $[-0.0687, +0.0073]$ 跨零）。这说明**仅抽取179–249个源回答本身引入了显著的源文档抽样方差，不能把全量集与小样本合成集之间的点估计翻转单方面归因于改写风格**。
+  - 固定同一批对齐文档后，零样本（`zero_shot`）合成将问句对目标文档的二元字符包含率 $\kappa_2(q, d^*)$ 从真实问句的0.3253推高至0.4789（1.5B，209对）及从0.3167推高至0.4640（`Qwen-Plus`，153对），使 `bm25_char2` 的MRR@10分别暴涨 $+0.1009$（0.4073 $\to$ 0.5082）与 $+0.2601$（0.3909 $\to$ 0.6510），从而将原本跨零的RRF点估计优势放大为1.5B `zero_shot`（$N=249$）上**统计显著的 $+0.0445$ 领先**（0.5647 vs. 0.5202，95%区间 $[+0.0093, +0.0806]$）；而在降低词法复制率的 `few_shot_3` 下，RRF与BGE的差距重新收敛至统计不显著的 $+0.0100$（95%区间 $[-0.0208, +0.0414]$）与 $+0.0019$（95%区间 $[-0.0394, +0.0428]$）。
+- **二元字符包含率分层诊断（$\kappa_2(q, d^*)$）与分位点敏感性扫描**：
   - 在**低重叠层（$\kappa_2 < 0.25$，占真实测试集 40.0%，$n=1,199$）**中，`bge_small_zh` 不仅在 `real_test` 上大幅击败 `rrf_bm25_bge`（0.3022 vs. 0.2220，$\Delta = +0.0801$），而且在**全部4组LLM合成集的低重叠层中同样一致击败 `rrf_bm25_bge`**（1.5B `zero_shot` $+0.0839$，1.5B `few_shot_3` $+0.0326$，`Qwen-Plus` `zero_shot` $+0.0821$，`Qwen-Plus` `few_shot_3` $+0.1600$）；
-  - 在**高重叠层（$\kappa_2 \ge 0.50$，仅占真实测试集 20.6%，$n=617$）**中，`rrf_bm25_bge` 在真实集（$\Delta = -0.0457$）与全部合成集（$\Delta \in [-0.0811, -0.0447]$）上均反超 `bge_small_zh`。未加过滤的合成评测之所以反转全局冠军，正是因为基于源文档的生成将查询质量重心推向了 $\kappa_2 \ge 0.50$ 高重叠层（1.5B `zero_shot` 占48.6%，`Qwen-Plus` `zero_shot` 占41.9%，远高于真实集的20.6%）。
+  - 在**高重叠层（$\kappa_2 \ge 0.50$，仅占真实测试集 20.6%，$n=617$）**中，`rrf_bm25_bge` 在真实集（$\Delta = -0.0457$）与全部合成集（$\Delta \in [-0.0811, -0.0447]$）上均反超 `bge_small_zh`。
+  - 作为探索性事后诊断（Exploratory Retrospective Diagnostic），按校准集真实中位数 $\hat{\tau}_{\text{cal}}^{(B)}$ 过滤合成题的 `source_overlap_gated` 在 $B \in \{25, 50, 100, 200\}$ 的5次校准抽样中均选中全量测试集冠军 `bge_small_zh`。在无校准样本的冷启动 $B=0$ 下（注：在固定合成集上按分位点截断属于确定性计算而非5次独立随机试验），完整分位点扫描（$q \in [0.10, 1.00]$）显示：当截断分位点 $q \in \{0.10, 0.15, 0.20, 0.25, 0.30\}$ 时，4组合成集一致选中 `bge_small_zh`；当 $q \ge 0.40$（`Qwen-Plus zero_shot`）或 $q \ge 0.50$（1.5B `zero_shot`）纳入高重叠合成题后，选型翻转回 `rrf_bm25_bge`。相比之下，在 $Q_{0.20}$ 相同样本量（$k=70$ 与 $k=36$）下做1,000次均匀随机子采样，选中 `bge_small_zh` 的比例仅为 **5.9%**（1.5B `zero_shot`）与 **18.2%**（`Qwen-Plus zero_shot`），证实门控效应来自剔除高 $\kappa_2$ 样本而非单纯缩小样本量。
 
 #### 5.2.2 同预算分布校准、关系型源重叠度门控（`source_overlap_gated`）与候选集合暂缓选型对比
 
@@ -262,16 +262,20 @@ $$f(z) = \begin{cases}
 | `condition_prompt`（v1严格正则） | 1 (5%) | 0 (0%) | 8 (40%) | 0 (0%) | 1 (25%) | 3 (100%) |
 | `condition_prompt`（表面同义归一） | **1 (5%)** | **0 (0%)** | **0 (0%)** | **0 (0%)** | **0 (0%)** | **0 (0%)** |
 
-#### 5.3.2 关键业务条件失真对等待期规则结论的破坏效应
+#### 5.3.2 槽位完整度与形式化规则结论可确定性的分离评估
 
-将改写后问句可识别的业务条件帧代入有限规则编译器 $f(z)$，评估其在**独立检索问答场景（Standalone，要求问句自身指明产品与条件）**与**已知源条款场景（Source-Policy Granted，假设评测框架默认绑定源文档 `policy_id`）**下的规则结论保持情况：
+在 `src/analyze_v3.py` 中，我们严格区分两项指标：（1）**全槽位表面完整度（`surface_v2_preserved` / `all_slots_preserved`）**，即种子帧 $z$ 中的全部必需槽位均被提取且匹配；（2）**形式化规则结论可确定性（`enumerate_admissible_decisions`）**，即当已知目标条款（由问句显式指明或在绑定源条款设定下给定）但存在未提取槽位时，穷举缺失槽位的所有合法取值组合——若所有合法补全均导出相同的等待期裁决 $f(z)$（例如在生效第45天、30天等待期的 `pa_h865` 保单上隐去“疾病或意外原因”，无论疾病还是意外均导出 `WAIT_NOT_EXCLUDED`），则规则结论依然完全确定（计为 `PRESERVED` 而非 `DEGRADED_TO_CLARIFY`）。下表同时报告全槽位匹配率与真实规则结论可确定率：
 
-| 评估设定 | 改写方法 | `Qwen2.5-1.5B` 保持率 / 退化`CLARIFY` / 数值篡改 | `Qwen-Plus` 保持率 / 退化`CLARIFY` / 数值篡改 | `Qwen-Max` 保持率 / 退化`CLARIFY` / 数值篡改 |
-|---|---|---|---|---|
-| **独立问句场景（Standalone）** | `ordinary_style` | **30% (6/20)** / 55% (11/20) / 15% (3/20) | **0% (0/20)** / 100% (20/20) / 0% (0/20) | **20% (4/20)** / 80% (16/20) / 0% (0/20) |
-| **独立问句场景（Standalone）** | `condition_prompt` | **95% (19/20)** / 5% (1/20) / **0% (0/20)** | **95% (19/20)** / 5% (1/20) / **0% (0/20)** | **100% (20/20)** / 0% (0/20) / **0% (0/20)** |
-| **已知源条款场景（Policy Granted）** | `ordinary_style` | **50% (10/20)** / 35% (7/20) / 15% (3/20) | **45% (9/20)** / 55% (11/20) / 0% (0/20) | **50% (10/20)** / 50% (10/20) / 0% (0/20) |
-| **已知源条款场景（Policy Granted）** | `condition_prompt` | **100% (20/20)** / 0% (0/20) / **0% (0/20)** | **95% (19/20)** / 5% (1/20) / **0% (0/20)** | **100% (20/20)** / 0% (0/20) / **0% (0/20)** |
+| 评估设定与指标 | 改写方法 | `Qwen2.5-1.5B` | `Qwen-Plus` | `Qwen-Max` |
+|---|---|---:|---:|---:|
+| **独立问句：全槽位完整匹配率 (`v2`)** | `ordinary_style` | **30% (6/20)** | **0% (0/20)** | **20% (4/20)** |
+| **独立问句：形式化规则结论可确定率** | `ordinary_style` | **30% (6/20)** / 55% `CLARIFY` / 15% 篡改 | **0% (0/20)** / 100% `CLARIFY` / 0% 篡改 | **45% (9/20)** / 55% `CLARIFY` / 0% 篡改 |
+| **独立问句：全槽位完整匹配率 (`v2`)** | `condition_prompt` | **95% (19/20)** | **95% (19/20)** | **100% (20/20)** |
+| **独立问句：形式化规则结论可确定率** | `condition_prompt` | **95% (19/20)** / 5% `CLARIFY` / **0% 篡改** | **100% (20/20)** / 0% `CLARIFY` / **0% 篡改** | **100% (20/20)** / 0% `CLARIFY` / **0% 篡改** |
+| **已知源条款：全槽位完整匹配率 (`v2`)** | `ordinary_style` | **50% (10/20)** | **45% (9/20)** | **50% (10/20)** |
+| **已知源条款：形式化规则结论可确定率** | `ordinary_style` | **55% (11/20)** / 30% `CLARIFY` / 15% 篡改 | **75% (15/20)** / 25% `CLARIFY` / 0% 篡改 | **80% (16/20)** / 20% `CLARIFY` / 0% 篡改 |
+| **已知源条款：全槽位完整匹配率 (`v2`)** | `condition_prompt` | **100% (20/20)** | **95% (19/20)** | **100% (20/20)** |
+| **已知源条款：形式化规则结论可确定率** | `condition_prompt` | **100% (20/20)** | **100% (20/20)** | **100% (20/20)** |
 
 **第三轮四项核心机制发现**：
 
@@ -300,29 +304,31 @@ $$f(z) = \begin{cases}
    - 第一，在 `generated_ordinary_style` 下，由于14/20题丢弃了产品全名（如把《平安员工及家属住院医疗保险》《太保住院E款》《泰康悦享环球》统称为“这个保险”或“贵公司产品”），`bm25_char2` 将目标条款排在第一位的准确率从 **100% 跌至 50%（MRR@10 = 0.6792）**，而 `generated_condition_prompt` 在 `bm25_char2`、`bm25_char1` 和 `tfidf_char2` 上均保持 **100% Top-1 准确率（MRR@10 = 1.0000）**。
    - 第二，在受控样本中，无论是完整可答问句（`complete`）、必须追问的残缺问句（`missing_critical`），还是答案完全相反的反事实问句（`counterfactual`），它们在 `bm25_char2` 上的检索MRR@10均为 **1.0000**。这有力证明了**高检索命中率（Retrieval Hit/MRR）绝不等于生成问句保持了源文档的可回答性或参考答案标签**——如果评测集在合成阶段发生了关键条件缺失或反事实漂移，即便检索器100%召回源条款，下游RAG/Agent评测沿用原答案标签也会产生系统性的错误评判。
 
-### 5.4 跨领域泛化验证与闭环槽位守卫修复（医疗临床准入与劳动法合规基准）
+### 5.4 多阈值合成规则编译器压力测试（受医疗临床路径与劳动法规则启发）
 
-为验证上述失效模式、双反例见证准则及条件守恒方法在保险之外的高规则垂直领域是否成立，我们在 `src/cross_domain_study.py`（数据与结果存盘于 `data_v3/cross_domain_controlled_cases.jsonl`、`data_v3/cross_domain_generations.jsonl` 与 `data_v3/cross_domain_summary.json`）中构建了涵盖**医疗临床准入**与**劳动法合规**两个领域的受控基准（4份规程/法条、16组种子场景、64条含双反例见证的受控样本、48次本地 `Qwen2.5-1.5B-Instruct` `float32/eager` 贪心生成）：
-- **医疗临床准入（`healthcare`，2份规程，8组种子，32条受控样本）**：（1）`med_egfr_tki`（《国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程》：要求T790M突变阳性；二线转换申请需停用前序药物满14天洗脱期，一线初治或肿瘤专家组急诊特批豁免除外）；（2）`med_vte_prophylaxis`（《骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径》：膝关节置换标准预防期10天 vs. 髋关节置换35天；出现活动性出血且未获血液科会诊特批继续抗凝列为禁忌）。
-- **劳动法成文法合规（`legal`，2份法条，8组种子，32条受控样本）**：（3）`law_work_injury`（《工伤保险条例第十四条上下班途中交通事故工伤认定规范》：要求交警认定非本人主要责任；用人单位申请法定时限30天 vs. 工伤职工/近亲属365天，人社部门书面批准延长除外）；（4）`law_noncompete`（《劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引》：仅适用于负有保密义务的高管/高技人员；因单位原因连续未付经济补偿超过90天且未签署宽限期豁免协议方可单方解除）。
+为检验上述条件丢失、法定阈值覆盖偏差及闭环槽位修复机制在保险等待期之外的多阈值规则结构上是否有效，我们在 `src/cross_domain_study.py`（数据与结果存盘于 `data_v3/cross_domain_controlled_cases.jsonl`、`data_v3/cross_domain_generations.jsonl` 与 `data_v3/cross_domain_summary.json`）中构建了**多阈值合成规则编译器压力测试（Synthetic Rule-Compiler Stress Test）**。**来源边界显式声明**：不同于第5.3节可追溯至官方PDF字节坐标的5份保险正式合同条款，本节的4段规则文本（`provenance = "synthetic_rule_compiler_stress_test"`）属于**受医疗临床路径与劳动法条文启发、由研究者面向确定性编译器构造的半合成规则世界**（例如将“1年”简化为连续日阈值365天、将“三个月”简化为90天并统一引入显式特批豁免开关以测试多阈值交互；它们**不代表**现行国家医保目录原文或司法解释权威条文）。该压力测试包含4份合成规则文本、16组种子场景、64条含双反例见证的受控样本，以及由 **42次实际本地 `Qwen2.5-1.5B-Instruct` `float32/eager` 推理调用**生成的 **48条方法评估记录**（16次 `ordinary_style` + 16次 `condition_prompt` + 对未通过槽位检查的10条样本执行1步修复调用，其余6条直接复用已完备的 `condition_prompt` 输出）：
+- **受医疗路径启发的合成规则（`healthcare`，2份合成规程，8组种子，32条受控样本）**：（1）`med_egfr_tki`（模拟二线转换14天洗脱期阈值、T790M阳性前提及一线/急诊特批豁免）；（2）`med_vte_prophylaxis`（模拟膝关节置换10天 vs. 髋关节置换35天预防窗口及活动性出血禁忌与会诊豁免）。
+- **受劳动法启发的合成规则（`legal`，2份合成法条，8组种子，32条受控样本）**：（3）`law_work_injury`（模拟非本人主要责任前提、单位30天 vs. 个人/近亲属365天申报时限及延期豁免）；（4）`law_noncompete`（模拟负有保密义务主体、连续未付补偿超90天阈值及宽限期豁免协议）。
 
-我们在 `Qwen2.5-1.5B-Instruct` 上对比三种生成机制：（1）`ordinary_style`；（2）开环 `condition_prompt`；（3）**单步闭环槽位守卫修复（`slot_guard_repair`）**——对 `condition_prompt` 输出运行同义词感知槽位解析器 `extract_cross_slots_v2`，一旦检测到任何必需槽位缺失或数值篡改，自动向模型反馈具体缺失/篡改槽位名称并执行1步修正生成：
+我们在 `extract_cross_slots_v2` 中修复了否定与停药极性优先级（确保 `"不负有保密义务"` 优先判为 `disqualified`、`"已停用常规抗凝"` 优先判为 `secondary`、`"没有活动性出血"` 优先判为 `qualified`）并彻底移除了评分时对 `seed_frame` 的读取依赖，同时区分**解析器核验全槽位完整率**与**形式化结论可确定率（`enumerate_cross_decisions`）**：
 
-| 跨领域评测指标 | `ordinary_style` | `condition_prompt`（开环） | **`slot_guard_repair`（单步闭环修复）** |
+| 合成规则压力测试指标 | `ordinary_style` | `condition_prompt`（开环） | **`slot_guard_repair`（单步闭环修复）** |
 |---|---:|---:|---:|
-| 基础格式有效率 (`format_valid`, /16) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
-| 4份跨领域条款 Top-1 准确率 (`bm25_char2`) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
-| **独立问句规则结论保持率 — 总计 (/16)** | 6.2% (1/16) | 37.5% (6/16) | **68.8% (11/16)** |
-| — 医疗临床准入子域 (/8) | 12.5% (1/8) | 50.0% (4/8) | **87.5% (7/8)** |
-| — 劳动法合规子域 (/8) | 0.0% (0/8) | 25.0% (2/8) | **50.0% (4/8)** |
-| 缺失关键条件退化为 `CLARIFY` (/16) | 81.2% (13/16) | 31.2% (5/16) | 31.2% (5/16) |
-| **关键条件数值/极性篡改 (`CONDITION_MUTATED`, /16)** | 12.5% (2/16) | 31.2% (5/16) | **0.0% (0/16)** |
+| 宽松格式有效率 (`format_valid`, /16) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
+| 单问号严格格式有效率 (/16) | 68.8% (11/16) | 100.0% (16/16) | **100.0% (16/16)** |
+| 4份合成规则 Top-1 准确率 (`bm25_char2`) | 100.0% (16/16) | 100.0% (16/16) | **100.0% (16/16)** |
+| **解析器核验全槽位匹配率 (`all_slots_preserved`, /16)** | 6.2% (1/16) | 37.5% (6/16) | **68.8% (11/16)** |
+| **形式化规则结论可确定率 — 总计 (/16)** | 6.2% (1/16) | 43.8% (7/16) | **75.0% (12/16)** |
+| — 医疗启发规则子集 (/8) | 12.5% (1/8) | 62.5% (5/8) | **100.0% (8/8)** |
+| — 劳动法启发规则子集 (/8) | 0.0% (0/8) | 25.0% (2/8) | **50.0% (4/8)** |
+| 真实不可确定退化 `DEGRADED_TO_CLARIFY` (/16) | 81.2% (13/16) | 25.0% (4/16) | 25.0% (4/16) |
+| **解析器核验条件/阈值篡改 (`CONDITION_MUTATED`, /16)** | 12.5% (2/16) | 31.2% (5/16) | **0.0% (0/16)** |
 | v1严格正则通过率 (`v1_strict_regex`, /16) | 0.0% (0/16) | 6.2% (1/16) | 12.5% (2/16) |
 
-**跨领域实验的三项核心结论**：
-1. **`ordinary_style` 在医疗与法律领域同样引发严重条件丢失、反相标签碰撞与极性反转**：尽管16条 `ordinary_style` 改写在4份跨领域条款上的 `bm25_char2` Top-1检索准确率达100%，其独立问句规则结论保持率仅为 **6.2%（1/16，医疗1/8、法律0/8）**。在医疗域中，`cross-001`（停药第7天未满14天洗脱期 $\to$ `RULE_EXCLUDED`）与 `cross-002`（停药第20天已满14天洗脱期 $\to$ `RULE_ELIGIBLE`）被坍缩为完全相同的问句 `"我现在能申请奥希替尼的门诊特药报销吗？"`；在法律域中，`cross-011` 将原种子中的 `"交警认定为本人主要责任"`（`RULE_EXCLUDED`）直接反转改写为 `"交警说不是主要责任"`（`CONDITION_MUTATED`）。
-2. **开环 `condition_prompt` 的“法定阈值覆盖偏差（Threshold-Overwriting Bias）”**：开环 `condition_prompt` 将结论保持率从6.2%提升至37.5%（6/16），但在5/16（31.2%）个种子（医疗 `cross-004` 及法律 `cross-013..016`）中发生了条件篡改——当源法条同时出现在上下文中时，1.5B模型容易将源法条中的法定阈值（如“14天洗脱期”“连续未支付90天”）覆盖替换掉用户实际经过的天数（第7天、第45天或第120天）。
-3. **单步闭环 `slot_guard_repair` 100% 消除条件篡改并将结论保持率翻倍**：引入确定性槽位守卫进行1步闭环反馈修复后，独立结论保持率跃升至 **68.8%（11/16，医疗域达87.5% [7/8]，法律域达50.0% [4/8]）**，且**关键条件篡改率从 31.2%（5/16）彻底降至 0.0%（0/16）**；其余5条在1步修复后仍遗漏次要槽位（`threshold_days` 或 `clause_id`）的问句被确定性守卫100%精准拦截为 `DEGRADED_TO_CLARIFY`，不会作为伪正例污染下游评测基准。
+**合成规则压力测试的三项核心结论**：
+1. **`ordinary_style` 引发严重条件丢失、反相标签碰撞与极性反转**：尽管16条 `ordinary_style` 改写在4份合成规则上的 `bm25_char2` Top-1检索准确率达100%，其全槽位完整率与独立结论可确定率均为 **6.2%（1/16，医疗1/8、法律0/8）**。其中 `cross-001`（停药第7天 $\to$ `RULE_EXCLUDED`）与 `cross-002`（停药第20天 $\to$ `RULE_ELIGIBLE`）被坍缩为完全相同的问句 `"我现在能申请奥希替尼的门诊特药报销吗？"`；`cross-011` 将 `"交警认定为本人主要责任"`（`RULE_EXCLUDED`）直接反转改写为 `"交警说不是主要责任"`（`CONDITION_MUTATED`）。
+2. **开环 `condition_prompt` 的“阈值覆盖偏差（Threshold-Overwriting Bias）”与非关键槽位分离**：开环 `condition_prompt` 将全槽位匹配率从6.2%提升至37.5%（6/16），将形式化结论可确定率提升至43.8%（7/16，因为 `cross-005` 在膝关节术后第15天已超过10天标准预防期，即使遗漏是否有活动性出血，两种补全均导出 `RULE_EXCLUDED`），但在5/16（31.2%）个种子（`cross-004` 及 `cross-013..016`）中将用户实际经过的天数（第7天、第45天或第120天）篡改为源规则中的阈值天数（14天或90天）。
+3. **单步闭环 `slot_guard_repair` 清零解析器检出的阈值篡改**：执行1步闭环反馈修复（10次重生成调用）后，解析器核验的全槽位完整率升至 **68.8%（11/16）**，形式化规则结论可确定率升至 **75.0%（12/16，其中医疗启发规则达100.0% [8/8]，劳动法启发规则达50.0% [4/8]）**，且解析器检出的 `CONDITION_MUTATED` 从31.2%（5/16）降至 **0.0%（0/16）**。需要强调的是，由于修复触发器与自动评估器共用 `extract_cross_slots_v2`，该提升反映的是受控规则编译器下的槽位守恒率，不能替代独立人工语义盲审。
 
 ---
 
@@ -359,12 +365,10 @@ $$f(z) = \begin{cases}
 
 ## 参考文献
 
-1. H. A. Rahmani, N. Craswell, E. Yilmaz, B. Mitra, and D. Campos. Synthetic Test Collections for Retrieval Evaluation. In *Proceedings of SIGIR*, 2024. https://arxiv.org/abs/2405.07767
-2. J. Saad-Falcon, O. Khattab, C. Potts, and M. Zaharia. ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems. In *Proceedings of NAACL*, 2024. https://aclanthology.org/2024.naacl-long.20/
-3. K. Zhu, Y. Luo, D. Xu, et al. RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework. In *Proceedings of ACL*, 2025. https://aclanthology.org/2025.acl-long.418/
-4. S. Filice, G. Horowitz, D. Carmel, et al. Generating Q&A Benchmarks for RAG Evaluation in Enterprise Settings. In *Proceedings of ACL (Industry Track)*, 2025. https://aclanthology.org/2025.acl-industry.33/
-5. R. van Elburg, et al. Can we Evaluate RAGs with Synthetic Data? *arXiv preprint arXiv:2508.11758*, 2025. https://arxiv.org/abs/2508.11758
-6. M. Kucia and P. Gawlik. Beyond Benchmark Scores: How Synthetic and Authentic Query Distributions Diverge in RAG Evaluation. *arXiv preprint arXiv:2609.14579*, 2026. https://arxiv.org/abs/2609.14579
-7. A. N. Angelopoulos, S. Bates, C. Fannjiang, M. I. Jordan, and T. Zrnic. Prediction-Powered Inference. *Science*, 382(6671):669–674, 2023. https://arxiv.org/abs/2301.09633
-8. A. Divekar. Statistically Reliable LLM-Based Ranking Evaluation via Prediction-Powered Inference. *arXiv preprint arXiv:2606.05308*, 2026. https://arxiv.org/abs/2606.05308
-9. Y. Ding, et al. InsQABench: Benchmarking Chinese Insurance Domain Question Answering with Large Language Models. *arXiv preprint arXiv:2501.10943*, 2025. https://arxiv.org/abs/2501.10943
+1. H. A. Rahmani, X. Wang, M. Aliannejadi, M. Naghiaei, and E. Yilmaz. Synthetic Test Collections for Retrieval Evaluation. In *Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR)*, pages 2647–2651, 2024. https://arxiv.org/abs/2405.07767
+2. J. Saad-Falcon, O. Khattab, C. Potts, and M. Zaharia. ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems. In *Proceedings of NAACL*, pages 338–354, 2024. https://aclanthology.org/2024.naacl-long.20/
+3. K. Zhu, Y. Luo, D. Xu, R. Wang, S. Yu, S. Wang, Y. Yan, Z. Liu, X. Han, Z. Liu, and M. Sun. RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework. In *Proceedings of ACL*, pages 8528–8561, 2025. https://aclanthology.org/2025.acl-long.418/
+4. S. Filice, G. Horowitz, D. Carmel, Z. Karnin, L. Lewin-Eytan, and Y. Maarek. Generating Q&A Benchmarks for RAG Evaluation with DataMorgana. In *Proceedings of ACL (Industry Track)*, 2025. https://aclanthology.org/2025.acl-industry.33/
+5. R. van Elburg, S. Hunter, and H. Pezeshki. Can we Evaluate RAGs with Synthetic Data? *arXiv preprint arXiv:2508.11758*, 2025. https://arxiv.org/abs/2508.11758
+6. A. N. Angelopoulos, S. Bates, C. Fannjiang, M. I. Jordan, and T. Zrnic. Prediction-Powered Inference. *Science*, 382(6671):669–674, 2023. https://arxiv.org/abs/2301.09633
+7. Y. Ding, et al. InsQABench: Benchmarking Chinese Insurance Domain Question Answering with Large Language Models. *arXiv preprint arXiv:2501.10943*, 2025. https://arxiv.org/abs/2501.10943

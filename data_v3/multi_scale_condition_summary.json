@@ -1,10 +1,27 @@
 {
+  "required_field_denominators": {
+    "policy_id": 20,
+    "enrollment": 20,
+    "policy_day": 20,
+    "cause": 20,
+    "plan_wait_days": 4,
+    "approved_waiver": 3
+  },
   "qwen2.5-1.5b-instruct": {
     "ordinary_style": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 18,
       "strict_v1_proxy_pass": 6,
       "strict_v1_proxy_flagged": 14,
+      "strict_v1_field_flags": {
+        "policy_id": 14,
+        "enrollment": 7,
+        "policy_day": 5,
+        "cause": 2,
+        "plan_wait_days": 4,
+        "approved_waiver": 3
+      },
       "surface_normalized_proxy_pass": 6,
       "surface_normalized_proxy_flagged": 14,
       "v1_false_negative_on_surface_phrasing": 0,
@@ -16,6 +33,20 @@
         "plan_wait_days": 4,
         "approved_waiver": 3
       },
+      "standalone_slot_completeness_outcomes": {
+        "ALL_SLOTS_PRESERVED": 6,
+        "NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED": 0,
+        "DEGRADED_TO_CLARIFY": 11,
+        "CONDITION_MUTATED": 3,
+        "COUNTERFACTUAL_FLIP": 0
+      },
+      "source_policy_granted_slot_completeness_outcomes": {
+        "ALL_SLOTS_PRESERVED": 10,
+        "NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED": 1,
+        "DEGRADED_TO_CLARIFY": 6,
+        "CONDITION_MUTATED": 3,
+        "COUNTERFACTUAL_FLIP": 0
+      },
       "standalone_decision_outcomes": {
         "PRESERVED_DECISION": 6,
         "DEGRADED_TO_CLARIFY": 11,
@@ -23,8 +54,8 @@
         "COUNTERFACTUAL_FLIP": 0
       },
       "source_policy_granted_decision_outcomes": {
-        "PRESERVED_DECISION": 10,
-        "DEGRADED_TO_CLARIFY": 7,
+        "PRESERVED_DECISION": 11,
+        "DEGRADED_TO_CLARIFY": 6,
         "CONDITION_MUTATED": 3,
         "COUNTERFACTUAL_FLIP": 0
       }
@@ -32,8 +63,17 @@
     "condition_prompt": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 15,
       "strict_v1_proxy_pass": 10,
       "strict_v1_proxy_flagged": 10,
+      "strict_v1_field_flags": {
+        "policy_id": 1,
+        "enrollment": 0,
+        "policy_day": 8,
+        "cause": 0,
+        "plan_wait_days": 1,
+        "approved_waiver": 3
+      },
       "surface_normalized_proxy_pass": 19,
       "surface_normalized_proxy_flagged": 1,
       "v1_false_negative_on_surface_phrasing": 9,
@@ -44,6 +84,20 @@
         "cause": 0,
         "plan_wait_days": 0,
         "approved_waiver": 0
+      },
+      "standalone_slot_completeness_outcomes": {
+        "ALL_SLOTS_PRESERVED": 19,
+        "NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED": 0,
+        "DEGRADED_TO_CLARIFY": 1,
+        "CONDITION_MUTATED": 0,
+        "COUNTERFACTUAL_FLIP": 0
+      },
+      "source_policy_granted_slot_completeness_outcomes": {
+        "ALL_SLOTS_PRESERVED": 20,
+        "NON_PIVOTAL_SLOT_OMITTED_DECISION_PRESERVED": 0,
+        "DEGRADED_TO_CLARIFY": 0,
+        "CONDITION_MUTATED": 0,
+        "COUNTERFACTUAL_FLIP": 0
       },
       "standalone_decision_outcomes": {
         "PRESERVED_DECISION": 19,
@@ -63,10 +117,14 @@
     "ordinary_style": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 20,
       "strict_v1_preserved": 0,
       "surface_v2_preserved": 0,
+      "granted_policy_all_slots_preserved": 9,
       "standalone_decision_preserved": 0,
-      "granted_policy_decision_preserved": 9,
+      "standalone_non_pivotal_slot_omitted_decision_preserved": 0,
+      "granted_policy_decision_preserved": 15,
+      "granted_policy_non_pivotal_slot_omitted_decision_preserved": 6,
       "counterfactual_flips": 0,
       "condition_mutations": 0,
       "slot_mismatch_counts_v2": {
@@ -81,10 +139,14 @@
     "condition_prompt": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 20,
       "strict_v1_preserved": 19,
       "surface_v2_preserved": 19,
-      "standalone_decision_preserved": 19,
-      "granted_policy_decision_preserved": 19,
+      "granted_policy_all_slots_preserved": 19,
+      "standalone_decision_preserved": 20,
+      "standalone_non_pivotal_slot_omitted_decision_preserved": 1,
+      "granted_policy_decision_preserved": 20,
+      "granted_policy_non_pivotal_slot_omitted_decision_preserved": 1,
       "counterfactual_flips": 0,
       "condition_mutations": 0,
       "slot_mismatch_counts_v2": {
@@ -101,10 +163,14 @@
     "ordinary_style": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 20,
       "strict_v1_preserved": 4,
       "surface_v2_preserved": 4,
-      "standalone_decision_preserved": 4,
-      "granted_policy_decision_preserved": 10,
+      "granted_policy_all_slots_preserved": 10,
+      "standalone_decision_preserved": 9,
+      "standalone_non_pivotal_slot_omitted_decision_preserved": 5,
+      "granted_policy_decision_preserved": 16,
+      "granted_policy_non_pivotal_slot_omitted_decision_preserved": 6,
       "counterfactual_flips": 0,
       "condition_mutations": 0,
       "slot_mismatch_counts_v2": {
@@ -119,10 +185,14 @@
     "condition_prompt": {
       "attempts": 20,
       "format_valid": 20,
+      "strict_single_question_mark_valid": 20,
       "strict_v1_preserved": 20,
       "surface_v2_preserved": 20,
+      "granted_policy_all_slots_preserved": 20,
       "standalone_decision_preserved": 20,
+      "standalone_non_pivotal_slot_omitted_decision_preserved": 0,
       "granted_policy_decision_preserved": 20,
+      "granted_policy_non_pivotal_slot_omitted_decision_preserved": 0,
       "counterfactual_flips": 0,
       "condition_mutations": 0,
       "slot_mismatch_counts_v2": {
