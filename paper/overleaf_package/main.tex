@@ -28,7 +28,7 @@
 Selection Reversal, Candidate-Set Abstention, and Eligibility-Condition Preservation in Chinese Insurance Retrieval}}
 
 \author{
-  \textbf{Shunchi Wang}\thanks{Correspondence to: \texttt{wangshunchi@example.com}. Reproducible code, group-disjoint splits, traceable policy clause tables, and blinded annotation packages are available at \url{https://github.com/jakelihua/chinese-insurance-rag-benchmark}.} \\
+  \textbf{Shunchi Wang}\thanks{Correspondence to: \texttt{wangshunchi@example.com}. Code, group-disjoint splits, policy clause tables, and evaluation logs are available at \url{https://github.com/jakelihua/chinese-insurance-rag-benchmark}.} \\
   Independent Researcher
 }
 
@@ -38,75 +38,69 @@ Selection Reversal, Candidate-Set Abstention, and Eligibility-Condition Preserva
 \maketitle
 
 \begin{abstract}
-When cold-starting a vertical-domain retrieval-augmented generation (RAG) system, engineering teams routinely rely on rule-based proxies or large language model (LLM) synthetic queries to benchmark candidate retrievers before real user logs are available. Yet a fundamental decision-theoretic question remains under-explored: \emph{when does ranking retrievers on synthetic queries reverse the true winner on real user queries, and why do format-valid synthetic queries silently corrupt domain-specific eligibility conditions across model scales?}
+When cold-starting a domain-specific retrieval-augmented generation (RAG) system before user query logs exist, practitioners often synthesize queries from knowledge-base passages to rank candidate retrievers. This paper examines two practical questions in Chinese insurance retrieval: (1)~when does ranking retrievers on synthetic queries reverse the winner observed on real user questions, and (2)~to what extent do format-valid synthetic rewrites drop or alter underwriting and claims eligibility conditions across model scales?
 
-We investigate this question through a three-round diagnostic study on Chinese insurance retrieval and clause-level underwriting/claims eligibility verification across a three-tier model hierarchy (\texttt{Qwen2.5-1.5B-Instruct}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}). In \textbf{Round~1}, we curate $3{,}746$ real insurance QA pairs partitioned into $3{,}725$ connected groups to prevent duplicate-answer leakage, evaluating candidate retrievers across $2{,}994$ held-out real queries. In \textbf{Round~2}, we uncover a statistically significant \textbf{retriever selection reversal} that persists across model scales: both local \texttt{Qwen2.5-1.5B-Instruct} ($N=249$) and cloud \texttt{Qwen-Plus} ($N=179$) synthetic benchmarks rank hybrid fusion (\texttt{rrf\_bm25\_bge}) first under both \texttt{zero\_shot} ($0.5647$ and $0.7371$) and \texttt{few\_shot\_3} ($0.4124$ and $0.6813$), whereas held-out real queries significantly favor pure dense retrieval (\texttt{bge\_small\_zh}, $0.5216$ vs.\ $0.5030$; paired $\Delta = +0.0187$, 95\% bootstrap CI $[+0.0080, +0.0300]$). Surface-feature importance weighting fails to rescue this bias ($0\%$ optimal selection rate), whereas a paired-bootstrap \textbf{Candidate-Set Abstention} policy eliminates confident wrong selection at small calibration budgets ($B=25$: from $60\text{--}100\%$ down to $0.0\%$) while retaining $100\%$ coverage of the true oracle winner. In \textbf{Round~3}, using $80$ controlled clause-grounded cases with single-field counterexample witnesses and $120$ paired LLM rewrites across five official insurance policy wordings ($3$ model tiers $\times 40$ jobs), we show that $100\%$ ($120/120$) of generated queries pass syntactic format checks (\texttt{format\_valid}). Scaling from \texttt{1.5B} to \texttt{Qwen-Plus} and flagship \texttt{Qwen-Max} eliminates numeric value hallucinations ($15\% \rightarrow 0\%$) but \emph{fails to prevent pragmatic condition omission} under ordinary conversational prompting (\texttt{ordinary\_style}), yielding only $0\%\text{--}20\%$ standalone rule-decision preservation. Explicitly constraining eligibility slots (\texttt{condition\_prompt}) restores standalone rule-decision preservation to $95\%$ on \texttt{1.5B}/\texttt{Qwen-Plus} and \textbf{$100\%$ ($20/20$)} on \texttt{Qwen-Max}, while lifting top-1 clause retrieval to $95\%\text{--}100\%$.
+We study these questions in three rounds. In \textbf{Round~1}, we deduplicate $3{,}746$ Chinese insurance answers and partition QA pairs into $3{,}725$ connected components via Union-Find so that no shared answer spans calibration ($750$ queries) and test ($2{,}994$ queries) splits. Evaluating six lexical retrievers, we show that a source-prefix diagnostic proxy selects character $3\text{--}5$-gram TF-IDF ($\text{MRR@10}=0.9330$) over character-bigram BM25 ($0.9311$), whereas real test queries favor bigram BM25 ($0.3817$ vs.\ $0.2727$, selection regret $0.1090$). In \textbf{Round~2}, we add dense (\texttt{bge\_small\_zh}) and hybrid (\texttt{rrf\_bm25\_bge}) retrievers and generate zero-shot and 3-shot synthetic queries from held-out answers using both a local 1.5B model (\texttt{Qwen2.5-1.5B-Instruct}, $N=249$ common valid sources) and a cloud production model (\texttt{Qwen-Plus}, $N=179$). On real test queries, pure dense retrieval ranks first ($\text{MRR@10}=0.5216$ vs.\ $0.5030$ for hybrid RRF; paired difference $+0.0187$, 95\% bootstrap CI $[+0.0080, +0.0300]$). On synthetic queries from both models and both prompting modes, passage-level lexical reuse inflates BM25 scores and reverses the top-1 choice in favor of hybrid RRF (regret $0.0187$). Surface-feature importance weighting fails to fix this reversal ($0\%$ optimal selection across budgets $B \in \{25, 50, 100, 200\}$), while a paired-bootstrap \textbf{Candidate-Set Abstention} rule on small real calibration sets avoids confident wrong commitments at $B=25$ ($0\%$ confident wrong rate, $80\%$ abstention, $100\%$ optimal coverage, mean set size $2.60$ of $8$). In \textbf{Round~3}, we build $80$ controlled clause-grounded cases with single-field counterexamples from five official insurance policy wordings and evaluate $120$ paired rewrites across \texttt{Qwen2.5-1.5B-Instruct}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}. All $120/120$ rewrites pass syntactic format checks, yet unconstrained conversational rewriting (\texttt{ordinary\_style}) preserves standalone rule decisions in only $30\%$ (\texttt{1.5B}), $0\%$ (\texttt{Qwen-Plus}), and $20\%$ (\texttt{Qwen-Max}) of seeds. Scaling up model size eliminates numeric value mutations ($15\% \rightarrow 0\%$) but does not stop conversational omission of product names or enrollment status. Explicitly listing required condition slots (\texttt{condition\_prompt}) raises standalone decision preservation to $95\%$ on \texttt{1.5B} and \texttt{Qwen-Plus}, and $100\%$ ($20/20$) on \texttt{Qwen-Max}.
 \end{abstract}
 
 \section{Introduction}
-Deploying retrieval-augmented generation (RAG) in regulated verticals such as insurance, healthcare, and consumer finance requires selecting an effective retriever---choosing among character/lexical matching, dense bi-encoders, or hybrid reciprocal rank fusion (RRF)---frequently before large-scale production query logs exist. Standard practice in both academic benchmarks \cite{dai2023promptagator,jeronymo2023inparsv2} and automated RAG evaluation frameworks such as ARES \cite{saadfalcon2024ares} and RAGAs \cite{es2024ragas} is to prompt an instruction-tuned LLM to synthesize user queries from corpus passages, evaluate candidate retrievers on those synthetic queries, and deploy the top-ranked retriever.
+Selecting a retriever for a vertical-domain RAG system---for instance, choosing among character $n$-gram BM25, dense bi-encoders, or Reciprocal Rank Fusion (RRF)---often happens before real user traffic is available. A common workflow in both retrieval research \cite{dai2023promptagator,jeronymo2023inparsv2} and automated RAG evaluation frameworks \cite{saadfalcon2024ares,es2024ragas} is to generate synthetic questions from corpus passages using an instruction-tuned LLM, score candidate retrievers on the synthetic set, and deploy the top-ranked system.
 
-While recent studies have examined how well synthetic test collections correlate with real system rankings at the macro level \cite{rahmani2024syndl,boyd2025reckoning}, practical vertical-domain engineering faces two acute failure modes that aggregate rank correlations obscure:
+While prior work has studied macro-level rank correlations between synthetic and real test collections \cite{rahmani2024syndl,boyd2025reckoning}, two specific failure modes matter when making concrete deployment decisions in insurance retrieval:
 \begin{enumerate}[leftmargin=*,nosep]
-  \item \textbf{Top-1 Retriever Selection Reversal}: If a generative model systematically copies lexical terminology from source passages, hybrid retrievers that combine BM25 with dense embeddings gain an artificial lexical boost on synthetic benchmarks. When real users ask colloquial, vocabulary-mismatched questions, the lexical component injects false-positive noise into top ranks, reversing the true winner between dense and hybrid retrieval.
-  \item \textbf{Silent Erosion of Eligibility Conditions}: In insurance claims and underwriting, whether a claim is covered (\texttt{WAIT\_NOT\_EXCLUDED}) or denied (\texttt{WAIT\_EXCLUDED}) hinges on fine-grained conditions: policy waiting periods (7 vs.\ 25 vs.\ 30 vs.\ 90 days), accidental injury vs.\ sickness etiology, first-time vs.\ renewal enrollment, and explicit waiver approvals. When an LLM rewrites a structured case into a ``natural'' customer question, it passes surface validity filters (question marks, length, character overlap) 100\% of the time while silently dropping or mutating the exact condition that determines the legal outcome.
+  \item \textbf{Dense vs.\ Hybrid Selection Reversal}: Passage-conditioned query generation tends to reuse domain terms from the source passage. When synthetic queries have higher lexical overlap with target documents than colloquial user queries do, BM25 scores are artificially elevated, which in turn boosts hybrid RRF over pure dense retrieval even when dense retrieval performs better on real user questions.
+  \item \textbf{Loss of Underwriting and Claims Conditions}: In insurance clauses, coverage outcomes (\texttt{WAIT\_EXCLUDED} vs.\ \texttt{WAIT\_NOT\_EXCLUDED}) depend on specific variables: product identity, first-time vs.\ renewal enrollment, policy effective day, sickness vs.\ accidental injury cause, plan-specific waiting period (e.g., 7 vs.\ 25 days), and insurer waiver approval. A rewrite that satisfies standard format filters (single line, question mark, valid length) can still drop or alter one of these variables, making the question undecidable or flipping its coverage outcome.
 \end{enumerate}
 
-In this paper, we present a controlled, three-round empirical study of these failure modes in Chinese insurance retrieval across local edge (\texttt{Qwen2.5-1.5B-Instruct}), mid-tier production (\texttt{Qwen-Plus}), and frontier flagship (\texttt{Qwen-Max}) models. Our contributions are fourfold:
+This paper reports a three-round empirical and methodological study on Chinese insurance retrieval, pairing diagnostic failure analysis with concrete, falsifiable mitigations. To avoid terminology ambiguity, we explicitly distinguish two levels of abstention studied in this work: \textbf{retriever-selection candidate-set abstention} (Round~2, where an evaluation pipeline returns a confidence set of candidate retrievers rather than committing to a single noisy winner under small calibration budgets) and \textbf{query-level clarification abstention (\texttt{CLARIFY})} (Round~3, where a question missing a pivotal underwriting slot cannot be decided without user clarification, proven via two counterexample completions). Our scope is intentionally bounded: we evaluate retrieval selection and clause condition conservation rather than end-to-end online claims adjudication, and we separate deterministic slot checks from human verification. Specifically:
 \begin{itemize}[leftmargin=*,nosep]
-  \item \textbf{Group-Disjoint Benchmark \& Proxy Baseline (Round~1)}: We construct a group-disjoint Chinese insurance retrieval split ($3{,}746$ answers, $3{,}725$ connected groups, $2{,}994$ held-out real test queries) that prevents duplicate-answer leakage, quantifying the selection regret of naive surface copy proxies ($0.1090$ MRR@10 regret) and small real calibration sets.
-  \item \textbf{Cross-Scale Demonstration of LLM Selection Reversal (Round~2)}: We show that both \texttt{Qwen2.5-1.5B-Instruct} ($N=249$) and \texttt{Qwen-Plus} ($N=179$) rank \texttt{rrf\_bm25\_bge} first under both \texttt{zero\_shot} and \texttt{few\_shot\_3} synthetic benchmarks, whereas held-out real queries significantly favor pure dense retrieval (\texttt{bge\_small\_zh}, paired $\Delta = +0.0187$, 95\% CI $[+0.0080, +0.0300]$).
-  \item \textbf{Negative Result for Surface Reweighting \& Candidate-Set Abstention}: We demonstrate that importance weighting over four surface statistics fails to correct selection reversal ($0\%$ optimal selection rate), because the bias is structural (conditional lexical copying $P(q \mid d)$) rather than a marginal covariate shift. In contrast, a paired-bootstrap \textbf{Candidate-Set Abstention} policy reduces confident wrong selection at budget $B=25$ from $60\text{--}100\%$ to $0.0\%$ while preserving $100\%$ optimal winner coverage.
-  \item \textbf{Multi-Scale Condition Drift \& Slot-Preserving Generation (Round~3)}: Across five official insurance policy wordings ($80$ controlled cases and $120$ paired LLM rewrites across \texttt{1.5B}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}), we decouple syntactic validity ($120/120$ pass \texttt{format\_valid}) from semantic condition preservation. We show that scaling up model capacity eliminates value hallucinations ($15\% \rightarrow 0\%$) but does \emph{not} prevent pragmatic slot omission under \texttt{ordinary\_style} ($0\%\text{--}20\%$ standalone decision preservation), whereas \texttt{condition\_prompt} achieves $95\%$ on \texttt{1.5B}/\texttt{Qwen-Plus} and $100\%$ ($20/20$) on \texttt{Qwen-Max}.
+  \item \textbf{Round~1 (Group-Disjoint Lexical Baseline)}: On $3{,}746$ deduplicated answers from a public Chinese insurance QA corpus partitioned into $3{,}725$ connected groups ($750$ calibration, $2{,}994$ held-out test queries), we compare six lexical retrievers against extractive keyword and prefix-copy proxies, quantifying how long-$n$-gram copy bias selects \texttt{tfidf\_char3\_5} over the true lexical winner \texttt{bm25\_char2} (regret $0.1090$ MRR@10).
+  \item \textbf{Round~2 (Cross-Scale Selection Reversal and Candidate-Set Abstention)}: Expanding to eight systems (six lexical, \texttt{bge\_small\_zh}, and \texttt{rrf\_bm25\_bge}), we evaluate zero-shot and 3-shot queries generated by local \texttt{Qwen2.5-1.5B-Instruct} ($N=249$ common valid sources) and cloud \texttt{Qwen-Plus} ($N=179$). Both models select \texttt{rrf\_bm25\_bge} under both prompting strategies, reversing the real-test winner \texttt{bge\_small\_zh} ($\text{MRR@10}=0.5216$ vs.\ $0.5030$). We show why unpaired surface-feature density weighting fails ($0\%$ optimal selection), and demonstrate that paired-bootstrap \textbf{candidate-set abstention} on small real calibration samples reduces confident wrong retriever commitments at $B=25$ from $60\%\text{--}100\%$ to $0\%$.
+  \item \textbf{Round~3 (Double-Witness Counterexamples and Multi-Scale Condition Preservation)}: Using five official Chinese insurance policy clauses, we formalize a waiting-period rule compiler and construct $20$ seed scenarios ($80$ controlled variants where every \texttt{missing\_critical} \texttt{CLARIFY} case carries two opposite-outcome completion witnesses) alongside $120$ paired LLM rewrites across \texttt{Qwen2.5-1.5B-Instruct}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}. We separate scale-dependent numeric mutations ($15\%$ on \texttt{1.5B} vs.\ $0\%$ on \texttt{Qwen-Plus}/\texttt{Qwen-Max}) from scale-invariant pragmatic slot omission under ordinary conversational prompting, and show that explicit slot constraints (\texttt{condition\_prompt}) raise standalone decision preservation from $0\%\text{--}30\%$ to $95\%\text{--}100\%$ and top-1 clause retrieval to $95\%\text{--}100\%$.
 \end{itemize}
 
 \section{Related Work}
-\paragraph{Synthetic Queries for IR and RAG Evaluation.}
-Promptagator \cite{dai2023promptagator} and InPars-v2 \cite{jeronymo2023inparsv2} demonstrated that LLM-generated synthetic queries can effectively train dense retrievers. Automated RAG evaluation suites including ARES \cite{saadfalcon2024ares} and RAGAs \cite{es2024ragas} further use synthetic queries for zero-human-label system benchmarking. More recently, Rahmani et al.\ \cite{rahmani2024syndl} and Boyd et al.\ \cite{boyd2025reckoning} cautioned that synthetic evaluation sets exhibit model-specific biases. Our work complements these macro-level studies by pinpointing a concrete \emph{dense vs.\ hybrid selection reversal} driven by lexical copy inflation across model scales and showing how to hedge against it via candidate-set abstention.
+\paragraph{Synthetic Queries in IR Evaluation.}
+Promptagator \cite{dai2023promptagator} and InPars-v2 \cite{jeronymo2023inparsv2} use LLM-generated queries to train retrievers when in-domain labels are scarce. Evaluation frameworks such as ARES \cite{saadfalcon2024ares} and RAGAs \cite{es2024ragas} also use synthetic queries to score RAG pipelines. Recent analyses by Rahmani et al.\ \cite{rahmani2024syndl} and Boyd et al.\ \cite{boyd2025reckoning} note that LLM-generated evaluation sets carry generator-specific biases. We focus on a concrete mechanism---lexical overlap inflation shifting the winner from pure dense retrieval to hybrid BM25+dense fusion---and test it across both 1.5B and commercial cloud generators.
 
-\paragraph{Statistical Calibration and Abstention.}
-Prediction-Powered Inference (PPI) \cite{angelopoulos2023prediction} and ARES \cite{saadfalcon2024ares} combine large synthetic sets with small gold calibration samples to form unbiased confidence intervals. We extend this perspective to the \emph{discrete model-selection problem} under tight annotation budgets ($B \in [25, 200]$), showing that returning a statistically indistinguishable candidate set when bootstrap confidence intervals overlap zero prevents premature lock-in to a suboptimal retriever.
+\paragraph{Calibration and Abstention under Small Budgets.}
+Prediction-Powered Inference (PPI) \cite{angelopoulos2023prediction} and ARES \cite{saadfalcon2024ares} combine synthetic predictions with small gold samples to construct confidence intervals on paired data. In cold-start retriever selection, however, synthetic queries are generated from documents without paired real user questions on the same test split. We evaluate unpaired shrinkage and surface-density weighting as negative baselines, and formulate a bootstrap candidate-set abstention rule that withholds point commitment when calibration uncertainty spans multiple systems.
 
-\paragraph{Domain-Specific Insurance QA.}
-InsuranceQA \cite{feng2020insuranceqa} established answer selection in insurance domains using general FAQ queries. However, general FAQ retrieval does not test whether fine-grained policy eligibility conditions (waiting periods, accident exceptions, renewal waivers) survive query synthesis or remain decidable against real policy clauses. Our Round~3 benchmark bridges retrieval evaluation and deterministic rule verification on official Chinese insurance clauses.
+\paragraph{Insurance QA Benchmarks.}
+InsuranceQA \cite{feng2020insuranceqa} and its Chinese adaptations provide community question-answering pairs for answer selection. Because community answers contain duplicates and lack formal underwriting parameters, we augment our Round~1--2 FAQ experiments with a Round~3 benchmark built directly from five official Chinese insurance policy wordings with deterministic waiting-period rules.
 
-\section{Round 1: Group-Disjoint Retrieval Benchmark \& Proxy Diagnostics}
+\section{Round 1: Group-Disjoint Split and Lexical Proxy Diagnostics}
 
-\subsection{Dataset Construction and Leakage Prevention}
-Real-world insurance FAQ datasets frequently contain near-duplicate or verbatim answers shared across multiple paraphrased user questions. A naive random train/test split places identical answer passages in both calibration and test pools, inflating lexical retrieval scores.
+\subsection{Leakage-Free Group Split}
+Public Chinese insurance FAQ corpora (\texttt{baoxianzhidao\_filter.csv}, derived from insuranceQA-zh) contain repeated questions and shared boilerplate answers. Splitting QA pairs at random places identical answer texts in both calibration and test sets.
 
-Starting from the corpus derived from insuranceQA-zh, we extract $3{,}746$ unique answer documents after normalizing whitespace and deduplicating exact text matches. We then construct an undirected graph over all QA pairs that share normalized question or answer strings and compute connected components via Union-Find, yielding $3{,}725$ disjoint groups. We partition groups strictly at the component level into:
+After normalizing whitespace and deduplicating exact answer strings, we obtain $3{,}746$ unique answers and $3{,}744$ valid QA pairs. We build an undirected graph linking any pairs that share normalized questions, normalized answers, or near-duplicate question prefixes, yielding $3{,}725$ connected components via Union-Find. Assigning whole components to splits (seed \texttt{20261025}) produces:
 \begin{itemize}[leftmargin=*,nosep]
-  \item \textbf{Calibration Pool}: $750$ queries across $745$ groups (used for few-shot exemplars and low-budget real calibration sampling).
-  \item \textbf{Held-Out Real Test Set}: $2{,}994$ queries across $2{,}980$ groups (used as the oracle evaluation benchmark).
+  \item \textbf{Real Calibration Pool}: $750$ queries across $745$ components (used for few-shot demonstrations and small-budget calibration sampling).
+  \item \textbf{Real Test Set}: $2{,}994$ queries across $2{,}980$ components (zero component overlap with calibration).
 \end{itemize}
 
-\subsection{Candidate Retrievers and Proxy Regimes}
-We evaluate four core retrieval architectures spanning lexical, dense, and hybrid paradigms:
-\begin{enumerate}[leftmargin=*,nosep]
-  \item \texttt{bm25\_char2}: Okapi BM25 ($k_1=1.5, b=0.75$) over overlapping Chinese character bigrams.
-  \item \texttt{tfidf\_char3\_5}: Sublinear TF-IDF cosine similarity over character $3\text{--}5$-grams.
-  \item \texttt{bge\_small\_zh}: Dense bi-encoder retrieval using \texttt{BAAI/bge-small-zh-v1.5} (512-dim normalized embeddings).
-  \item \texttt{rrf\_bm25\_bge}: Reciprocal Rank Fusion ($k=60$) combining top-100 rankings from \texttt{bm25\_char2} and \texttt{bge\_small\_zh}.
-\end{enumerate}
+\subsection{Lexical Systems and Deterministic Proxies}
+In Round~1, we index all $3{,}746$ answers under six character $n$-gram lexical retrievers: sublinear TF-IDF cosine similarity over character unigrams (\texttt{tfidf\_char1}), bigrams (\texttt{tfidf\_char2}), $1\text{--}3$-grams (\texttt{tfidf\_char1\_3}), and $3\text{--}5$-grams (\texttt{tfidf\_char3\_5}), alongside Okapi BM25 ($k_1=1.2, b=0.75$) over character unigrams (\texttt{bm25\_char1}) and bigrams (\texttt{bm25\_char2}). Each system is scored by $\text{MRR@10}$ and $\text{Hit@5}$ (recall at rank~5).
 
-In Round~1, we compare held-out real queries against two non-LLM heuristic proxies: \texttt{synth\_keyword} (extracting top TF-IDF domain keywords wrapped in insurance question templates) and \texttt{synth\_SnippetCopy} (a diagnostic stress test extracting the leading sentence fragment of the answer).
+We compare held-out real test queries against two deterministic non-LLM proxies constructed from the target answers: (1)~\texttt{synthetic\_keywords}, which concatenates top corpus-level TF-IDF terms from the answer into a question template, and (2)~\texttt{source\_prefix\_diagnostic}, a stress-test proxy that turns the opening clause of the answer into a question.
 
 \begin{table}[t]
 \centering
 \small
-\caption{Round~1 full-sample retrieval evaluation ($N=2{,}994$ held-out real test queries vs.\ heuristic proxies).}
+\caption{Round~1 lexical retrieval evaluation ($N=2{,}994$ held-out real test queries vs.\ deterministic proxies across $3{,}746$ answers).}
 \label{tab:round1}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Query Regime} & \textbf{Metric} & \texttt{bm25\_c2} & \texttt{tfidf\_c3\_5} & \textbf{Winner} \\
+\textbf{System} & \textbf{Real MRR@10} & \textbf{Real Hit@5} & \textbf{Keyword MRR@10} & \textbf{Prefix MRR@10} \\
 \midrule
-Held-Out Real & MRR@10 & \textbf{0.4907} & 0.3817 & \texttt{bm25} \\
-Held-Out Real & Recall@1 & \textbf{0.4606} & 0.3490 & \texttt{bm25} \\
-\midrule
-\texttt{synth\_keyword} & MRR@10 & \textbf{0.9335} & 0.8732 & \texttt{bm25} \\
-\texttt{synth\_SnippetCopy} & MRR@10 & 0.9462 & \textbf{0.9502} & \texttt{tfidf} \\
+\texttt{tfidf\_char1}   & 0.2296 & 0.3313 & 0.7647 & 0.6692 \\
+\texttt{bm25\_char1}    & 0.2529 & 0.3427 & 0.6921 & 0.8483 \\
+\texttt{tfidf\_char3\_5}& 0.2727 & 0.3557 & 0.4578 & \textbf{0.9330} \\
+\texttt{tfidf\_char2}   & 0.3180 & 0.4218 & 0.8890 & 0.8795 \\
+\texttt{tfidf\_char1\_3}& 0.3187 & 0.4285 & 0.8704 & 0.9010 \\
+\texttt{bm25\_char2}    & \textbf{0.3817} & \textbf{0.4826} & \textbf{0.9335} & 0.9311 \\
 \bottomrule
 \end{tabular}
 }
@@ -115,40 +109,56 @@ Held-Out Real & Recall@1 & \textbf{0.4606} & 0.3490 & \texttt{bm25} \\
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/retrieval_comparison.png}
-  \caption{Round~1 comparison of retriever performance across held-out real queries, keyword proxy queries, and snippet-copy diagnostic queries.}
+  \caption{Round~1 MRR@10 across six lexical retrievers on held-out real questions, keyword proxies, and source-prefix diagnostic queries.}
   \label{fig:round1}
 \end{figure}
 
-\subsection{Round 1 Findings}
-As shown in Table~\ref{tab:round1} and Figure~\ref{fig:round1}, on all $2{,}994$ held-out real queries, \texttt{bm25\_char2} achieves $\text{MRR@10}=0.4907$ versus $0.3817$ for \texttt{tfidf\_char3\_5}. While \texttt{synth\_keyword} preserves the pairwise ordering, \texttt{synth\_SnippetCopy} inflates longer character $n$-gram overlap and erroneously selects \texttt{tfidf\_char3\_5}, incurring a true deployment regret of $0.1090$ MRR@10. Furthermore, across $200$ repeated subsampling trials per budget $B \in \{25, 50, 100, 200\}$, sampling just $B \ge 50$ real calibration queries achieves a $100\%$ optimal selection rate with zero regret.
+\subsection{Round 1 Results}
+Table~\ref{tab:round1} and Figure~\ref{fig:round1} show that on held-out real queries, \texttt{bm25\_char2} ranks first ($\text{MRR@10}=0.3817, \text{Hit@5}=0.4826$), whereas \texttt{tfidf\_char3\_5} ranks fourth ($\text{MRR@10}=0.2727, \text{Hit@5}=0.3557$) because real user questions rarely share contiguous $3\text{--}5$-character spans with answer texts. On \texttt{source\_prefix\_diagnostic}, contiguous substring copying pushes \texttt{tfidf\_char3\_5} to first place ($0.9330$ vs.\ $0.9311$ for \texttt{bm25\_char2}), causing a true-test selection regret of $0.3817 - 0.2727 = 0.1090$.
+
+In budget sensitivity trials ($5$ random draws per budget $B \in \{25, 50, 100, 200\}$ from the calibration pool), selecting the winner directly on real calibration samples (\texttt{real\_only}) picks \texttt{bm25\_char2} in $80\%$ ($4/5$) of draws at $B=25$ (mean regret $0.0126$, Kendall's $\tau_b = 0.4133$) and $100\%$ ($5/5$) of draws at $B \ge 50$ (zero regret, with $\tau_b$ increasing from $0.6267$ at $B=50$ to $0.8933$ at $B=100$ and $0.9200$ at $B=200$).
 
 \section{Round 2: LLM Synthetic Queries, Selection Reversal, and Abstention}
 
-\subsection{Multi-Scale Experimental Setup}
-Heuristic proxies cannot represent modern LLM query synthesis. In Round~2, we evaluate two distinct model scales: a locally deployed 1.5B edge model (\texttt{Qwen2.5-1.5B-Instruct} in deterministic \texttt{float32/eager} mode, $N=249$ shared valid sources) and a production cloud model (\texttt{Qwen-Plus} at $\text{temperature}=0$, $N=179$ shared valid sources) under two prompting strategies:
+\subsection{Setup and Shared Valid Source Sets}
+To test whether real LLM query generators induce selection errors when dense and hybrid retrievers are included, we expand the candidate pool to eight systems by adding:
 \begin{itemize}[leftmargin=*,nosep]
-  \item \texttt{zero\_shot}: Prompting the LLM with only the target insurance answer passage to generate a single customer question.
-  \item \texttt{few\_shot\_3}: Conditioning the prompt on three real question--answer exemplars drawn strictly from the disjoint calibration pool before presenting the target passage.
+  \item \texttt{bge\_small\_zh}: Dense retrieval with \texttt{BAAI/bge-small-zh-v1.5} (512-dim normalized embeddings; 512-token limit, which truncates $509$ of $3{,}746$ long answers, while $2$ of $256$ source answers exceed $512$ tokens during LLM prompt construction).
+  \item \texttt{rrf\_bm25\_bge}: Reciprocal Rank Fusion ($k=60$, depth $100$) combining \texttt{bm25\_char2} (requiring positive lexical score) and \texttt{bge\_small\_zh}.
 \end{itemize}
+
+We sample $256$ target answer passages and generate synthetic questions under two prompting modes (\texttt{zero\_shot} and \texttt{few\_shot\_3}, where the 3 style demonstrations are fixed real questions drawn from the calibration pool; test questions are never exposed). We run two generators:
+\begin{enumerate}[leftmargin=*,nosep]
+  \item \texttt{Qwen2.5-1.5B-Instruct} (local MPS, \texttt{float32/eager}, greedy decoding, \texttt{max\_new\_tokens}=64): out of $256$ sources, $255$ (\texttt{zero\_shot}) and $250$ (\texttt{few\_shot\_3}) pass format validation (single Chinese question ending in a question mark, length $6\text{--}160$ chars, no PII), leaving \textbf{$N=249$ common valid sources} for paired evaluation.\footnote{An initial \texttt{float16+sdpa} run on MPS produced numerical corruption and $0$ valid outputs; we logged that failed run in \texttt{failed\_float16\_run.json} and switched to \texttt{float32+eager}.}
+  \item \texttt{Qwen-Plus} (cloud API, \texttt{temperature}=0, \texttt{max\_tokens}=64): $243/256$ (\texttt{zero\_shot}) and $184/256$ (\texttt{few\_shot\_3}) pass the same single-question filter, yielding \textbf{$N=179$ common valid sources}.
+\end{enumerate}
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Round~2 retriever evaluation across held-out real queries and multi-scale LLM synthetic benchmarks (\texttt{Qwen2.5-1.5B-Instruct} and \texttt{Qwen-Plus}). Across both model scales and both prompting regimes (\texttt{zero\_shot} and \texttt{few\_shot\_3}), synthetic benchmarks select \texttt{rrf\_bm25\_bge}, reversing the true held-out winner \texttt{bge\_small\_zh} (paired $\Delta = +0.0187$, 95\% bootstrap CI $[+0.0080, +0.0300]$).}
+\caption{Round~2 evaluation across held-out real queries ($N=2{,}994$) and LLM synthetic query sets (\texttt{Qwen2.5-1.5B-Instruct}, $N=249$; \texttt{Qwen-Plus}, $N=179$). On real calibration and test sets, \texttt{bge\_small\_zh} wins. Across both LLM scales and both prompting modes, synthetic evaluation reverses the winner to \texttt{rrf\_bm25\_bge} (true deployment regret $0.0187$ MRR@10).}
 \label{tab:round2}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{llccccc}
 \toprule
-\textbf{Query Regime / Generator} & \textbf{Metric} & \texttt{bm25\_char2} & \texttt{tfidf\_char3\_5} & \texttt{bge\_small\_zh} & \texttt{rrf\_bm25\_bge} & \textbf{Selected Winner} \\
+\textbf{Query Set / Generator} & \textbf{Metric} & \texttt{bm25\_char2} & \texttt{tfidf\_char3\_5} & \texttt{bge\_small\_zh} & \texttt{rrf\_bm25\_bge} & \textbf{Selected System (of 8)} \\
 \midrule
-Held-Out Real Test ($N=2{,}994$) & MRR@10 & 0.3817 & 0.2727 & \textbf{0.5216} & 0.5030 & \textbf{\texttt{bge\_small\_zh} (True Winner)} \\
-Held-Out Real Matched ($N=249$) & MRR@10 & 0.4539 & 0.3408 & \textbf{0.5216} & 0.5030 & \textbf{\texttt{bge\_small\_zh} (True Winner)} \\
+Held-Out Real Test ($N=2{,}994$)
+  & MRR@10 / Hit@5 & 0.3817 / 0.4826 & 0.2727 / 0.3557 & \textbf{0.5216} / \textbf{0.6453} & 0.5030 / 0.6075 & \textbf{\texttt{bge\_small\_zh} (True Winner)} \\
+Real Calibration Pool ($N=750$)
+  & MRR@10 / Hit@5 & 0.3681 / 0.4800 & 0.2687 / 0.3587 & \textbf{0.5370} / \textbf{0.6533} & 0.5034 / 0.6333 & \textbf{\texttt{bge\_small\_zh}} \\
+Matched Keyword Proxy ($N=249$)
+  & MRR@10 / Hit@5 & \textbf{0.9359} / \textbf{0.9920} & 0.4132 / 0.6586 & 0.5165 / 0.6707 & 0.7639 / 0.8916 & \texttt{bm25\_char2} (Regret $0.1399$) \\
 \midrule
-\texttt{Qwen2.5-1.5B} \texttt{zero\_shot} ($N=249$) & MRR@10 & 0.4910 & 0.3554 & 0.5177 & \textbf{0.5647} & \texttt{rrf\_bm25\_bge} (Reversed, $\Delta=-0.0470$) \\
-\texttt{Qwen2.5-1.5B} \texttt{few\_shot\_3} ($N=249$) & MRR@10 & 0.3694 & 0.2330 & 0.3910 & \textbf{0.4124} & \texttt{rrf\_bm25\_bge} (Reversed, $\Delta=-0.0214$) \\
+\texttt{Qwen2.5-1.5B} \texttt{zero\_shot} ($N=249$)
+  & MRR@10 / Hit@5 & 0.5013 / 0.6265 & 0.4360 / 0.5542 & 0.5202 / 0.6787 & \textbf{0.5647} / \textbf{0.6948} & \texttt{rrf\_bm25\_bge} (Reversed, Regret $0.0187$) \\
+\texttt{Qwen2.5-1.5B} \texttt{few\_shot\_3} ($N=249$)
+  & MRR@10 / Hit@5 & 0.3225 / 0.4016 & 0.2776 / 0.3414 & 0.4024 / \textbf{0.4940} & \textbf{0.4124} / 0.4779 & \texttt{rrf\_bm25\_bge} (Reversed on MRR@10) \\
 \midrule
-\texttt{Qwen-Plus} \texttt{zero\_shot} ($N=179$) & MRR@10 & 0.6528 & 0.4553 & 0.7005 & \textbf{0.7371} & \texttt{rrf\_bm25\_bge} (Reversed, $\Delta=-0.0366$) \\
-\texttt{Qwen-Plus} \texttt{few\_shot\_3} ($N=179$) & MRR@10 & 0.5747 & 0.3832 & 0.6794 & \textbf{0.6813} & \texttt{rrf\_bm25\_bge} (Reversed, $\Delta=-0.0019$) \\
+\texttt{Qwen-Plus} \texttt{zero\_shot} ($N=179$)
+  & MRR@10 / Hit@5 & 0.6528 / 0.7486 & 0.4553 / 0.5754 & 0.7005 / \textbf{0.8380} & \textbf{0.7371} / \textbf{0.8380} & \texttt{rrf\_bm25\_bge} (Reversed, Regret $0.0187$) \\
+\texttt{Qwen-Plus} \texttt{few\_shot\_3} ($N=179$)
+  & MRR@10 / Hit@5 & 0.5747 / 0.6927 & 0.3832 / 0.5307 & 0.6794 / 0.8324 & \textbf{0.6813} / \textbf{0.8547} & \texttt{rrf\_bm25\_bge} (Reversed, Regret $0.0187$) \\
 \bottomrule
 \end{tabular}
 }
@@ -157,88 +167,89 @@ Held-Out Real Matched ($N=249$) & MRR@10 & 0.4539 & 0.3408 & \textbf{0.5216} & 0
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/comparison.png}
-  \caption{Round~2 retriever selection reversal across real held-out queries and LLM synthetic query regimes ($N=249$ shared sources).}
+  \caption{Round~2 MRR@10 across all eight candidate retrievers on held-out real test queries, matched keyword proxies, and \texttt{Qwen2.5-1.5B-Instruct} synthetic queries.}
   \label{fig:round2}
 \end{figure}
 
-\subsection{Mechanism of Retriever Selection Reversal Across Scales}
-Table~\ref{tab:round2} and Figure~\ref{fig:round2} reveal that \textbf{retriever selection reversal is not merely an artifact of a small 1.5B model}:
+\subsection{Why Does Retriever Selection Reverse Across Scales?}
+Table~\ref{tab:round2} and Figure~\ref{fig:round2} show a consistent top-1 reversal between real and synthetic evaluation:
 \begin{enumerate}[leftmargin=*,nosep]
-  \item \textbf{True Held-Out Winner}: On real user queries, pure dense retrieval (\texttt{bge\_small\_zh}) achieves the highest performance ($\text{MRR@10}=0.5216$), outperforming hybrid fusion (\texttt{rrf\_bm25\_bge}, $0.5030$) by a paired difference of $+0.0187$ (1,000-resample paired bootstrap 95\% CI: $[+0.0080, +0.0300]$, excluding zero). Because real users ask short ($11.50$ chars), colloquial questions with low character bigram overlap ($0.0713$), lexical \texttt{bm25\_char2} is weak ($0.3817$ overall, $0.4539$ matched) and fusing it via RRF dilutes the top ranks of \texttt{bge\_small\_zh}.
-  \item \textbf{Persistent Reversal under \texttt{zero\_shot}}: On \texttt{Qwen2.5-1.5B}, \texttt{zero\_shot} increases bigram overlap by $68\%$ ($0.1197$), boosting \texttt{rrf\_bm25\_bge} to $0.5647$ over \texttt{bge\_small\_zh} ($0.5177$). Scaling up to \texttt{Qwen-Plus} produces even stronger domain-terminology alignment under \texttt{zero\_shot}: \texttt{bm25\_char2} jumps to $0.6528$, driving \texttt{rrf\_bm25\_bge} ($0.7371$) to beat \texttt{bge\_small\_zh} ($0.7005$) by $+0.0366$ MRR@10.
-  \item \textbf{Effect of \texttt{few\_shot\_3} Across Scales}: On \texttt{Qwen2.5-1.5B}, conditioning on 3 calibration exemplars suppresses surface copying (bigram overlap drops to $0.0724$) but induces semantic drift ($\text{MRR@10}=0.3910$), still selecting \texttt{rrf\_bm25\_bge} ($0.4124$). On the larger \texttt{Qwen-Plus} model, \texttt{few\_shot\_3} avoids semantic drift ($\text{MRR@10}=0.6794$) and narrows the reversal gap from $-0.0366$ to $-0.0019$, \emph{yet \texttt{rrf\_bm25\_bge} ($0.6813$) still edges out \texttt{bge\_small\_zh} ($0.6794$) under naive point selection}.
+  \item \textbf{Real Test Ordering}: On the $2{,}994$ held-out real questions, pure dense retrieval (\texttt{bge\_small\_zh}) achieves $\text{MRR@10}=0.5216$ ($\text{Hit@5}=0.6453$), beating \texttt{rrf\_bm25\_bge} ($0.5030$, $\text{Hit@5}=0.6075$) by a paired difference of $+0.0187$ (1,000-resample paired percentile bootstrap 95\% CI: $[+0.0080, +0.0300]$).
+  \item \textbf{Lexical Copy Inflation in \texttt{zero\_shot}}: On real test queries (mean length $25.25$ chars), the fraction of query character bigrams and trigrams appearing in the target answer is $0.3243$ and $0.1808$, respectively. Under \texttt{zero\_shot} generation, bigram and trigram containment jump to $0.4744$ and $0.3442$ on \texttt{Qwen2.5-1.5B} ($13.94$ chars), and to $0.4640$ and $0.2850$ on \texttt{Qwen-Plus} ($22.83$ chars). Because the LLM reuses terminology directly from the passage it is conditioned on, \texttt{bm25\_char2} jumps from $0.3817$ (real) to $0.5013$ (\texttt{1.5B}) and $0.6528$ (\texttt{Qwen-Plus}). Fusing this inflated BM25 ranking with BGE via RRF pushes \texttt{rrf\_bm25\_bge} above \texttt{bge\_small\_zh} by $+0.0445$ on \texttt{1.5B} ($0.5647$ vs.\ $0.5202$) and $+0.0366$ on \texttt{Qwen-Plus} ($0.7371$ vs.\ $0.7005$).
+  \item \textbf{Few-Shot Tradeoff}: Providing 3 calibration examples (\texttt{few\_shot\_3}) reduces n-gram copying: bigram containment drops to $0.3180$ on \texttt{1.5B} and $0.4108$ on \texttt{Qwen-Plus}. However, on \texttt{1.5B}, mimicking the surface style of 3 unrelated examples introduces semantic drift: in a 20-source sanity audit ($40$ questions in \texttt{semantic\_audit.json}), source-supported questions drop from $12/20$ (\texttt{zero\_shot}) to $9/20$ (\texttt{few\_shot\_3}), with $6/20$ becoming unsupported by the passage (e.g., changing equal traffic liability to full counterparty liability in \texttt{doc\_id=545}, or turning medical fee advance conditions into post-hospitalization purchase rules in \texttt{doc\_id=2213}). On \texttt{Qwen-Plus}, \texttt{few\_shot\_3} avoids severe drift ($\text{MRR@10}=0.6794$) and narrows the RRF-vs-BGE gap from $-0.0366$ to $-0.0019$, but \texttt{rrf\_bm25\_bge} ($0.6813$) still ranks first under point selection.
 \end{enumerate}
 
-\subsection{Why Surface Reweighting Fails and Candidate-Set Abstention Works}
-Computing importance weights over standardized query length, bigram overlap, trigram overlap, and longest common substring ratio relative to calibration queries yields a \textbf{$0.0\%$ optimal selection rate} across all budgets $B \in \{25, 50, 100, 200\}$ (mean regret $0.0187$), because the bias stems from the passage-conditioned generation process $P(q \mid d)$ rather than marginal query covariates.
+\subsection{Surface Reweighting vs.\ Candidate-Set Abstention}
+Can reweighting synthetic queries by surface similarity to real calibration queries fix this selection bias? In \texttt{validate\_v2.py}, a 2-fold cross-fit logistic domain classifier trained on character $1\text{--}3$-gram TF-IDF features separates real calibration queries from synthetic queries with $\text{ROC-AUC}=0.8120$ (\texttt{zero\_shot}) and $0.7733$ (\texttt{few\_shot\_3}) at $B=25$ (rising to $0.8765$ and $0.9148$ at $B=200$). Yet across $5$ repeated draws at each budget $B \in \{25, 50, 100, 200\}$, propensity density weighting (\texttt{synthetic\_density\_weighted}) selects the true winner \texttt{bge\_small\_zh} in \textbf{$0\%$ of trials} (regret $0.0187$), and length weighting (\texttt{synthetic\_length\_weighted}) reaches $0\%$ on \texttt{zero\_shot} ($0\%\text{--}20\%$ on \texttt{few\_shot\_3}). Reweighting marginal query features cannot undo passage-conditioned lexical copying $P(q \mid d^*)$.
 
-To prevent confident wrong commitments, we apply \textbf{Candidate-Set Abstention}: given a query sample of size $B$, we identify the empirical leader $\hat{r}^*$ and run $M=200$ paired bootstrap resamples. Any retriever $r$ whose 95\% paired difference confidence interval against $\hat{r}^*$ overlaps zero is retained in $\mathcal{C}_B$. If $|\mathcal{C}_B| > 1$, the selector abstains from a single point commitment and returns $\mathcal{C}_B$.
+In contrast, directly evaluating on the small real calibration sample (\texttt{real\_only}) or applying \textbf{Candidate-Set Abstention} avoids synthetic bias. Under our abstention rule, for a calibration draw of size $B$ with empirical leader $\hat{s}$, we run $200$ paired bootstrap resamples over the $B$ queries and retain all systems $s$ whose 95\% upper bound on $(\text{MRR}_s - \text{MRR}_{\hat{s}})$ is $\ge 0$. When $|\mathcal{C}_B| > 1$, the selector abstains from committing to a single winner and returns $\mathcal{C}_B$.
 
 \begin{table}[t]
 \centering
 \small
-\caption{Confident Wrong Selection Rate (Commit Error $\downarrow$) and Optimal Winner Coverage ($\uparrow$) under Point Selection vs.\ Candidate-Set Abstention across $50$ trials per budget $B$.}
+\caption{Retriever selection error rates across $5$ repeated calibration draws per budget $B \in \{25, 50, 100, 200\}$ on Round~2 (\texttt{zero\_shot} setting, 8 candidate systems).}
 \label{tab:abstention}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{llcccc}
 \toprule
-\textbf{Strategy} & \textbf{Metric} & $B=25$ & $B=50$ & $B=100$ & $B=200$ \\
+\textbf{Selection Policy} & \textbf{Metric} & $B=25$ & $B=50$ & $B=100$ & $B=200$ \\
 \midrule
-\texttt{real\_only} (Point) & Commit Error $\downarrow$ & 60.0\% & 52.0\% & 28.0\% & 4.0\% \\
-\texttt{zero\_shot} (Point) & Commit Error $\downarrow$ & 100.0\% & 100.0\% & 100.0\% & 100.0\% \\
-\texttt{few\_shot\_3} (Point) & Commit Error $\downarrow$ & 80.0\% & 92.0\% & 98.0\% & 100.0\% \\
+\texttt{synthetic\_density\_weighted} & Wrong Selection $\downarrow$ & 100\% & 100\% & 100\% & 100\% \\
+\texttt{mix\_real\_density\_0.5} & Wrong Selection $\downarrow$ & 80\% & 60\% & 40\% & 60\% \\
+\texttt{mse\_shrunk} (Unpaired) & Wrong Selection $\downarrow$ & 60\% & 40\% & 20\% & 0\% \\
+\texttt{real\_only} (Point Commit) & Wrong Selection $\downarrow$ & 60\% & 40\% & 0\% & 0\% \\
 \midrule
-\textbf{\texttt{real\_only} (Abstain)} & \textbf{Commit Error} $\downarrow$ & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0\%} \\
-\textbf{\texttt{real\_only} (Abstain)} & \textbf{Opt.\ Coverage} $\uparrow$ & \textbf{100.0\%} & \textbf{100.0\%} & \textbf{100.0\%} & \textbf{100.0\%} \\
-\textbf{\texttt{real\_only} (Abstain)} & Mean Set Size & 2.60 & 2.12 & 1.88 & 1.80 \\
-\midrule
-\textbf{\texttt{few\_shot\_3} (Abstain)} & \textbf{Commit Error} $\downarrow$ & \textbf{0.0\%} & 2.0\% & 0.0\% & 0.0\% \\
-\textbf{\texttt{few\_shot\_3} (Abstain)} & \textbf{Opt.\ Coverage} $\uparrow$ & \textbf{100.0\%} & 98.0\% & 100.0\% & 98.0\% \\
+\textbf{Candidate-Set Abstention} & \textbf{Confident Wrong} $\downarrow$ & \textbf{0\%} & 20\% & \textbf{0\%} & \textbf{0\%} \\
+\textbf{Candidate-Set Abstention} & \textbf{Abstention Rate} & 80\% & 60\% & 40\% & 60\% \\
+\textbf{Candidate-Set Abstention} & \textbf{Optimal Coverage} $\uparrow$ & \textbf{100\%} & 80\% & \textbf{100\%} & \textbf{100\%} \\
+\textbf{Candidate-Set Abstention} & \textbf{Mean Set Size (of 8)} & 2.60 & 1.60 & 1.40 & 1.60 \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
 
-As shown in Table~\ref{tab:abstention}, Candidate-Set Abstention eliminates confident wrong commitments at $B=25$ (\textbf{$0.0\%$ commit error}) while narrowing the 4 core retrievers down to an average candidate set of $2.12\text{--}2.60$ retrievers with $100\%$ coverage of the true winner (\texttt{bge\_small\_zh}).
+Table~\ref{tab:abstention} shows that at $B=25$, forced point selection on \texttt{real\_only} picks the wrong system in $60\%$ ($3/5$) of draws, and a 50/50 real-synthetic mixture (\texttt{mix\_real\_density\_0.5}) fails in $80\%$. Candidate-Set Abstention reduces confident wrong commitments at $B=25$ to $0\%$ ($80\%$ abstention rate) while shrinking the 8 candidate systems to a mean set size of $2.60$ that contains \texttt{bge\_small\_zh} in $100\%$ of draws. At $B \ge 100$, both \texttt{real\_only} point selection and Candidate-Set Abstention achieve $0\%$ wrong selection and $100\%$ optimal coverage.
 
-\section{Round 3: Clause-Grounded Eligibility-Condition Preservation Across Model Scales}
+\section{Round 3: Eligibility-Condition Preservation Across Model Scales}
 
-\subsection{Traceable Insurance Clauses and Counterexample Witnesses}
-Even if a retriever fetches the right policy document, an insurance RAG benchmark is invalid if synthetic queries alter the facts that determine coverage. We curate five official Chinese insurance policy wordings spanning group medical, inpatient, and internet outpatient scenarios (Table~\ref{tab:clauses}).
+\subsection{Traceable Clauses and Counterexample Witnesses}
+To test whether synthetic queries preserve domain conditions when ground-truth eligibility rules are known, we collect five official Chinese insurance policy clauses (Table~\ref{tab:clauses}) and formalize their waiting-period decision logic in \texttt{condition\_data.py}.
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Five traceable official Chinese insurance policy clauses used in Round~3 condition-sensitivity evaluation.}
+\caption{Five official Chinese insurance policy clauses used in Round~3 waiting-period evaluation.}
 \label{tab:clauses}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{llp{11.5cm}}
 \toprule
-\textbf{Policy ID} & \textbf{Wait Period} & \textbf{Key Eligibility / Exception Rules} \\
+\textbf{Policy ID} & \textbf{Wait Period} & \textbf{Product Title and Waiting-Period Rule Summary} \\
 \midrule
-\texttt{pa\_p0781} & 90 days & Ping An Group Medical (Plan B): 90d wait for specified/mild diseases; accidental injury waives wait. \\
-\texttt{pa\_h865} & 30 days & Ping An Employee \& Dependent Inpatient: 30d wait; accidental injury or approved waiver exempts wait. \\
-\texttt{cpic\_86017} & 7--25 days & CPIC Internet Outpatient (Plan C): plan-specific wait (7/15/25d); renewal with insurer approval waives wait. \\
-\texttt{cpic\_82859} & 30 days & CPIC Personal 1-Year Inpatient (Plan E): 30d wait; accidental injury or approved renewal waives wait. \\
-\texttt{tk\_group\_2018} & 30 days & Taikang Group Inpatient (2018): 30d wait; accidental injury waives wait; psychiatric conditions excluded. \\
+\texttt{pa\_p0781} & 90 days & \emph{Ping An Caring Companion Group Medical Insurance (Plan B)}: 90-day wait for first-time enrollment on specified/mild diseases; accidental injury waives wait. \\
+\texttt{pa\_h865} & 30 days & \emph{Ping An Employee \& Dependent Inpatient Medical Insurance}: 30-day wait for first-time sickness inpatient care; accidental injury or insurer-approved waiver exempts wait. \\
+\texttt{cpic\_86017} & 7--25 days & \emph{CPIC Internet Outpatient Medical Insurance (Plan C)}: plan-specific wait ($\le 30$ days, tested at 7/15/25 days); non-continuous renewal without insurer waiver recalculates wait. \\
+\texttt{cpic\_82859} & 30 days & \emph{CPIC Internet Personal 1-Year Inpatient Medical Insurance (Plan E)}: 30-day wait for first-time or unapproved renewal sickness inpatient care; accident or approved waiver exempts wait. \\
+\texttt{tk\_group\_2018} & 30 days & \emph{Taikang Joyful Global (Premier) High-End Medical Insurance}: 30-day wait for first-time non-psychiatric sickness inpatient care; accidental injury waives wait. \\
 \bottomrule
 \end{tabular}
 }
 \end{table*}
 
-We construct $20$ seed scenarios expanded into $80$ controlled cases across four variants (\texttt{complete}, \texttt{surface}, \texttt{missing\_critical}, and \texttt{counterfactual}). Every seed is paired with a \textbf{single-field counterexample witness}: flipping one pivotal field (e.g., changing \texttt{policy\_day} from day~20 to day~45, changing \texttt{cause} from sickness to accident, or switching \texttt{plan\_wait\_days} from 7d to 25d) strictly flips the deterministic rule outcome between \texttt{WAIT\_EXCLUDED} and \texttt{WAIT\_NOT\_EXCLUDED} ($100\%$ flip rate across all counterexamples).
+Each structured scenario frame specifies up to six required fields: \texttt{policy\_id} (required in $20/20$ seeds), \texttt{enrollment} (\texttt{first} vs.\ \texttt{new}, $20/20$), \texttt{policy\_day} ($20/20$), \texttt{cause} (\texttt{illness} vs.\ \texttt{accident}, $20/20$), \texttt{plan\_wait\_days} (required in $4/20$ seeds on \texttt{cpic\_86017}), and \texttt{approved\_waiver} (required in $3/20$ renewal seeds). From $20$ seed frames, we generate $80$ controlled test cases across four variants: \texttt{complete} (all required fields stated), \texttt{surface} (synonymous wording), \texttt{missing\_critical} (one pivotal condition removed, degrading the reference action to \texttt{CLARIFY} with two disagreeing completions), and \texttt{counterfactual} (one field modified to flip the rule outcome between \texttt{WAIT\_EXCLUDED} and \texttt{WAIT\_NOT\_EXCLUDED}).
 
-\subsection{Multi-Scale Paired LLM Rewriting (\texttt{1.5B} vs.\ \texttt{Qwen-Plus} vs.\ \texttt{Qwen-Max})}
-To test whether scaling up LLM capability automatically solves eligibility-condition drift, we evaluate all $20$ seed cases across three model tiers---\texttt{Qwen2.5-1.5B-Instruct} (local edge), \texttt{Qwen-Plus} (production cloud), and \texttt{Qwen-Max} (flagship frontier)---generating $3 \times 40 = 120$ paired rewrites under two prompting protocols:
+\subsection{Multi-Scale Paired Rewriting (\texttt{1.5B}, \texttt{Qwen-Plus}, \texttt{Qwen-Max})}
+We feed the $20$ seed questions and their source clause excerpts to three models---\texttt{Qwen2.5-1.5B-Instruct} (local MPS, \texttt{float32}), \texttt{Qwen-Plus} (cloud API, \texttt{temperature}=0), and \texttt{Qwen-Max} (flagship cloud API, \texttt{temperature}=0)---under two prompts ($120$ total generations):
 \begin{itemize}[leftmargin=*,nosep]
-  \item \texttt{ordinary\_style}: Instructs the LLM to rewrite the structured scenario into a short, natural customer question preserving original intent.
-  \item \texttt{condition\_prompt}: Instructs the LLM to rewrite the question naturally while explicitly preserving all required slots (product full name, first/renewal enrollment, effective day, sickness/accident cause, plan waiting days, and waiver approval status).
+  \item \texttt{ordinary\_style}: ``把原问题改写成用户口语化提问，简短自然，保持原本意图。'' (Rewrite into a short, natural colloquial question keeping original intent.)
+  \item \texttt{condition\_prompt}: Explicitly requires preserving the full product name, first/renewal enrollment, effective day, sickness/accident cause, coverage scope, plan waiting days, and waiver approval status without adding or dropping conditions.
 \end{itemize}
+
+We evaluate generated questions with two automated parsers: \texttt{v1\_strict\_regex} (the initial literal regex guard in \texttt{condition\_guard.py}) and \texttt{v2\_synonym\_aware} (\texttt{extract\_fields\_surface\_normalized} in \texttt{analyze\_v3.py}, which recognizes natural surface variants such as ``生效是第20天'' or ``同意免去等待期'').
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Round~3 multi-scale condition preservation and retrieval impact across $120$ paired LLM rewrites ($3$ model tiers $\times 20$ seeds $\times 2$ prompt styles). Scaling from \texttt{1.5B} to \texttt{Qwen-Plus} and \texttt{Qwen-Max} eliminates numeric value mutations ($15\% \rightarrow 0\%$) but fails to prevent pragmatic slot omission under \texttt{ordinary\_style} ($0\%\text{--}20\%$ standalone decision preservation). Explicit slot prompting (\texttt{condition\_prompt}) restores standalone decision preservation to $95\%\text{--}100\%$ across all model scales.}
+\caption{Round~3 condition preservation and clause retrieval across $120$ paired LLM rewrites ($3$ model tiers $\times 20$ seeds $\times 2$ prompt styles). \texttt{policy\_id}, \texttt{enrollment}, \texttt{policy\_day}, and \texttt{cause} are required in all $20$ seeds; \texttt{plan\_wait\_days} is required in $4$ seeds (\texttt{cpic\_86017}); \texttt{approved\_waiver} is required in $3$ renewal seeds.}
 \label{tab:round3}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lcccccc}
@@ -249,17 +260,20 @@ To test whether scaling up LLM capability automatically solves eligibility-condi
 \midrule
 Syntactic \texttt{format\_valid} Rate & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & \textbf{100\% (20/20)} \\
 \midrule
-Slot Drop: \texttt{policy\_id} (out of 20) & 70\% (14/20) & \textbf{5\% (1/20)} & 100\% (20/20) & \textbf{0\% (0/20)} & 50\% (10/20) & \textbf{0\% (0/20)} \\
-Slot Drop: \texttt{enrollment} (out of 20) & 35\% (7/20) & \textbf{0\% (0/20)} & 5\% (1/20) & \textbf{0\% (0/20)} & 30\% (6/20) & \textbf{0\% (0/20)} \\
-Slot Drop/Mutate: \texttt{policy\_day} (v2) & 25\% (5/20) & \textbf{0\% (0/20)} & 35\% (7/20) & \textbf{0\% (0/20)} & 20\% (4/20) & \textbf{0\% (0/20)} \\
-Slot Drop: \texttt{plan\_wait\_days} (out of 4) & 100\% (4/4) & \textbf{0\% (0/4)} & 25\% (1/4) & \textbf{0\% (0/4)} & 25\% (1/4) & \textbf{0\% (0/4)} \\
-Counterfactual Value Mutation Rate & 15\% (3/20) & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} \\
+Slot Missing/Mismatch: \texttt{policy\_id} (/20) & 70\% (14/20) & \textbf{5\% (1/20)} & 100\% (20/20) & \textbf{0\% (0/20)} & 50\% (10/20) & \textbf{0\% (0/20)} \\
+Slot Missing/Mismatch: \texttt{enrollment} (/20) & 35\% (7/20) & \textbf{0\% (0/20)} & 5\% (1/20) & \textbf{0\% (0/20)} & 30\% (6/20) & \textbf{0\% (0/20)} \\
+Slot Missing/Mismatch: \texttt{policy\_day} (/20) & 25\% (5/20) & \textbf{0\% (0/20)} & 35\% (7/20) & \textbf{0\% (0/20)} & 20\% (4/20) & \textbf{0\% (0/20)} \\
+Slot Missing/Mismatch: \texttt{cause} (/20) & 10\% (2/20) & \textbf{0\% (0/20)} & 15\% (3/20) & 5\% (1/20) & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} \\
+Slot Missing/Mismatch: \texttt{plan\_wait} (/4) & 100\% (4/4) & \textbf{0\% (0/4)} & 25\% (1/4) & \textbf{0\% (0/4)} & 25\% (1/4) & \textbf{0\% (0/4)} \\
+Slot Missing/Mismatch: \texttt{waiver} (/3) & 100\% (3/3) & \textbf{0\% (0/3)} & 33\% (1/3) & \textbf{0\% (0/3)} & \textbf{0\% (0/3)} & \textbf{0\% (0/3)} \\
 \midrule
-Strict Regex Pass (\texttt{v1\_strict\_regex}) & 10\% (2/20) & 50\% (10/20) & 0\% (0/20) & 95\% (19/20) & 20\% (4/20) & \textbf{100\% (20/20)} \\
-\textbf{Standalone Rule Decision Preserved (v2)} & 30\% (6/20) & \textbf{95\% (19/20)} & 0\% (0/20) & \textbf{95\% (19/20)} & 20\% (4/20) & \textbf{100\% (20/20)} \\
-\textbf{Decision Given Policy Context (v2)} & 80\% (16/20) & \textbf{100\% (20/20)} & 45\% (9/20) & \textbf{95\% (19/20)} & 50\% (10/20) & \textbf{100\% (20/20)} \\
+Numeric Value Mutation Rate (\texttt{20d}$\rightarrow$\texttt{2d}) & 15\% (3/20) & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} & \textbf{0\% (0/20)} \\
+Strict Regex Pass (\texttt{v1\_strict\_regex}) & 30\% (6/20) & 50\% (10/20) & 0\% (0/20) & 95\% (19/20) & 20\% (4/20) & \textbf{100\% (20/20)} \\
+\textbf{Standalone Decision Preserved (v2)} & 30\% (6/20) & \textbf{95\% (19/20)} & 0\% (0/20) & \textbf{95\% (19/20)} & 20\% (4/20) & \textbf{100\% (20/20)} \\
+\textbf{Decision Given Policy Context (v2)} & 50\% (10/20) & \textbf{100\% (20/20)} & 45\% (9/20) & \textbf{95\% (19/20)} & 50\% (10/20) & \textbf{100\% (20/20)} \\
 \midrule
-Top-1 Clause Retrieval (\texttt{bm25\_char2}) & 50\% (10/20) & \textbf{100\% (20/20)} & 80\% (16/20) & \textbf{100\% (20/20)} & 90\% (18/20) & \textbf{95\% (19/20)} \\
+5-Clause Top-1 Accuracy (\texttt{bm25\_char2}) & 50\% (10/20) & \textbf{100\% (20/20)} & 80\% (16/20) & \textbf{100\% (20/20)} & 90\% (18/20) & \textbf{95\% (19/20)} \\
+5-Clause MRR@10 (\texttt{bm25\_char2}) & 0.6792 & \textbf{1.0000} & 0.8542 & \textbf{1.0000} & 0.9350 & \textbf{0.9750} \\
 \bottomrule
 \end{tabular}
 }
@@ -268,39 +282,50 @@ Top-1 Clause Retrieval (\texttt{bm25\_char2}) & 50\% (10/20) & \textbf{100\% (20
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/condition_preservation_comparison.png}
-  \caption{Round~3 diagnostic comparison of slot retention and rule-decision outcomes under \texttt{ordinary\_style} vs.\ \texttt{condition\_prompt}.}
+  \caption{Left: Slot satisfaction across $20$ seeds on \texttt{Qwen2.5-1.5B} under \texttt{v1\_strict\_regex} vs.\ \texttt{v2\_synonym\_aware}. Right: Standalone rule decision preservation across \texttt{Qwen2.5-1.5B}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}.}
   \label{fig:round3}
 \end{figure}
 
-\subsection{Anatomy of Condition Drift Across Model Scales}
-Table~\ref{tab:round3} and Figure~\ref{fig:round3} establish four key findings on vertical-domain query synthesis:
+\subsection{Key Findings on Condition Drift}
+Table~\ref{tab:round3} and Figure~\ref{fig:round3} highlight four empirical observations:
 
-\paragraph{1. Syntactic Format Gates Are Blind Across All Scales.}
-Across all three models, $100\%$ ($120/120$) of generated queries pass syntactic validation (\texttt{format\_valid}: single question mark, valid length, zero PII), yet $70\%\text{--}100\%$ of \texttt{ordinary\_style} queries lose standalone rule decidability.
+\paragraph{1. Format Validation Does Not Catch Condition Loss.}
+All $120/120$ generated questions pass \texttt{format\_valid}, yet under \texttt{ordinary\_style}, $70\%$ (\texttt{1.5B}), $100\%$ (\texttt{Qwen-Plus}), and $80\%$ (\texttt{Qwen-Max}) fail to preserve standalone rule decidability.
 
-\paragraph{2. Decomposing Scale-Dependent Hallucination vs.\ Scale-Invariant Pragmatic Omission.}
-Comparing \texttt{1.5B}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max} disentangles two distinct mechanisms of condition drift:
+\paragraph{2. Scale-Dependent Value Mutation vs.\ Scale-Invariant Omission.}
+Comparing the three model tiers separates two failure types:
 \begin{itemize}[leftmargin=*,nosep]
-  \item \textbf{Scale-Dependent Value Hallucination}: Under \texttt{ordinary\_style}, the local \texttt{1.5B} model hallucinates numeric mutations in $15\%$ ($3/20$) of cases, rewriting ``生效第20天'' (Day~20) into ``生效后的第二天'' (Day~2), and collapses complementary CPIC Plan~C seeds (\texttt{condition-009} [7d wait $\rightarrow$ \texttt{WAIT\_NOT\_EXCLUDED}] and \texttt{condition-010} [25d wait $\rightarrow$ \texttt{WAIT\_EXCLUDED}]) into the exact same surface string: ``我是在网上看病花了钱，是第一次买这个保险，保单生效第10天了，因为不是意外病，想问一下这属于等待期吗？''. Scaling up to \texttt{Qwen-Plus} and \texttt{Qwen-Max} reduces numeric value mutations to \textbf{$0\%$ ($0/20$)}.
-  \item \textbf{Scale-Invariant Pragmatic Omission}: However, scaling up model size \emph{worsens or fails to resolve} slot omission under \texttt{ordinary\_style}. Because larger models are better at mimicking brief, colloquial user phrasing, \texttt{Qwen-Plus} omits the formal product name in $100\%$ ($20/20$) of cases (yielding $0\%$ standalone decision preservation), while \texttt{Qwen-Max} omits product names in $50\%$ ($10/20$) of cases and paraphrases ``首次投保'' (first-time enrollment) into the legally ambiguous ``我刚买了…'' (``I just bought...'', which conflates first-time enrollment and annual renewal) in $30\%$ ($6/20$) of cases. Even when granting the true \texttt{policy\_id} via UI context, \texttt{ordinary\_style} preserves decisions in only $45\%$ (\texttt{Qwen-Plus}) and $50\%$ (\texttt{Qwen-Max}) of cases.
+  \item \textbf{Value Mutation and Label Collision on \texttt{1.5B}}: In $3/20$ seeds (\texttt{condition-013}, \texttt{015}, \texttt{016} on \texttt{cpic\_82859}), \texttt{1.5B} \texttt{ordinary\_style} mutates ``保单生效第20天'' (Day~20) into ``保单生效后的第二天'' (Day~2). Furthermore, on \texttt{condition-009} (7-day plan wait, Day~10 $\rightarrow$ \texttt{WAIT\_NOT\_EXCLUDED}) and \texttt{condition-010} (25-day plan wait, Day~10 $\rightarrow$ \texttt{WAIT\_EXCLUDED}), \texttt{1.5B} drops both the product name and the plan waiting period, generating the exact same text for two opposite ground-truth labels:
+  \begin{quote}
+  \small
+  ``我是在网上看病花了钱，是第一次买这个保险，保单生效第10天了，因为不是意外病，想问一下这属于等待期吗？''
+  \end{quote}
+  \item \textbf{Conversational Omission on \texttt{Qwen-Plus} and \texttt{Qwen-Max}}: Scaling up to \texttt{Qwen-Plus} and \texttt{Qwen-Max} reduces numeric value mutations to $0\%$ ($0/20$). However, under \texttt{ordinary\_style}, larger models aggressively shorten administrative details to sound natural: \texttt{Qwen-Plus} drops the product title in $20/20$ ($100\%$) of seeds, while \texttt{Qwen-Max} drops product titles in $10/20$ ($50\%$) and rewrites ``首次投保'' (first-time enrollment) into ``我刚买了…'' (``I just bought...'', which is ambiguous between first enrollment and renewal) in $6/20$ ($30\%$) of seeds. Even when the true \texttt{policy\_id} is granted externally, \texttt{ordinary\_style} preserves decisions in only $50\%$ (\texttt{1.5B}), $45\%$ (\texttt{Qwen-Plus}), and $50\%$ (\texttt{Qwen-Max}) of seeds.
 \end{itemize}
 
-\paragraph{3. Universal Effectiveness of \texttt{condition\_prompt}.}
-When prompted with explicit slot constraints (\texttt{condition\_prompt}), standalone rule-decision preservation jumps from $30\% \rightarrow 95\%$ on \texttt{1.5B}, from $0\% \rightarrow 95\%$ on \texttt{Qwen-Plus}, and from $20\% \rightarrow \mathbf{100\%}$ ($20/20$) on \texttt{Qwen-Max} (passing both \texttt{v1\_strict\_regex} and \texttt{v2\_synonym\_aware} without a single error). Top-1 clause retrieval over the 5-policy corpus similarly reaches $95\%\text{--}100\%$.
+\paragraph{3. Slot-Constrained Prompting Across Scales.}
+Under \texttt{condition\_prompt}, standalone decision preservation (\texttt{v2\_synonym\_aware}) reaches $95\%$ ($19/20$) on \texttt{1.5B} and \texttt{Qwen-Plus} ($100\%$ on \texttt{1.5B} when \texttt{policy\_id} is granted) and $100\%$ ($20/20$) on \texttt{Qwen-Max}. Top-1 clause retrieval over the 5-policy corpus with \texttt{bm25\_char2} likewise improves from $50\% \rightarrow 100\%$ on \texttt{1.5B}, $80\% \rightarrow 100\%$ on \texttt{Qwen-Plus}, and $90\% \rightarrow 95\%$ ($\text{MRR@10}=0.9750$) on \texttt{Qwen-Max}.
 
-\subsection{Blinded Two-Rater Verification Protocol}
-Because automated extractors can over-penalize natural paraphrases (\texttt{v1\_strict\_regex} exhibits $9/20$ false negatives on \texttt{1.5B} \texttt{condition\_prompt} outputs such as ``生效是第20天'' or ``同意免去等待期''), we package our evaluation suite into a blinded, randomized two-rater HTML annotation tool (\texttt{reviewer\_A.html} and \texttt{reviewer\_B.html} with automated Cohen's $\kappa$ scoring in \texttt{score\_annotations.py}).
+\paragraph{4. Strict Regex False Negatives and Blinded Review Pack.}
+On \texttt{1.5B} \texttt{condition\_prompt}, \texttt{v1\_strict\_regex} flags $10/20$ questions even though $9$ of those $10$ retain all conditions under synonymous phrasing (e.g., ``生效是第20天'', ``同意免去等待期''). Because automated regex guards remain approximations of human reading comprehension, we package all $80$ controlled cases and $40$ local generations into randomized, blinded two-rater HTML forms (\texttt{reviewer\_A.html} and \texttt{reviewer\_B.html}, scored by \texttt{score\_annotations.py}); human annotation results are not claimed in this manuscript prior to independent completion.
 
-\section{Practical Recommendations for RAG Cold-Start}
-Our findings translate into three concrete guidelines for engineering teams cold-starting RAG systems in regulated verticals:
+\section{Practical Recommendations}
 \begin{enumerate}[leftmargin=*,nosep]
-  \item \textbf{Never Commit to Hybrid over Dense Retrieval on Uncalibrated Synthetic Benchmarks Alone}: Across both 1.5B and production cloud models, passage-conditioned synthetic queries inflate lexical overlap, systematically favoring BM25 and hybrid RRF even when pure dense retrieval wins on real user queries.
-  \item \textbf{Use Candidate-Set Abstention under Small Calibration Budgets}: Collect $50\text{--}100$ group-disjoint real queries and apply paired-bootstrap candidate-set abstention rather than point selection or surface density reweighting.
-  \item \textbf{Pair Larger Models with Explicit Slot Prompts and Counterexample Witnesses}: Scaling up LLM capacity eliminates numeric hallucinations but does not prevent conversational slot omission; always combine frontier models with explicit slot-constrained prompts (\texttt{condition\_prompt}) and verify decidability against single-field counterexamples.
+  \item \textbf{Do not select hybrid RRF over dense retrieval using uncalibrated synthetic queries alone}: Passage-conditioned generation inflates lexical overlap across both 1.5B and commercial cloud models, biasing rankings toward BM25 and hybrid fusion.
+  \item \textbf{Use small group-disjoint real calibration sets with candidate-set abstention}: When only $25\text{--}50$ real queries are available, bootstrap candidate-set abstention avoids premature commitment to a wrong retriever while retaining the true winner in the candidate set.
+  \item \textbf{Combine capable generators with explicit slot prompts and counterexample checks}: Larger models eliminate numeric copy errors but still omit product and enrollment slots under generic rewrite prompts; explicitly enumerate required eligibility variables in the prompt and verify decidability against single-field counterexamples.
 \end{enumerate}
 
-\section{Limitations}
-First, while we validate our findings across three model tiers (\texttt{Qwen2.5-1.5B-Instruct}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}), all three belong to the Qwen instruction-tuned family; extending cross-family comparisons to GPT-4o and Claude-3.5 is a natural next step. Second, our Round~3 clause benchmark covers five representative Chinese health and medical policies ($80$ controlled cases and $120$ paired LLM rewrites); expanding coverage to life, property, and annuity clauses will further strengthen generalizability.
+\section{Cross-Domain Generalizability and Limitations}
+\paragraph{Structural Generalizability Beyond Insurance.}
+Although our empirical evaluation focuses on Chinese commercial insurance, the two failure mechanisms and their mitigations depend on structural properties shared by other rule-governed vertical domains:
+\begin{itemize}[leftmargin=*,nosep]
+  \item \textbf{Passage-Conditioned Co-Voting Bias}: Any domain where source documents use standardized terminology (e.g., statutory tax codes, clinical practice guidelines, or enterprise compliance manuals) while end users ask colloquial questions is vulnerable to lexical overlap inflation in synthetic queries, biasing naive point evaluation toward BM25 and hybrid fusion over pure dense retrieval. Paired-bootstrap candidate-set abstention requires only per-query metric matrices and applies directly to any domain.
+  \item \textbf{Conjunctive Eligibility Rules and Double-Witness Verification}: Insurance waiting-period clauses are structurally isomorphic to \emph{clinical trial eligibility screening} (inclusion/exclusion lab thresholds, washout days, prior-therapy waivers), \emph{statutory legal and tax advisory} (filing status, holding-period thresholds, exemption riders), and \emph{financial underwriting}. Whenever ground-truth outcomes follow a deterministic multi-slot decision table $f: \mathcal{Z} \to \mathcal{Y}$, benchmark builders can apply our double-witness criterion ($f(z_{-k}, v_1) \neq f(z_{-k}, v_2)$) to certify \texttt{CLARIFY} cases and use slot-enumerated prompts (\texttt{condition\_prompt}) to prevent pragmatic slot omission across model scales.
+\end{itemize}
+
+\paragraph{Limitations.}
+First, our Round~1--2 FAQ corpus comes from a single community insurance dataset whose historical answers provide weak relevance labels rather than expert-verified legal advice, and \texttt{bge\_small\_zh} truncates $509/3{,}746$ answers exceeding $512$ tokens. Second, our multi-scale experiments evaluate three models within the Qwen family (\texttt{Qwen2.5-1.5B-Instruct}, \texttt{Qwen-Plus}, and \texttt{Qwen-Max}) and one dense encoder; testing additional model families and longer-context encoders is needed to assess broader generalization. Third, Round~3 covers five official medical and outpatient clauses ($80$ controlled cases, $120$ LLM rewrites), and independent two-rater human annotation remains pending.
 
 \bibliographystyle{plain}
 \bibliography{references}
