@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-26",
+  "formal_pdfs": 5,
+  "source_groups": 3,
+  "seed_groups": 20,
+  "case_count": 80,
+  "controlled_variants": 4,
+  "label_status": "provisional rule reference, NOT independently annotated",
+  "all_cases_synthetic": true,
+  "script_sha256": "ac50830cff3e3abf373dabfbfae373c3dd5f93465d347ef52c710ddd5a20ac5c",
+  "generation_inputs_sha256": "0e059d97adec75ca506dc70ce23e6dd0829fa4dcd841023de04e3233bd1ce91c",
+  "source_failures": [
+    {
+      "id": "tkyl_2018",
+      "url": "https://tkyl.taikang.com/cms//attachmentDir/file/201806/08192227s9w1.pdf",
+      "status": "failed",
+      "http_code": "200",
+      "bytes": 30196,
+      "sha256": "7a35eb241eb10ccd07fe1ffd0ee155e3a6a72474e45972d26a402116e95561de",
+      "robots": "robots_unavailable_or_html_error; no explicit rule parsed",
+      "downloaded_at_utc": "2026-10-26T03:20:39.529261+00:00",
+      "error": ""
+    }
+  ],
+  "excluded_auxiliary_documents": [
+    "cpic_82860"
+  ]
+}

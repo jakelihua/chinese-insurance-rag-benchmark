@@ -1,0 +1,171 @@
+[
+  {
+    "id": "pa_p0781",
+    "url": "https://resources.pingan.com/app_upload/file/paylx/P0781_20210407.pdf",
+    "status": "downloaded",
+    "http_code": "200",
+    "bytes": 857880,
+    "sha256": "55a4e49a07ebb05c07a44c9a43e4e75dc474f317ef153ebc6df7cb5c612ef204",
+    "robots": "robots_checked",
+    "downloaded_at_utc": "2026-10-26T03:20:31.248891+00:00",
+    "error": "",
+    "title": "平安关爱相伴团体医疗保险（B款）",
+    "document_type": "formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "review_status": "assistant extracted + page visually inspected; independent review pending",
+    "anchor": {
+      "pdf_page_1based": 4,
+      "normalized_start": 472,
+      "normalized_end": 754,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "1e3d2b7965a7f2f1325b1102a38afb9ee3d3e218539b392d9474559af542e733",
+      "bbox_pdf_points": [
+        56.63999938964844,
+        492.59893798828125,
+        538.765625,
+        634.2289428710938
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        842.0399780273438
+      ]
+    }
+  },
+  {
+    "id": "pa_h865",
+    "url": "https://resources.pingan.com/app_upload/file/health/H865.pdf",
+    "status": "downloaded",
+    "http_code": "200",
+    "bytes": 989029,
+    "sha256": "112aea1a036ce5a2e9172c9dc880113240aed567a25dd22aa6c8658e076d75c9",
+    "robots": "robots_checked",
+    "downloaded_at_utc": "2026-10-26T03:20:31.263403+00:00",
+    "error": "",
+    "title": "平安员工及家属住院医疗保险",
+    "document_type": "formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "review_status": "assistant extracted + page visually inspected; independent review pending",
+    "anchor": {
+      "pdf_page_1based": 3,
+      "normalized_start": 602,
+      "normalized_end": 896,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "78fe2b8d3049b50c1b108df6f78e9eb7bc483db164bd935bcc1392d923e67a85",
+      "bbox_pdf_points": [
+        62.66400146484375,
+        448.6789245605469,
+        518.739990234375,
+        615.2389526367188
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    }
+  },
+  {
+    "id": "cpic_86017",
+    "url": "https://www.cpic.com.cn/upload/resources/file/2025/04/02/86017.pdf",
+    "status": "downloaded",
+    "http_code": "200",
+    "bytes": 573932,
+    "sha256": "54aca8a0b54c61faf9a9cb477baf17a9bf53be2d986615b2fcc28d4b3564ddf5",
+    "robots": "robots_checked",
+    "downloaded_at_utc": "2026-10-26T03:20:35.228315+00:00",
+    "error": "",
+    "title": "太保互联网C款门急诊医疗保险",
+    "document_type": "formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "review_status": "assistant extracted + page visually inspected; independent review pending",
+    "anchor": {
+      "pdf_page_1based": 4,
+      "normalized_start": 243,
+      "normalized_end": 682,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "dff18799130cc78d2b8edc612fd19415075a18081dcbb346e6236f83e10e9082",
+      "bbox_pdf_points": [
+        62.06399917602539,
+        229.5089111328125,
+        549.5884399414062,
+        474.1189270019531
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    }
+  },
+  {
+    "id": "cpic_82859",
+    "url": "https://www.cpic.com.cn/upload/resources/file/2024/10/14/82859.pdf",
+    "status": "downloaded",
+    "http_code": "200",
+    "bytes": 1299946,
+    "sha256": "8bfda0ffd63ae35ec51d7f7ce593cd30ccd4a6c18679a85465f20a495f11403f",
+    "robots": "robots_checked: /upload/resources/file/ allowed",
+    "downloaded_at_utc": "2026-10-26T03:23:56.389510+00:00",
+    "title": "太保互联网个人一年期住院E款医疗保险",
+    "document_type": "formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "review_status": "assistant extracted + page visually inspected; independent review pending",
+    "anchor": {
+      "pdf_page_1based": 3,
+      "normalized_start": 259,
+      "normalized_end": 434,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "148d8d56e78b1a49554134734f52da8822a463bf73d2d6c13838fd14dbe043f1",
+      "bbox_pdf_points": [
+        62.06399917602539,
+        276.33892822265625,
+        547.0676879882812,
+        380.4989318847656
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    }
+  },
+  {
+    "id": "tk_group_2018",
+    "url": "https://www.taikanglife.com/uploader/kindeditorFile/file/20180521/20180521102751_25.pdf",
+    "status": "downloaded",
+    "http_code": "200",
+    "bytes": 985526,
+    "sha256": "0d207b7c2bf7709eeb4cd045ce7c5dac25bb6d002644088766de3d87c01f5851",
+    "robots": "robots_unavailable_or_html_error; no explicit rule parsed",
+    "downloaded_at_utc": "2026-10-26T03:20:45.688550+00:00",
+    "error": "",
+    "title": "泰康悦享环球（尊享版）高端医疗保险",
+    "document_type": "formal_policy_clause",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "review_status": "assistant extracted + page visually inspected; independent review pending",
+    "anchor": {
+      "pdf_page_1based": 4,
+      "normalized_start": 47,
+      "normalized_end": 632,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "3c7ff7dec1aea2d8853b9865c636d65b4de66f545888dc110ef93f378fab29cd",
+      "bbox_pdf_points": [
+        46.68000030517578,
+        82.74896240234375,
+        541.1799926757812,
+        389.7389221191406
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        842.0399780273438
+      ]
+    }
+  }
+]

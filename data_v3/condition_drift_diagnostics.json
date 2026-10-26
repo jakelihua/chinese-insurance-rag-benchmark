@@ -1,0 +1,236 @@
+{
+  "methods": {
+    "ordinary_style": {
+      "attempts": 20,
+      "format_valid": 20,
+      "strict_v1_proxy_pass": 6,
+      "strict_v1_proxy_flagged": 14,
+      "surface_normalized_proxy_pass": 6,
+      "surface_normalized_proxy_flagged": 14,
+      "v1_false_negative_on_surface_phrasing": 0,
+      "surface_normalized_field_flags": {
+        "policy_id": 14,
+        "enrollment": 7,
+        "policy_day": 5,
+        "cause": 2,
+        "plan_wait_days": 4,
+        "approved_waiver": 3
+      },
+      "standalone_decision_outcomes": {
+        "PRESERVED_DECISION": 6,
+        "DEGRADED_TO_CLARIFY": 11,
+        "CONDITION_MUTATED": 3,
+        "COUNTERFACTUAL_FLIP": 0
+      },
+      "source_policy_granted_decision_outcomes": {
+        "PRESERVED_DECISION": 10,
+        "DEGRADED_TO_CLARIFY": 7,
+        "CONDITION_MUTATED": 3,
+        "COUNTERFACTUAL_FLIP": 0
+      }
+    },
+    "condition_prompt": {
+      "attempts": 20,
+      "format_valid": 20,
+      "strict_v1_proxy_pass": 10,
+      "strict_v1_proxy_flagged": 10,
+      "surface_normalized_proxy_pass": 19,
+      "surface_normalized_proxy_flagged": 1,
+      "v1_false_negative_on_surface_phrasing": 9,
+      "surface_normalized_field_flags": {
+        "policy_id": 1,
+        "enrollment": 0,
+        "policy_day": 0,
+        "cause": 0,
+        "plan_wait_days": 0,
+        "approved_waiver": 0
+      },
+      "standalone_decision_outcomes": {
+        "PRESERVED_DECISION": 19,
+        "DEGRADED_TO_CLARIFY": 1,
+        "CONDITION_MUTATED": 0,
+        "COUNTERFACTUAL_FLIP": 0
+      },
+      "source_policy_granted_decision_outcomes": {
+        "PRESERVED_DECISION": 20,
+        "DEGRADED_TO_CLARIFY": 0,
+        "CONDITION_MUTATED": 0,
+        "COUNTERFACTUAL_FLIP": 0
+      }
+    }
+  },
+  "collisions": [
+    {
+      "method": "ordinary_style",
+      "question": "我是在网上看病花了钱，是第一次买这个保险，保单生效第10天了，因为不是意外病，想问一下这属于等待期吗？",
+      "colliding_seeds": [
+        "condition-009",
+        "condition-010"
+      ],
+      "reference_labels": [
+        "WAIT_EXCLUDED",
+        "WAIT_NOT_EXCLUDED"
+      ],
+      "opposite_label_collision": true
+    }
+  ],
+  "per_seed_comparison": [],
+  "clause_retrieval_5docs": {
+    "controlled_complete": {
+      "tfidf_char1": {
+        "mrr10": 0.95,
+        "top1_accuracy": 0.9
+      },
+      "tfidf_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char1_3": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char3_5": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char1": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      }
+    },
+    "controlled_surface": {
+      "tfidf_char1": {
+        "mrr10": 0.875,
+        "top1_accuracy": 0.8
+      },
+      "tfidf_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char1_3": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char3_5": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char1": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      }
+    },
+    "controlled_missing_critical": {
+      "tfidf_char1": {
+        "mrr10": 0.975,
+        "top1_accuracy": 0.95
+      },
+      "tfidf_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char1_3": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char3_5": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char1": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      }
+    },
+    "controlled_counterfactual": {
+      "tfidf_char1": {
+        "mrr10": 0.95,
+        "top1_accuracy": 0.9
+      },
+      "tfidf_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char1_3": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char3_5": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char1": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      }
+    },
+    "generated_ordinary_style": {
+      "tfidf_char1": {
+        "mrr10": 0.7667,
+        "top1_accuracy": 0.6
+      },
+      "tfidf_char2": {
+        "mrr10": 0.7917,
+        "top1_accuracy": 0.65
+      },
+      "tfidf_char1_3": {
+        "mrr10": 0.7667,
+        "top1_accuracy": 0.6
+      },
+      "tfidf_char3_5": {
+        "mrr10": 0.8375,
+        "top1_accuracy": 0.7
+      },
+      "bm25_char1": {
+        "mrr10": 0.785,
+        "top1_accuracy": 0.65
+      },
+      "bm25_char2": {
+        "mrr10": 0.6792,
+        "top1_accuracy": 0.5
+      }
+    },
+    "generated_condition_prompt": {
+      "tfidf_char1": {
+        "mrr10": 0.975,
+        "top1_accuracy": 0.95
+      },
+      "tfidf_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "tfidf_char1_3": {
+        "mrr10": 0.975,
+        "top1_accuracy": 0.95
+      },
+      "tfidf_char3_5": {
+        "mrr10": 0.975,
+        "top1_accuracy": 0.95
+      },
+      "bm25_char1": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      },
+      "bm25_char2": {
+        "mrr10": 1.0,
+        "top1_accuracy": 1.0
+      }
+    }
+  }
+}

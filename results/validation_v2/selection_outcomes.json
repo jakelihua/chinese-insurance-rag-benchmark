@@ -1,0 +1,17 @@
+[
+  {
+    "mode": "keywords_matched",
+    "selected": "bm25_char2",
+    "regret": 0.13990759296370525
+  },
+  {
+    "mode": "zero_shot",
+    "selected": "rrf_bm25_bge",
+    "regret": 0.018661131787384377
+  },
+  {
+    "mode": "few_shot_3",
+    "selected": "rrf_bm25_bge",
+    "regret": 0.018661131787384377
+  }
+]

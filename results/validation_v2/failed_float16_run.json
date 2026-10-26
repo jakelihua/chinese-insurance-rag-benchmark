@@ -1,0 +1,12 @@
+{
+  "status": "stopped_for_numerical_output_corruption",
+  "observed_rows": 24,
+  "format_valid": 3,
+  "errors": {
+    "token_limit": 21,
+    "not_single_question": 21,
+    "not_chinese": 21
+  },
+  "raw_log": "/Users/knightwwang/Documents/Codex/2026-10-25/wob/work/validation_v2/generation/generations.jsonl",
+  "followup": "precision/backend smoke tests before fresh complete run"
+}

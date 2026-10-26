@@ -1,0 +1,164 @@
+[
+  {
+    "policy_id": "pa_p0781",
+    "title": "平安关爱相伴团体医疗保险（B款）",
+    "insurer": "平安",
+    "waiting_days_options": [
+      90
+    ],
+    "accident_exemption_in_studied_scope": true,
+    "approved_new_contract_waiver": false,
+    "benefit_scope": "合同定义的特定疾病或轻症疾病医疗",
+    "scope_note": "仅研究该条约定的特定或轻症疾病；事故原因按条款意外定义。",
+    "evidence": {
+      "pdf_page_1based": 4,
+      "normalized_start": 472,
+      "normalized_end": 754,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "1e3d2b7965a7f2f1325b1102a38afb9ee3d3e218539b392d9474559af542e733",
+      "bbox_pdf_points": [
+        56.63999938964844,
+        492.59893798828125,
+        538.765625,
+        634.2289428710938
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        842.0399780273438
+      ]
+    },
+    "reference_status": "provisional assistant-curated rule; not expert gold"
+  },
+  {
+    "policy_id": "pa_h865",
+    "title": "平安员工及家属住院医疗保险",
+    "insurer": "平安",
+    "waiting_days_options": [
+      30
+    ],
+    "accident_exemption_in_studied_scope": true,
+    "approved_new_contract_waiver": true,
+    "benefit_scope": "一般住院医疗",
+    "scope_note": "仅研究一般住院医疗；没有其他特别约定。",
+    "evidence": {
+      "pdf_page_1based": 3,
+      "normalized_start": 602,
+      "normalized_end": 896,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "78fe2b8d3049b50c1b108df6f78e9eb7bc483db164bd935bcc1392d923e67a85",
+      "bbox_pdf_points": [
+        62.66400146484375,
+        448.6789245605469,
+        518.739990234375,
+        615.2389526367188
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    },
+    "reference_status": "provisional assistant-curated rule; not expert gold"
+  },
+  {
+    "policy_id": "cpic_86017",
+    "title": "太保互联网C款门急诊医疗保险",
+    "insurer": "太平洋",
+    "waiting_days_options": [
+      7,
+      15,
+      25
+    ],
+    "accident_exemption_in_studied_scope": false,
+    "approved_new_contract_waiver": true,
+    "benefit_scope": "互联网药品费用医疗",
+    "scope_note": "仅研究2.5.2互联网药品费用责任，不混用2.5.3意外门急诊规则。",
+    "evidence": {
+      "pdf_page_1based": 4,
+      "normalized_start": 243,
+      "normalized_end": 682,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "dff18799130cc78d2b8edc612fd19415075a18081dcbb346e6236f83e10e9082",
+      "bbox_pdf_points": [
+        62.06399917602539,
+        229.5089111328125,
+        549.5884399414062,
+        474.1189270019531
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    },
+    "reference_status": "provisional assistant-curated rule; not expert gold"
+  },
+  {
+    "policy_id": "cpic_82859",
+    "title": "太保互联网个人一年期住院E款医疗保险",
+    "insurer": "太平洋",
+    "waiting_days_options": [
+      30
+    ],
+    "accident_exemption_in_studied_scope": true,
+    "approved_new_contract_waiver": true,
+    "benefit_scope": "一般住院医疗",
+    "scope_note": "仅研究等待期排除，不代表满足全部赔付条件。",
+    "evidence": {
+      "pdf_page_1based": 3,
+      "normalized_start": 259,
+      "normalized_end": 434,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "148d8d56e78b1a49554134734f52da8822a463bf73d2d6c13838fd14dbe043f1",
+      "bbox_pdf_points": [
+        62.06399917602539,
+        276.33892822265625,
+        547.0676879882812,
+        380.4989318847656
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        841.9199829101562
+      ]
+    },
+    "reference_status": "provisional assistant-curated rule; not expert gold"
+  },
+  {
+    "policy_id": "tk_group_2018",
+    "title": "泰康悦享环球（尊享版）高端医疗保险",
+    "insurer": "泰康",
+    "waiting_days_options": [
+      30
+    ],
+    "accident_exemption_in_studied_scope": true,
+    "approved_new_contract_waiver": false,
+    "benefit_scope": "非精神心理疾病的一般住院医疗",
+    "scope_note": "首次或非连续投保、非精神心理疾病的一般住院；不研究按月计的其他责任。",
+    "evidence": {
+      "pdf_page_1based": 4,
+      "normalized_start": 47,
+      "normalized_end": 632,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "3c7ff7dec1aea2d8853b9865c636d65b4de66f545888dc110ef93f378fab29cd",
+      "bbox_pdf_points": [
+        46.68000030517578,
+        82.74896240234375,
+        541.1799926757812,
+        389.7389221191406
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.3200073242188,
+        842.0399780273438
+      ]
+    },
+    "reference_status": "provisional assistant-curated rule; not expert gold"
+  }
+]

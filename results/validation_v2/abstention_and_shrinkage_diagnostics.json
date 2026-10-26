@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-26",
+  "note": "Exploratory retrospective evaluation on validation_v2 per_query_metrics.npz; not an independent confirmation set.",
+  "rows": [
+    {
+      "budget": 25,
+      "generation": "keywords_matched",
+      "real_only_wrong_selection_rate": 0.6,
+      "mix_0.5_wrong_selection_rate": 1.0,
+      "mse_shrunk_wrong_selection_rate": 0.6,
+      "mse_shrunk_mean_regret": 0.01119667907243036,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.8,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 2.6
+    },
+    {
+      "budget": 25,
+      "generation": "zero_shot",
+      "real_only_wrong_selection_rate": 0.6,
+      "mix_0.5_wrong_selection_rate": 0.8,
+      "mse_shrunk_wrong_selection_rate": 0.6,
+      "mse_shrunk_mean_regret": 0.01119667907243036,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.8,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 2.6
+    },
+    {
+      "budget": 25,
+      "generation": "few_shot_3",
+      "real_only_wrong_selection_rate": 0.6,
+      "mix_0.5_wrong_selection_rate": 0.6,
+      "mse_shrunk_wrong_selection_rate": 0.6,
+      "mse_shrunk_mean_regret": 0.01119667907243036,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.8,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 2.6
+    },
+    {
+      "budget": 50,
+      "generation": "keywords_matched",
+      "real_only_wrong_selection_rate": 0.4,
+      "mix_0.5_wrong_selection_rate": 1.0,
+      "mse_shrunk_wrong_selection_rate": 0.4,
+      "mse_shrunk_mean_regret": 0.007464452714953574,
+      "candidate_set_confident_wrong_rate": 0.2,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 0.8,
+      "candidate_set_mean_size": 1.6
+    },
+    {
+      "budget": 50,
+      "generation": "zero_shot",
+      "real_only_wrong_selection_rate": 0.4,
+      "mix_0.5_wrong_selection_rate": 0.6,
+      "mse_shrunk_wrong_selection_rate": 0.4,
+      "mse_shrunk_mean_regret": 0.007464452714953574,
+      "candidate_set_confident_wrong_rate": 0.2,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 0.8,
+      "candidate_set_mean_size": 1.6
+    },
+    {
+      "budget": 50,
+      "generation": "few_shot_3",
+      "real_only_wrong_selection_rate": 0.4,
+      "mix_0.5_wrong_selection_rate": 0.4,
+      "mse_shrunk_wrong_selection_rate": 0.4,
+      "mse_shrunk_mean_regret": 0.007464452714953574,
+      "candidate_set_confident_wrong_rate": 0.2,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 0.8,
+      "candidate_set_mean_size": 1.6
+    },
+    {
+      "budget": 100,
+      "generation": "keywords_matched",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 1.0,
+      "mse_shrunk_wrong_selection_rate": 0.0,
+      "mse_shrunk_mean_regret": 0.0,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.4,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.4
+    },
+    {
+      "budget": 100,
+      "generation": "zero_shot",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 0.4,
+      "mse_shrunk_wrong_selection_rate": 0.2,
+      "mse_shrunk_mean_regret": 0.003732226357476787,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.4,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.4
+    },
+    {
+      "budget": 100,
+      "generation": "few_shot_3",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 0.0,
+      "mse_shrunk_wrong_selection_rate": 0.0,
+      "mse_shrunk_mean_regret": 0.0,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.4,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.4
+    },
+    {
+      "budget": 200,
+      "generation": "keywords_matched",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 1.0,
+      "mse_shrunk_wrong_selection_rate": 0.0,
+      "mse_shrunk_mean_regret": 0.0,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.6
+    },
+    {
+      "budget": 200,
+      "generation": "zero_shot",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 0.6,
+      "mse_shrunk_wrong_selection_rate": 0.0,
+      "mse_shrunk_mean_regret": 0.0,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.6
+    },
+    {
+      "budget": 200,
+      "generation": "few_shot_3",
+      "real_only_wrong_selection_rate": 0.0,
+      "mix_0.5_wrong_selection_rate": 0.0,
+      "mse_shrunk_wrong_selection_rate": 0.0,
+      "mse_shrunk_mean_regret": 0.0,
+      "candidate_set_confident_wrong_rate": 0.0,
+      "candidate_set_abstention_rate": 0.6,
+      "candidate_set_optimal_coverage": 1.0,
+      "candidate_set_mean_size": 1.6
+    }
+  ]
+}

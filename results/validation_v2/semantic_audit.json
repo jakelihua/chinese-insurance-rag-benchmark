@@ -1,0 +1,265 @@
+{
+  "review_date": "2026-10-26",
+  "reviewer_type": "AI-assisted source-support sanity review by assistant; NOT independent human/expert annotation",
+  "seed": 20261028,
+  "sample_sources": 20,
+  "questions": 40,
+  "sample_sha256": "443948b13491cb70156ce711e10e0c75657c5b6e078de511989d6e1d39051d13",
+  "label_scope": "Does the provided historical answer support the standalone question? Not insurance fact correctness. needs_context means missing identifying conditions. partial means source addresses only part of the query.",
+  "not_used_for_filtering_or_parameter_selection": true,
+  "counts": {
+    "zero_shot": {
+      "supported": 12,
+      "partial": 4,
+      "needs_context": 4
+    },
+    "few_shot_3": {
+      "supported": 9,
+      "partial": 2,
+      "unsupported": 6,
+      "needs_context": 3
+    }
+  },
+  "records": [
+    {
+      "doc_id": 54,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答给出消费型重疾险的定义和特点。"
+    },
+    {
+      "doc_id": 54,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "定义可由源回答给出。"
+    },
+    {
+      "doc_id": 89,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答描述流动就业养老关系转移。"
+    },
+    {
+      "doc_id": 89,
+      "mode": "few_shot_3",
+      "support_label": "partial",
+      "review_note": "生成题加入上海与转入地的具体材料要求，源回答为未注明地区的转出及接续说明。"
+    },
+    {
+      "doc_id": 237,
+      "mode": "zero_shot",
+      "support_label": "partial",
+      "review_note": "问题将单项限额泛化为总体最高报销限额，源回答只说明单项限制。"
+    },
+    {
+      "doc_id": 237,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "明确限定床位费与膳食费单项限额，匹配源回答。"
+    },
+    {
+      "doc_id": 249,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答描述万能险概念；不代表其金融观点正确。"
+    },
+    {
+      "doc_id": 249,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "同零样本，概念层面匹配。"
+    },
+    {
+      "doc_id": 322,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答包含儿童投保所需文件。"
+    },
+    {
+      "doc_id": 322,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "获取身份证明文件的方法，与投保需要哪些复印件不同。"
+    },
+    {
+      "doc_id": 405,
+      "mode": "zero_shot",
+      "support_label": "needs_context",
+      "review_note": "独立检索题缺少这款所指产品；源回答保费时间单位还存在内部矛盾。"
+    },
+    {
+      "doc_id": 405,
+      "mode": "few_shot_3",
+      "support_label": "needs_context",
+      "review_note": "缺少产品身份；源回答年费与每天保费表述矛盾，无法确认一年金额。"
+    },
+    {
+      "doc_id": 431,
+      "mode": "zero_shot",
+      "support_label": "partial",
+      "review_note": "源回答只比较特点，缺少判断哪个更适合提问者所需个人条件。"
+    },
+    {
+      "doc_id": 431,
+      "mode": "few_shot_3",
+      "support_label": "needs_context",
+      "review_note": "这两种保险没有在独立问句中指明。"
+    },
+    {
+      "doc_id": 545,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "同等责任条件与源回答匹配。"
+    },
+    {
+      "doc_id": 545,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "把同等责任改成对方全责，适用条件改变。"
+    },
+    {
+      "doc_id": 556,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "历史源回答直接涉及限额；但数字脱敏且时效未核验。"
+    },
+    {
+      "doc_id": 556,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "同零样本；仅判主题支持，不判当前限额正确。"
+    },
+    {
+      "doc_id": 629,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答涉及保险过期的处罚。"
+    },
+    {
+      "doc_id": 629,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "改问过期后发生事故的处置，源回答只涉及证件和处罚。"
+    },
+    {
+      "doc_id": 678,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答给出养老金计算公式。"
+    },
+    {
+      "doc_id": 678,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "通用计算方法可由公式回答；新增58岁条件仍需核验具体计发月数，不应据此给个人金额。"
+    },
+    {
+      "doc_id": 1637,
+      "mode": "zero_shot",
+      "support_label": "partial",
+      "review_note": "源回答主要比较优惠规则，不足以解释两类险种的总体区别。"
+    },
+    {
+      "doc_id": 1637,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "源回答明确提到首次购买交强险无优惠。"
+    },
+    {
+      "doc_id": 1816,
+      "mode": "zero_shot",
+      "support_label": "needs_context",
+      "review_note": "没有说明保障对象或需求，无法锁定源回答中的儿童和住院场景。"
+    },
+    {
+      "doc_id": 1816,
+      "mode": "few_shot_3",
+      "support_label": "partial",
+      "review_note": "源回答讨论儿童保险组合，但没有十岁且体弱的具体核保条件与产品适用性。"
+    },
+    {
+      "doc_id": 1873,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答解释huts救援服务。"
+    },
+    {
+      "doc_id": 1873,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "源回答明确比较救援差异。"
+    },
+    {
+      "doc_id": 2213,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答列出医疗垫付申请情形。"
+    },
+    {
+      "doc_id": 2213,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "医疗垫付条件被改写为已经住院后能否购买医疗险。"
+    },
+    {
+      "doc_id": 2226,
+      "mode": "zero_shot",
+      "support_label": "needs_context",
+      "review_note": "问题未说明长跑需求，源回答依赖该活动条件。"
+    },
+    {
+      "doc_id": 2226,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "长跑需求明确，匹配源回答。"
+    },
+    {
+      "doc_id": 2268,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答比较赛事保险与普通意外险。"
+    },
+    {
+      "doc_id": 2268,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "无保险情况下受伤如何处理，不等同于赛事险与普通险的保障差异。"
+    },
+    {
+      "doc_id": 2389,
+      "mode": "zero_shot",
+      "support_label": "needs_context",
+      "review_note": "未说明我的保险是哪款，不能把某产品轻症责任泛化。"
+    },
+    {
+      "doc_id": 2389,
+      "mode": "few_shot_3",
+      "support_label": "needs_context",
+      "review_note": "同样缺少投保产品身份。"
+    },
+    {
+      "doc_id": 2492,
+      "mode": "zero_shot",
+      "support_label": "partial",
+      "review_note": "源回答概述保障与选择注意事项，没有提供产品或类别清单。"
+    },
+    {
+      "doc_id": 2492,
+      "mode": "few_shot_3",
+      "support_label": "unsupported",
+      "review_note": "无法依据一般知识判断用户已经购买的险种。"
+    },
+    {
+      "doc_id": 2868,
+      "mode": "zero_shot",
+      "support_label": "supported",
+      "review_note": "源回答介绍申根签证保险及其要求；不判断要求是否仍有效。"
+    },
+    {
+      "doc_id": 2868,
+      "mode": "few_shot_3",
+      "support_label": "supported",
+      "review_note": "同零样本。"
+    }
+  ]
+}

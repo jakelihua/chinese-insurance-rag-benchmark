@@ -1,0 +1,49 @@
+{
+  "report.md": {
+    "bytes": 7034,
+    "sha256": "1ea6efc0fb1a762ad392c4bd42c5ff171ea09cfdab739597822c9e6bb5afd35d"
+  },
+  "retrieval_summary.json": {
+    "bytes": 3916,
+    "sha256": "c80b4a889de0967d7e1c1a1df76d0285a63b37ca30ea996f527a227715429925"
+  },
+  "calibration_summary.json": {
+    "bytes": 19836,
+    "sha256": "452113a51509ae2ee7fa7f94d14d9e8bd8443e8acb4d7739888d2d5df56ae8fa"
+  },
+  "trials.json": {
+    "bytes": 209949,
+    "sha256": "ad4b0e0f1f8cd17b5571dfc02c0094e5cb819545e06d054eb6a96b0a87dc6891"
+  },
+  "per_query_metrics.npz": {
+    "bytes": 23779,
+    "sha256": "fbbf3f30bdefb03b159e455ac4613e7d445ba6526b7455ac264b9fce2a497c8b"
+  },
+  "semantic_audit.json": {
+    "bytes": 8262,
+    "sha256": "9afae520b10b8a91fecf49457e3b5de2d95765309619f55701a45f029b5284bd"
+  },
+  "bge_vs_rrf.json": {
+    "bytes": 248,
+    "sha256": "dbdc1268ae37d1ce072e2285658d8b6c835885039cf38ee7908ffed4266e687d"
+  },
+  "manifest.json": {
+    "bytes": 9012,
+    "sha256": "d086ac03c6dacbc9981be5c1964c470ded510e836daeb3954a78c7718c7630a3"
+  },
+  "comparison.png": {
+    "bytes": 62389,
+    "sha256": "18b657eae87fea87d540875c0f662589461ba214f2849ff1da7920bb0d8a2f66"
+  },
+  "verification": {
+    "date": "2026-10-26",
+    "unit_tests_passed": 12,
+    "trial_count": 360,
+    "generation_count": 512,
+    "common_paired_sources": 249,
+    "original_lexical_native_metrics_reproduced_exactly": true,
+    "all_scoring_values_finite": true,
+    "raw_generation_failures_retained": true,
+    "independent_confirmation": false
+  }
+}

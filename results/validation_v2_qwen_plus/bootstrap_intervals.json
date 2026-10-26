@@ -1,0 +1,106 @@
+[
+  {
+    "system": "tfidf_char1",
+    "mrr10": 0.2295768786249752,
+    "pointwise_95_percentile_interval": [
+      0.21683232205151057,
+      0.2428170361887796
+    ],
+    "delta_vs_bm25_char2": -0.1521281981953325,
+    "paired_pointwise_delta_interval": [
+      -0.16596890208989387,
+      -0.1400047813881733
+    ]
+  },
+  {
+    "system": "tfidf_char2",
+    "mrr10": 0.31801499825046964,
+    "pointwise_95_percentile_interval": [
+      0.3035760774193896,
+      0.3328482593493874
+    ],
+    "delta_vs_bm25_char2": -0.06369007856983805,
+    "paired_pointwise_delta_interval": [
+      -0.07293449663877963,
+      -0.054432038680535366
+    ]
+  },
+  {
+    "system": "tfidf_char1_3",
+    "mrr10": 0.31874940356904363,
+    "pointwise_95_percentile_interval": [
+      0.30402256232040864,
+      0.3337165070882511
+    ],
+    "delta_vs_bm25_char2": -0.06295567325126405,
+    "paired_pointwise_delta_interval": [
+      -0.07147384716522924,
+      -0.05403329807763628
+    ]
+  },
+  {
+    "system": "tfidf_char3_5",
+    "mrr10": 0.27265735174051864,
+    "pointwise_95_percentile_interval": [
+      0.2582286497598375,
+      0.2871645042730967
+    ],
+    "delta_vs_bm25_char2": -0.10904772507978905,
+    "paired_pointwise_delta_interval": [
+      -0.1202665383677409,
+      -0.0986247958880722
+    ]
+  },
+  {
+    "system": "bm25_char1",
+    "mrr10": 0.25285663920433465,
+    "pointwise_95_percentile_interval": [
+      0.24025580261051238,
+      0.2672878329410146
+    ],
+    "delta_vs_bm25_char2": -0.12884843761597303,
+    "paired_pointwise_delta_interval": [
+      -0.14101291206752126,
+      -0.11612037235847318
+    ]
+  },
+  {
+    "system": "bm25_char2",
+    "mrr10": 0.3817050768203077,
+    "pointwise_95_percentile_interval": [
+      0.36686884019361515,
+      0.3988734545811202
+    ],
+    "delta_vs_bm25_char2": 0.0,
+    "paired_pointwise_delta_interval": [
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "system": "bge_small_zh",
+    "mrr10": 0.5216126697840119,
+    "pointwise_95_percentile_interval": [
+      0.505407706948288,
+      0.5388519333640819
+    ],
+    "delta_vs_bm25_char2": 0.1399075929637042,
+    "paired_pointwise_delta_interval": [
+      0.1250372139782201,
+      0.15514664249133084
+    ]
+  },
+  {
+    "system": "rrf_bm25_bge",
+    "mrr10": 0.502951537996628,
+    "pointwise_95_percentile_interval": [
+      0.487058309741175,
+      0.5190189307185792
+    ],
+    "delta_vs_bm25_char2": 0.12124646117632026,
+    "paired_pointwise_delta_interval": [
+      0.11153386137354035,
+      0.1308133926583321
+    ]
+  }
+]

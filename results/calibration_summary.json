@@ -1,0 +1,218 @@
+[
+  {
+    "budget": 25,
+    "method": "synthetic_uniform",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 25,
+    "method": "synthetic_budget_matched",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.52,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 25,
+    "method": "synthetic_length_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.49333333333333335,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 25,
+    "method": "synthetic_density_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 25,
+    "method": "real_only",
+    "mean_regret": 0.01259113465025281,
+    "mean_tau_b": 0.4133333333333333,
+    "optimal_selection_fraction": 0.8,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 25,
+    "method": "mix_real_density_0.5",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.52,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3654.716544716785,
+    "mean_domain_auc": 0.9998206086492258
+  },
+  {
+    "budget": 50,
+    "method": "synthetic_uniform",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 50,
+    "method": "synthetic_budget_matched",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.52,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 50,
+    "method": "synthetic_length_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 50,
+    "method": "synthetic_density_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 50,
+    "method": "real_only",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.6266666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 50,
+    "method": "mix_real_density_0.5",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.5466666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3428.586174411897,
+    "mean_domain_auc": 0.9999434063000534
+  },
+  {
+    "budget": 100,
+    "method": "synthetic_uniform",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 100,
+    "method": "synthetic_budget_matched",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 100,
+    "method": "synthetic_length_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 100,
+    "method": "synthetic_density_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 100,
+    "method": "real_only",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.8933333333333332,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 100,
+    "method": "mix_real_density_0.5",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4933333333333333,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3620.015899739713,
+    "mean_domain_auc": 0.9999850507207689
+  },
+  {
+    "budget": 200,
+    "method": "synthetic_uniform",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  },
+  {
+    "budget": 200,
+    "method": "synthetic_budget_matched",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4933333333333333,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  },
+  {
+    "budget": 200,
+    "method": "synthetic_length_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  },
+  {
+    "budget": 200,
+    "method": "synthetic_density_weighted",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.4666666666666666,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  },
+  {
+    "budget": 200,
+    "method": "real_only",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.9199999999999999,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  },
+  {
+    "budget": 200,
+    "method": "mix_real_density_0.5",
+    "mean_regret": 0.0,
+    "mean_tau_b": 0.49333333333333335,
+    "optimal_selection_fraction": 1.0,
+    "mean_density_ess": 3609.476619808175,
+    "mean_domain_auc": 0.9999986652429257
+  }
+]

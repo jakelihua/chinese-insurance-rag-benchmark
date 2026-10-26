@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-26",
+  "formal_documents": 5,
+  "controlled_cases": 80,
+  "all_cases_are_synthetic": true,
+  "seed_groups": 20,
+  "raw_generation_count": 40,
+  "generation": {
+    "date": "2026-10-26",
+    "input_sha256": "0e059d97adec75ca506dc70ce23e6dd0829fa4dcd841023de04e3233bd1ce91c",
+    "script_sha256": "2670379ece0416f2061633e16da2f031b9bec4f793da2f3ab6bfe01a87657297",
+    "device": "mps",
+    "dtype": "float32",
+    "attention": "eager",
+    "max_new_tokens": 128,
+    "methods": {
+      "ordinary_style": "把原问题改写成用户口语化提问，简短自然，保持原本意图。",
+      "condition_prompt": "把原问题改写成用户口语化提问，但必须完整保留产品全名、首次或重新投保、生效第几天、疾病或意外原因、责任范围，以及给定的计划天数和免等待期审批状态。只能改变说法，不能增删条件，不能把未知变成已知。"
+    },
+    "batch_size": 1,
+    "elapsed_seconds": 682.2261924743652,
+    "model_artifacts": {
+      "repo": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "files": [
+        {
+          "file": "config.json",
+          "bytes": 660,
+          "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "generation_config.json",
+          "bytes": 242,
+          "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "tokenizer.json",
+          "bytes": 7031645,
+          "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "tokenizer_config.json",
+          "bytes": 7305,
+          "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "merges.txt",
+          "bytes": 1671839,
+          "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "vocab.json",
+          "bytes": 2776833,
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+          "upstream_sha256_verified": false
+        },
+        {
+          "file": "model.safetensors",
+          "bytes": 3087467144,
+          "sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee",
+          "upstream_sha256_verified": true
+        },
+        {
+          "file": "LICENSE",
+          "bytes": 11343,
+          "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+          "upstream_sha256_verified": false
+        }
+      ]
+    },
+    "reference_labels_seen_by_generator": false,
+    "test_variants_seen_by_generator": false
+  },
+  "proxy_metrics": {
+    "ordinary_style": {
+      "attempts": 20,
+      "format_valid": 20,
+      "all_required_fields_proxy_preserved": 6,
+      "flagged_or_unresolved": 14,
+      "field_flags": {
+        "policy_id": 14,
+        "enrollment": 7,
+        "policy_day": 5,
+        "cause": 2,
+        "plan_wait_days": 4,
+        "approved_waiver": 3
+      }
+    },
+    "condition_prompt": {
+      "attempts": 20,
+      "format_valid": 20,
+      "all_required_fields_proxy_preserved": 10,
+      "flagged_or_unresolved": 10,
+      "field_flags": {
+        "policy_id": 1,
+        "enrollment": 0,
+        "policy_day": 8,
+        "cause": 0,
+        "plan_wait_days": 1,
+        "approved_waiver": 3
+      }
+    }
+  },
+  "independent_review_status": "PENDING: blank packs only; no human labels or agreement scores exist",
+  "guard_script_sha256": "274af5c0e70825dde25dff9a5b3d76e02e40654457d1af57649db59836386274",
+  "package_script_sha256": "1b3d6b07bb3cfd5600318695419d1ebad4ae592c1a5c994a8e45a5079850ef4b"
+}

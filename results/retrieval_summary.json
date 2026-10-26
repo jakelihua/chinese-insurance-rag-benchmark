@@ -1,0 +1,68 @@
+[
+  {
+    "system": "tfidf_char1",
+    "real_calibration_mrr10": 0.22294920634920634,
+    "real_calibration_hit5": 0.32,
+    "real_test_mrr10": 0.2295768786249748,
+    "real_test_hit5": 0.33132932531730125,
+    "synthetic_keywords_mrr10": 0.7646981118484054,
+    "synthetic_keywords_hit5": 0.9038974906567004,
+    "source_prefix_diagnostic_mrr10": 0.6692256925906152,
+    "source_prefix_diagnostic_hit5": 0.7602776294714362
+  },
+  {
+    "system": "tfidf_char2",
+    "real_calibration_mrr10": 0.30035079365079365,
+    "real_calibration_hit5": 0.43466666666666665,
+    "real_test_mrr10": 0.3180149982504692,
+    "real_test_hit5": 0.4218436873747495,
+    "synthetic_keywords_mrr10": 0.8889965169196349,
+    "synthetic_keywords_hit5": 0.9821142552055526,
+    "source_prefix_diagnostic_mrr10": 0.8794728133289265,
+    "source_prefix_diagnostic_hit5": 0.9353977576081153
+  },
+  {
+    "system": "tfidf_char1_3",
+    "real_calibration_mrr10": 0.31470952380952383,
+    "real_calibration_hit5": 0.45066666666666666,
+    "real_test_mrr10": 0.31874940356904286,
+    "real_test_hit5": 0.4285237140948564,
+    "synthetic_keywords_mrr10": 0.8703517614556056,
+    "synthetic_keywords_hit5": 0.9719701014415376,
+    "source_prefix_diagnostic_mrr10": 0.9010153687743115,
+    "source_prefix_diagnostic_hit5": 0.9474105712760278
+  },
+  {
+    "system": "tfidf_char3_5",
+    "real_calibration_mrr10": 0.2686873015873016,
+    "real_calibration_hit5": 0.3586666666666667,
+    "real_test_mrr10": 0.2726573517405181,
+    "real_test_hit5": 0.3557114228456914,
+    "synthetic_keywords_mrr10": 0.4577945575809964,
+    "synthetic_keywords_hit5": 0.6601708489054992,
+    "source_prefix_diagnostic_mrr10": 0.9329991143992745,
+    "source_prefix_diagnostic_hit5": 0.9612920448478377
+  },
+  {
+    "system": "bm25_char1",
+    "real_calibration_mrr10": 0.25148042328042325,
+    "real_calibration_hit5": 0.348,
+    "real_test_mrr10": 0.25285663920433454,
+    "real_test_hit5": 0.342685370741483,
+    "synthetic_keywords_mrr10": 0.6920836193527065,
+    "synthetic_keywords_hit5": 0.8489054991991457,
+    "source_prefix_diagnostic_mrr10": 0.8482597310146697,
+    "source_prefix_diagnostic_hit5": 0.906300053390283
+  },
+  {
+    "system": "bm25_char2",
+    "real_calibration_mrr10": 0.36810899470899466,
+    "real_calibration_hit5": 0.48,
+    "real_test_mrr10": 0.3817050768203073,
+    "real_test_hit5": 0.48263193052772213,
+    "synthetic_keywords_mrr10": 0.9335087585488013,
+    "synthetic_keywords_hit5": 0.9887880405766151,
+    "source_prefix_diagnostic_mrr10": 0.9310703904270374,
+    "source_prefix_diagnostic_hit5": 0.9604911906033102
+  }
+]

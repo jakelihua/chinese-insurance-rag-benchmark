@@ -1,0 +1,9 @@
+{
+  "comparison": "BGE minus RRF",
+  "mean_delta": 0.018661131787384294,
+  "paired_pointwise_95_interval": [
+    0.007982459628251212,
+    0.030024437101716657
+  ],
+  "resampling_unit": "question, descriptive, not independent-source confirmation"
+}

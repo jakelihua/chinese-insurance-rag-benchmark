@@ -1,0 +1,15 @@
+{
+  "seed": 20261025,
+  "repeats": 5,
+  "python": "3.9.6",
+  "platform": "macOS-15.7.4-arm64-arm-64bit",
+  "numpy": "2.0.2",
+  "scipy": "1.13.1",
+  "sklearn": "1.6.1",
+  "elapsed_seconds": 29.491518259048462,
+  "data_sha256": "f98991b588d645783b7f048f91ddc7076f99c00fd70937fa27110b4339232241",
+  "code_sha256": "58aca48b7f40f5f5b91ca6e11e930b03c06f4ee3ebd0cd1fa31bfe8ce49bcbf2",
+  "source_url": "https://raw.githubusercontent.com/meowcao/InsuranceModel/main/data/csv/baoxianzhidao_filter.csv",
+  "synthetic_method": "deterministic extractive proxy, NOT LLM generation",
+  "status": "exploratory, weak relevance labels, single source, lexical retrievers only"
+}

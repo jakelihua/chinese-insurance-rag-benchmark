@@ -1,0 +1,30 @@
+{
+  "ordinary_style": {
+    "attempts": 20,
+    "format_valid": 20,
+    "all_required_fields_proxy_preserved": 6,
+    "flagged_or_unresolved": 14,
+    "field_flags": {
+      "policy_id": 14,
+      "enrollment": 7,
+      "policy_day": 5,
+      "cause": 2,
+      "plan_wait_days": 4,
+      "approved_waiver": 3
+    }
+  },
+  "condition_prompt": {
+    "attempts": 20,
+    "format_valid": 20,
+    "all_required_fields_proxy_preserved": 10,
+    "flagged_or_unresolved": 10,
+    "field_flags": {
+      "policy_id": 1,
+      "enrollment": 0,
+      "policy_day": 8,
+      "cause": 0,
+      "plan_wait_days": 1,
+      "approved_waiver": 3
+    }
+  }
+}

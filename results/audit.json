@@ -1,0 +1,16 @@
+{
+  "raw_rows": 8362,
+  "excluded": {
+    "not_best": 4574,
+    "length": 22
+  },
+  "question_groups": 3744,
+  "documents": 3746,
+  "connected_groups": 3725,
+  "calibration_pool": 750,
+  "test_questions": 2994,
+  "max_cross_split_title_cosine": 0.8964572909289664,
+  "calibration_answer_overlap_test": 0,
+  "provenance": "Public mirror; upstream reports Baidu Zhidao; original posts not verified",
+  "labels": "Observed best-answer links, NOT verified insurance truth or exhaustive relevance"
+}

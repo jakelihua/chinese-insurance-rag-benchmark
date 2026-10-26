@@ -1,0 +1,9 @@
+{
+  "attempted_per_mode": 256,
+  "common_valid_sources": 249,
+  "valid_counts": {
+    "zero_shot": 255,
+    "few_shot_3": 250
+  },
+  "note": "Format checks only; semantic validity and insurance correctness are not verified"
+}
