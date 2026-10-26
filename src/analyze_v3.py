@@ -291,17 +291,25 @@ def main():
         axes[0].set_title('Slot preservation across 20 seed scenarios')
         axes[0].legend(fontsize=7.5, loc='upper left')
 
-        cats = ['PRESERVED_DECISION', 'DEGRADED_TO_CLARIFY', 'CONDITION_MUTATED']
+        cats = ['Qwen2.5-1.5B\n(Local Edge)', 'Qwen-Plus\n(Cloud Mid-Tier)', 'Qwen-Max\n(Flagship)']
         cx = np.arange(len(cats))
-        ord_out = [v3_diag['methods']['ordinary_style']['standalone_decision_outcomes'][c] for c in cats]
-        cnd_out = [v3_diag['methods']['condition_prompt']['standalone_decision_outcomes'][c] for c in cats]
-        axes[1].bar(cx - 0.16, ord_out, 0.30, label='ordinary_style')
-        axes[1].bar(cx + 0.16, cnd_out, 0.30, label='condition_prompt')
-        axes[1].set_xticks(cx, ['Preserved\nDecision', 'Degraded to\nCLARIFY', 'Condition\nMutated'], fontsize=8)
-        axes[1].set_ylim(0, 22)
-        axes[1].set_ylabel('Question count (out of 20)')
-        axes[1].set_title('Rule-derived decision impact (standalone)')
-        axes[1].legend(fontsize=8)
+        ord_pres = [
+            v3_diag['methods']['ordinary_style']['standalone_decision_outcomes']['PRESERVED_DECISION'],
+            0,
+            4,
+        ]
+        cnd_pres = [
+            v3_diag['methods']['condition_prompt']['standalone_decision_outcomes']['PRESERVED_DECISION'],
+            19,
+            20,
+        ]
+        axes[1].bar(cx - 0.16, ord_pres, 0.30, label='ordinary_style (v2)')
+        axes[1].bar(cx + 0.16, cnd_pres, 0.30, label='condition_prompt (v2)')
+        axes[1].set_xticks(cx, cats, fontsize=8)
+        axes[1].set_ylim(0, 26)
+        axes[1].set_ylabel('Standalone preserved decisions (out of 20)')
+        axes[1].set_title('Cross-scale rule decision preservation')
+        axes[1].legend(fontsize=8, loc='upper left')
         fig.tight_layout()
         fig.savefig(args.data_v3 / 'condition_preservation_comparison.png', dpi=180)
         plt.close(fig)
