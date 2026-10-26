@@ -20,11 +20,12 @@ from pathlib import Path
 
 import fitz
 import numpy as np
+from scipy.stats import binomtest
 import torch
 from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
 import experiment as base
-from analyze_v3 import bigram_containment
+from analyze_v3 import bigram_containment, extract_fields_surface_normalized
 from condition_data import POLICIES as DEV_POLICIES, TASK_CONTEXT, compact, source_anchor
 from condition_guard import chinese_number
 from cross_domain_study import (
@@ -40,14 +41,31 @@ from cross_domain_study import (
 )
 
 
-def clean_cross_question(raw):
+def strip_book_title_spoilers(text):
+    """Step 1 of controlled synthesis: strip textbook 《》 book-title spoilers and clause-number headers."""
+    cleaned = re.sub(r'[《》]', '', text)
+    cleaned = re.sub(
+        r'(?:请问)?根据(?:条款)?第[一二三四五六七八九十0-9]+条(?:第[一二三四五六七八九十0-9（）()]+(?:款|项))?[，,]?',
+        '',
+        cleaned,
+    )
+    return cleaned.strip()
+
+
+def clean_cross_question(raw, strip_book_titles=False):
     q = ' '.join(raw.strip().splitlines())
     q = re.sub(r'^(?:QUESTION|Question|改写后问题|修正后问题|用户提问|用户问题|提问|问题|改写问句)\s*[:：]\s*', '', q.strip())
-    return q.strip('“”"\' ')
+    q = q.strip('“”"\' ')
+    if strip_book_titles:
+        q = strip_book_title_spoilers(q)
+    return q
+
 
 HELDOUT_POLICIES = {
     'pa_2011_36': dict(
         title='平安住院安心医疗保险',
+        colloquial_name='平安住院安心医疗险',
+        aliases=['平安住院安心医疗险', '平安住院安心险', '住院安心医疗保险', '住院安心医疗险'],
         insurer='平安',
         page=1,
         start='（一）一般住院医疗津贴',
@@ -55,12 +73,28 @@ HELDOUT_POLICIES = {
         days=[30, 90],
         accident_exempt=True,
         approval_exempt=True,
-        benefit='一般住院医疗津贴（30天等待期）或癌症住院医疗津贴（90天等待期）',
-        scope='第四条（一）一般住院30天等待期及（二）癌症住院90天等待期；连续投保或另有约定按约定执行。',
+        benefit='一般住院医疗津贴（30天等待期）与癌症住院医疗津贴（90天等待期）分项责任',
+        benefits={
+            'general_hospital': dict(
+                label='一般住院医疗津贴',
+                wait_days=30,
+                accident_exempt=True,
+                approval_exempt=True,
+            ),
+            'cancer_hospital': dict(
+                label='癌症住院医疗津贴',
+                wait_days=90,
+                accident_exempt=False,
+                approval_exempt=True,
+            ),
+        },
+        scope='第四条分设两项责任：（一）一般住院医疗津贴等待期30天（意外伤害事故住院无等待期）；（二）癌症住院医疗津贴等待期90天（限初次患癌症确诊住院，无意外豁免）；连续投保或另有约定按约定执行。',
         url='https://resources.pingan.com/app_upload/file/annuity/2011052415580436.pdf',
     ),
     'pa_p0254': dict(
         title='平安住院医疗保险',
+        colloquial_name='平安住院医疗险',
+        aliases=['平安住院医疗险'],
         insurer='平安',
         page=1,
         start='第四条保险责任',
@@ -74,6 +108,8 @@ HELDOUT_POLICIES = {
     ),
     'pa_p0321': dict(
         title='平安肺癌疾病保险',
+        colloquial_name='平安肺癌疾病险',
+        aliases=['平安肺癌疾病险', '平安肺癌险', '肺癌疾病保险'],
         insurer='平安',
         page=1,
         start='第四条保险责任',
@@ -87,6 +123,8 @@ HELDOUT_POLICIES = {
     ),
     'cpic_93896': dict(
         title='附加（广西地区）学生幼儿住院医疗保险（2025版）',
+        colloquial_name='太平洋广西学生幼儿住院医疗险',
+        aliases=['附加广西地区学生幼儿住院医疗保险', '太平洋广西学生幼儿住院医疗险', '太保广西学生幼儿住院险', '广西学生幼儿住院医疗保险'],
         insurer='太平洋',
         page=1,
         start='第四条保险责任',
@@ -95,70 +133,37 @@ HELDOUT_POLICIES = {
         accident_exempt=True,
         approval_exempt=False,
         benefit='学生幼儿住院医疗费用保险金',
-        scope='第四条第一款住院医疗费用30天等待期；意外伤害无等待期，不保证续保重新投保无特别豁免条款。',
+        scope='第四条第一款住院医疗费用首次投保30天等待期（意外伤害住院无等待期；第1页写明续保不受30日限制，第3页第六条另规定本产品为不保证续保，本集4个种子均限定在首次投保场景）。',
         url='https://www.cpic.com.cn/upload/resources/file/2026/03/31/93896.pdf',
     ),
 }
 
-ALL_INSURANCE_FIELDS = ['policy_id', 'enrollment', 'cause', 'policy_day', 'plan_wait_days', 'approved_waiver']
+ALL_INSURANCE_FIELDS = [
+    'policy_id', 'benefit_id', 'enrollment', 'cause', 'policy_day', 'plan_wait_days', 'approved_waiver'
+]
 
 
 def insurance_decision(frame, policies):
     policy = policies[frame['policy_id']]
-    if frame['approved_waiver'] and policy['approval_exempt']:
-        return 'WAIT_NOT_EXCLUDED'
-    if frame['cause'] == 'accident' and policy['accident_exempt']:
-        return 'WAIT_NOT_EXCLUDED'
-    return 'WAIT_EXCLUDED' if frame['policy_day'] <= frame['plan_wait_days'] else 'WAIT_NOT_EXCLUDED'
-
-
-def extract_insurance_fields_frozen(text, policies):
-    """Exact frozen regex patterns from condition_guard.py + analyze_v3.py,
-    parameterized only by the policy dictionary (zero regex edits).
-    """
-    norm = compact(text)
-    fields = {}
-    matches = [sid for sid, p in policies.items() if compact(p['title']) in norm]
-    fields['policy_id'] = matches[0] if len(matches) == 1 else None
-    first = bool(re.search(r'(?:首次|第一次|头一次)(?:投保|购买|买)', norm))
-    new = bool(re.search(r'重新投保|再次投保|非连续投保', norm))
-    fields['enrollment'] = 'first' if first and not new else 'new' if new and not first else None
-    illness = bool(re.search(r'非意外|不是意外|并非意外|因疾病|因病|生病|患病|得病', norm))
-    accident = '意外' in re.sub(r'非意外|不是意外|并非意外', '', norm)
-    fields['cause'] = 'illness' if illness and not accident else 'accident' if accident and not illness else None
-    num = r'([0-9零〇一二两三四五六七八九十百]+)'
-    day = re.findall(r'生效(?:算起|后|起)?(?:的)?(?:第)?' + num + r'(?:天|日)', norm)
-    fields['policy_day'] = chinese_number(day[0]) if len(day) == 1 else None
-    if fields['policy_day'] is None:
-        day2 = re.findall(r'生效(?:算起|后|起|是|为|已经|已)?(?:的)?(?:第)?' + num + r'(?:天|日)', norm)
-        if len(day2) == 1:
-            fields['policy_day'] = chinese_number(day2[0])
-    wait = re.findall(r'(?:计划.{0,8}等待期(?:为|是)?|等待期为)' + num + r'(?:天|日)', norm)
-    if not wait:
-        wait = re.findall(num + r'(?:天|日)(?:的)?等待期', norm)
-    fields['plan_wait_days'] = chinese_number(wait[0]) if len(wait) == 1 else None
-    if fields['plan_wait_days'] is None:
-        wait2 = re.findall(r'(?:计划|责任|约定).{0,10}等待期(?:为|是)?' + num + r'(?:天|日)', norm)
-        if not wait2:
-            wait2 = re.findall(r'等待期(?:为|是)' + num + r'(?:天|日)', norm)
-        if len(wait2) == 1:
-            fields['plan_wait_days'] = chinese_number(wait2[0])
-
-    if re.search(
-        r'(?:是否|有没有).{0,16}(?:批准|同意).{0,8}免(?:去|除)?等待期.{0,8}(?:还不清楚|尚不清楚|不清楚|不确定)',
-        norm,
-    ):
-        fields['approved_waiver'] = 'unknown'
-    elif re.search(
-        r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?等待期',
-        norm,
-    ):
-        fields['approved_waiver'] = False
-    elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?等待期', norm):
-        fields['approved_waiver'] = True
+    if 'benefits' in policy and frame.get('benefit_id') in policy['benefits']:
+        b_rule = policy['benefits'][frame['benefit_id']]
+        acc_exempt = b_rule['accident_exempt']
+        app_exempt = b_rule['approval_exempt']
+        wait_days = frame.get('plan_wait_days') if frame.get('plan_wait_days') is not None else b_rule['wait_days']
     else:
-        fields['approved_waiver'] = None
-    return fields
+        acc_exempt = policy['accident_exempt']
+        app_exempt = policy['approval_exempt']
+        wait_days = frame['plan_wait_days']
+    if frame['approved_waiver'] and app_exempt:
+        return 'WAIT_NOT_EXCLUDED'
+    if frame['cause'] == 'accident' and acc_exempt:
+        return 'WAIT_NOT_EXCLUDED'
+    return 'WAIT_EXCLUDED' if frame['policy_day'] <= wait_days else 'WAIT_NOT_EXCLUDED'
+
+
+def extract_insurance_fields_frozen(text, policies=HELDOUT_POLICIES):
+    """Unified surface-normalized slot extractor shared with analyze_v3.py."""
+    return extract_fields_surface_normalized(text, policies=policies)
 
 
 def enumerate_insurance_decisions_frozen(observed, policies, grant_source_policy=False, seed_frame=None):
@@ -171,13 +176,47 @@ def enumerate_insurance_decisions_frozen(observed, policies, grant_source_policy
     policy = policies[pid]
     decisions = set()
     enrollments = [eff['enrollment']] if eff.get('enrollment') is not None else ['first', 'new']
-    causes = [eff['cause']] if eff.get('cause') is not None else (
-        ['illness', 'accident'] if policy['accident_exempt'] else ['illness']
-    )
     days = (
         [eff['policy_day']]
         if eff.get('policy_day') is not None
         else [5, 7, 10, 15, 20, 25, 30, 45, 60, 90, 120]
+    )
+    if 'benefits' in policy:
+        if eff.get('benefit_id') in policy['benefits']:
+            b_ids = [eff['benefit_id']]
+        else:
+            b_ids = list(policy['benefits'].keys())
+        for b_id in b_ids:
+            b_rule = policy['benefits'][b_id]
+            causes = [eff['cause']] if eff.get('cause') is not None else (
+                ['illness', 'accident'] if b_rule['accident_exempt'] else ['illness']
+            )
+            w = b_rule['wait_days']
+            for enr in enrollments:
+                w_obs = eff.get('approved_waiver')
+                if isinstance(w_obs, bool):
+                    waivers = [w_obs]
+                elif b_rule['approval_exempt'] and enr == 'new':
+                    waivers = [False, True]
+                else:
+                    waivers = [False]
+                for c in causes:
+                    for d in days:
+                        for aw in waivers:
+                            cand = {
+                                'policy_id': pid,
+                                'benefit_id': b_id,
+                                'enrollment': enr,
+                                'cause': c,
+                                'policy_day': d,
+                                'plan_wait_days': w,
+                                'approved_waiver': aw,
+                            }
+                            decisions.add(insurance_decision(cand, policies))
+        return sorted(decisions)
+
+    causes = [eff['cause']] if eff.get('cause') is not None else (
+        ['illness', 'accident'] if policy['accident_exempt'] else ['illness']
     )
     if len(policy['days']) == 1:
         waits = policy['days']
@@ -189,9 +228,7 @@ def enumerate_insurance_decisions_frozen(observed, policies, grant_source_policy
         )
     for enr in enrollments:
         w_obs = eff.get('approved_waiver')
-        if w_obs == 'unknown':
-            waivers = [False, True]
-        elif isinstance(w_obs, bool):
+        if isinstance(w_obs, bool):
             waivers = [w_obs]
         elif policy['approval_exempt'] and enr == 'new':
             waivers = [False, True]
@@ -217,11 +254,22 @@ def evaluate_insurance_outcome_frozen(observed, seed_frame, required_fields, pol
     eff = dict(observed)
     if grant_source_policy and eff.get('policy_id') is None:
         eff['policy_id'] = seed_frame['policy_id']
+    pid = seed_frame.get('policy_id')
+    policy = policies.get(pid, {})
+    eff_req = list(required_fields)
+    if 'benefits' in policy and 'benefit_id' in seed_frame and 'benefit_id' not in eff_req:
+        eff_req.insert(1, 'benefit_id')
+
     mutated = [
         f for f in ALL_INSURANCE_FIELDS
-        if eff.get(f) is not None and eff.get(f) != 'unknown' and eff.get(f) != seed_frame.get(f)
+        if f in seed_frame and eff.get(f) is not None and eff.get(f) != seed_frame.get(f)
     ]
-    missing = [f for f in required_fields if eff.get(f) is None or eff.get(f) == 'unknown']
+    if 'benefits' in policy and eff.get('benefit_id') in policy['benefits'] and eff.get('plan_wait_days') is not None:
+        expected_w = policy['benefits'][eff['benefit_id']]['wait_days']
+        if eff['plan_wait_days'] != expected_w and 'plan_wait_days' not in mutated:
+            mutated.append('plan_wait_days')
+
+    missing = [f for f in eff_req if eff.get(f) is None]
     ref_dec = insurance_decision(seed_frame, policies)
     reachable = enumerate_insurance_decisions_frozen(
         eff, policies, grant_source_policy=grant_source_policy, seed_frame=seed_frame
@@ -237,51 +285,120 @@ def evaluate_insurance_outcome_frozen(observed, seed_frame, required_fields, pol
 
 def render_heldout_question(frame, policies, missing=None, surface=False):
     policy = policies[frame['policy_id']]
+    pid = frame['policy_id']
+    prod_name = policy.get('colloquial_name', policy['title']) if surface else policy['title']
     words = [
-        f"按《{policy['title']}》这份条款，",
-        '我是首次投保，' if frame['enrollment'] == 'first' else '我是重新投保，',
+        f"我买的{prod_name}，",
+        '这是首次投保，' if frame['enrollment'] == 'first' else '这是重新投保，',
     ]
     if missing != 'policy_day':
         words.append(f"保单生效第{frame['policy_day']}天，")
     else:
-        words.append('具体生效到第几天还不清楚，')
-    if missing != 'cause':
-        words.append('因意外伤害发生约定的医疗事项，' if frame['cause'] == 'accident' else '因非意外疾病发生约定的医疗事项，')
+        words.append('具体是保单生效后第几天还不清楚，')
+
+    if pid == 'pa_p0321':
+        if missing != 'cause':
+            words.append('因非意外疾病初次确诊原发性肺癌，' if frame['cause'] == 'illness' else '因意外伤害导致肺部病变，')
+        else:
+            words.append('具体确诊原因还不清楚，')
+    elif pid == 'pa_2011_36' and frame.get('benefit_id') == 'cancer_hospital' and missing not in ('benefit_id', 'plan_wait_days'):
+        if missing != 'cause':
+            words.append('因非意外疾病（初次确诊癌症）住院治疗，' if frame['cause'] == 'illness' else '因意外伤害住院治疗，')
+        else:
+            words.append('这次住院到底是因疾病还是因意外伤害导致的还不清楚，')
     else:
-        words.append('究竟是因疾病还是因意外伤害发生约定的医疗事项还不清楚，')
-    words.append(f"问的是{policy['benefit']}责任，")
-    if len(policy['days']) > 1:
-        words.append(
-            '计划约定的等待期天数不清楚，'
-            if missing == 'plan_wait_days'
-            else f"计划约定等待期为{frame['plan_wait_days']}天，"
-        )
+        if missing != 'cause':
+            words.append('因意外伤害住院治疗，' if frame['cause'] == 'accident' else '因非意外疾病住院治疗，')
+        else:
+            words.append('这次住院到底是因疾病还是因意外伤害导致的还不清楚，')
+
+    if 'benefits' in policy:
+        if missing in ('benefit_id', 'plan_wait_days'):
+            words.append('想申请住院津贴，但目前还不清楚申请的是一般住院医疗津贴还是癌症住院医疗津贴（对应的等待期天数也不确定），')
+        else:
+            b_label = policy['benefits'][frame['benefit_id']]['label']
+            words.append(f"想申请{b_label}（约定等待期为{frame['plan_wait_days']}天），")
+    else:
+        words.append(f"想申请{policy['benefit']}（条款等待期为{frame['plan_wait_days']}天），")
+
     if frame['enrollment'] == 'new':
         if missing == 'approved_waiver':
             words.append('是否已获保险公司批准免等待期还不清楚，')
         elif frame['approved_waiver']:
-            words.append('已获保险公司明确批准免等待期，')
+            words.append('并且已获保险公司明确批准免等待期，')
         else:
-            words.append('未获保险公司批准免等待期，')
-    words.append('是否会因等待期被排除？')
+            words.append('但未获保险公司批准免等待期，')
+    words.append('这种情况会因为等待期限制而不能理赔吗？')
     text = ''.join(words)
     if surface:
-        text = text.replace('我是首次投保，', '头一次买这份保险，').replace('保单生效第', '从保单生效算起第')
-        text = text.replace('是否会因等待期被排除？', '单看等待期这一条，会被挡住吗？')
-    return text
+        text = text.replace('这是首次投保，', '头一次买这份保险，').replace('保单生效第', '从保单生效算起第')
+        text = text.replace('这种情况会因为等待期限制而不能理赔吗？', '单看等待期这一条，会被卡住不能报销吗？')
+    return strip_book_title_spoilers(text)
+
+
+def build_atomic_clause_rubrics(frame, policy, anchor, pdf_file):
+    """Step 5 of controlled synthesis: decompose ground-truth decision into atomic rubrics
+    strictly bound to physical PDF filename, page number, and bounding-box coordinates."""
+    pg = anchor['pdf_page_1based']
+    bbox = [round(float(x), 2) for x in anchor['bbox_pdf_points']]
+    rubrics = [
+        {
+            'slot': 'policy_id',
+            'criterion': f"险种识别：{policy['title']}（含口语简称：{policy.get('colloquial_name', policy['title'])}）",
+            'pdf_file': pdf_file,
+            'pdf_page_1based': pg,
+            'bbox_pdf_points': bbox,
+        },
+        {
+            'slot': 'enrollment_and_day',
+            'criterion': f"投保属性与出险时间：{'首次投保' if frame['enrollment'] == 'first' else '重新投保'}，保单生效第{frame['policy_day']}天",
+            'pdf_file': pdf_file,
+            'pdf_page_1based': pg,
+            'bbox_pdf_points': bbox,
+        },
+        {
+            'slot': 'cause_and_wait',
+            'criterion': f"出险原因与责任等待期：{'意外伤害' if frame['cause'] == 'accident' else '非意外疾病'}，对应等待期阈值{frame['plan_wait_days']}天",
+            'pdf_file': pdf_file,
+            'pdf_page_1based': pg,
+            'bbox_pdf_points': bbox,
+        },
+    ]
+    if 'benefits' in policy and frame.get('benefit_id') in policy['benefits']:
+        b_label = policy['benefits'][frame['benefit_id']]['label']
+        rubrics.insert(1, {
+            'slot': 'benefit_id',
+            'criterion': f"分项责任锁定：{b_label}（等待期{frame['plan_wait_days']}天）",
+            'pdf_file': pdf_file,
+            'pdf_page_1based': pg,
+            'bbox_pdf_points': bbox,
+        })
+    if frame['enrollment'] == 'new':
+        rubrics.append({
+            'slot': 'approved_waiver',
+            'criterion': f"续保免等待期批复：{'已获保险公司批准免等待期' if frame.get('approved_waiver') else '未获批准免等待期'}",
+            'pdf_file': pdf_file,
+            'pdf_page_1based': pg,
+            'bbox_pdf_points': bbox,
+        })
+    return rubrics
 
 
 def build_heldout_seeds_and_cases(raw_heldout_dir):
     sources = []
     evidence = {}
+    anchors = {}
     for pid, pol in HELDOUT_POLICIES.items():
         pdf_path = raw_heldout_dir / f'{pid}.pdf'
         sha = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
         with fitz.open(pdf_path) as pdf:
             anchor, text = source_anchor(pdf, pol)
+        anchors[pid] = anchor
         sources.append({
             'id': pid,
             'title': pol['title'],
+            'colloquial_name': pol.get('colloquial_name', pol['title']),
+            'aliases': pol.get('aliases', []),
             'insurer': pol['insurer'],
             'url': pol['url'],
             'sha256': sha,
@@ -293,11 +410,11 @@ def build_heldout_seeds_and_cases(raw_heldout_dir):
         evidence[pid] = text
 
     seed_configs = [
-        # pa_2011_36: multi-wait [30, 90], accident_exempt=True, approval_exempt=True
-        dict(policy_id='pa_2011_36', enrollment='first', cause='illness', policy_day=45, plan_wait_days=30, approved_waiver=False, pivotal='plan_wait_days', alt_val=90),
-        dict(policy_id='pa_2011_36', enrollment='first', cause='illness', policy_day=45, plan_wait_days=90, approved_waiver=False, pivotal='plan_wait_days', alt_val=30),
-        dict(policy_id='pa_2011_36', enrollment='first', cause='accident', policy_day=15, plan_wait_days=30, approved_waiver=False, pivotal='cause', alt_val='illness'),
-        dict(policy_id='pa_2011_36', enrollment='new', cause='illness', policy_day=20, plan_wait_days=30, approved_waiver=True, pivotal='approved_waiver', alt_val=False),
+        # pa_2011_36: Clause 4(1) general_hospital (30d, accident_exempt=True) vs Clause 4(2) cancer_hospital (90d, accident_exempt=False)
+        dict(policy_id='pa_2011_36', benefit_id='general_hospital', enrollment='first', cause='illness', policy_day=45, plan_wait_days=30, approved_waiver=False, pivotal='benefit_id', alt_val='cancer_hospital', alt_extra={'plan_wait_days': 90}),
+        dict(policy_id='pa_2011_36', benefit_id='cancer_hospital', enrollment='first', cause='illness', policy_day=45, plan_wait_days=90, approved_waiver=False, pivotal='policy_day', alt_val=100),
+        dict(policy_id='pa_2011_36', benefit_id='general_hospital', enrollment='first', cause='accident', policy_day=15, plan_wait_days=30, approved_waiver=False, pivotal='cause', alt_val='illness'),
+        dict(policy_id='pa_2011_36', benefit_id='general_hospital', enrollment='new', cause='illness', policy_day=20, plan_wait_days=30, approved_waiver=True, pivotal='approved_waiver', alt_val=False),
         # pa_p0254: [90], accident_exempt=True, approval_exempt=True
         dict(policy_id='pa_p0254', enrollment='first', cause='illness', policy_day=45, plan_wait_days=90, approved_waiver=False, pivotal='policy_day', alt_val=100),
         dict(policy_id='pa_p0254', enrollment='first', cause='illness', policy_day=100, plan_wait_days=90, approved_waiver=False, pivotal='policy_day', alt_val=45),
@@ -308,7 +425,7 @@ def build_heldout_seeds_and_cases(raw_heldout_dir):
         dict(policy_id='pa_p0321', enrollment='first', cause='illness', policy_day=45, plan_wait_days=30, approved_waiver=False, pivotal='policy_day', alt_val=15),
         dict(policy_id='pa_p0321', enrollment='new', cause='illness', policy_day=15, plan_wait_days=30, approved_waiver=True, pivotal='approved_waiver', alt_val=False),
         dict(policy_id='pa_p0321', enrollment='new', cause='illness', policy_day=15, plan_wait_days=30, approved_waiver=False, pivotal='approved_waiver', alt_val=True),
-        # cpic_93896: [30], accident_exempt=True, approval_exempt=False
+        # cpic_93896: [30], accident_exempt=True, approval_exempt=False (scoped to first-time enrollment)
         dict(policy_id='cpic_93896', enrollment='first', cause='illness', policy_day=15, plan_wait_days=30, approved_waiver=False, pivotal='policy_day', alt_val=45),
         dict(policy_id='cpic_93896', enrollment='first', cause='illness', policy_day=45, plan_wait_days=30, approved_waiver=False, pivotal='policy_day', alt_val=15),
         dict(policy_id='cpic_93896', enrollment='first', cause='accident', policy_day=15, plan_wait_days=30, approved_waiver=False, pivotal='cause', alt_val='illness'),
@@ -321,14 +438,17 @@ def build_heldout_seeds_and_cases(raw_heldout_dir):
         sid = f'heldout-{idx + 1:03d}'
         piv = cfg['pivotal']
         alt = cfg['alt_val']
-        frame = {k: cfg[k] for k in ALL_INSURANCE_FIELDS}
-        changed = dict(frame, **{piv: alt})
+        frame = {k: cfg[k] for k in ALL_INSURANCE_FIELDS if k in cfg}
+        changed = dict(frame, **{piv: alt}, **cfg.get('alt_extra', {}))
         ref_dec = insurance_decision(frame, HELDOUT_POLICIES)
         alt_dec = insurance_decision(changed, HELDOUT_POLICIES)
         assert ref_dec != alt_dec, f'Expected opposite decisions on {sid}'
 
         req = ['policy_id', 'enrollment', 'policy_day', 'cause']
-        if len(HELDOUT_POLICIES[frame['policy_id']]['days']) > 1:
+        if 'benefits' in HELDOUT_POLICIES[frame['policy_id']]:
+            req.insert(1, 'benefit_id')
+            req.append('plan_wait_days')
+        elif len(HELDOUT_POLICIES[frame['policy_id']]['days']) > 1:
             req.append('plan_wait_days')
         if frame['enrollment'] == 'new':
             req.append('approved_waiver')
@@ -366,6 +486,12 @@ def build_heldout_seeds_and_cases(raw_heldout_dir):
                 'missing_field': miss,
                 'reference_label': 'CLARIFY' if miss else insurance_decision(f_use, HELDOUT_POLICIES),
                 'counterexample_witnesses': witnesses,
+                'atomic_rubrics': build_atomic_clause_rubrics(
+                    f_use,
+                    HELDOUT_POLICIES[frame['policy_id']],
+                    anchors[frame['policy_id']],
+                    f"{frame['policy_id']}.pdf",
+                ),
             })
     return sources, evidence, seeds, cases
 
@@ -423,7 +549,7 @@ def evaluate_dense_and_lexical_clause_retrieval(clause_docs, query_list, gold_in
     }
 
 
-def generate_llm_response(tokenizer, model, device, system_prompt, user_prompt, max_new_tokens=120):
+def generate_llm_response_with_meta(tokenizer, model, device, system_prompt, user_prompt, max_new_tokens=120):
     messages = [
         {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': user_prompt},
@@ -438,10 +564,35 @@ def generate_llm_response(tokenizer, model, device, system_prompt, user_prompt, 
             pad_token_id=tokenizer.eos_token_id,
         )
     gen_ids = out[0][inputs['input_ids'].shape[1]:]
+    gen_token_count = int(gen_ids.shape[0])
     raw = tokenizer.decode(gen_ids, skip_special_tokens=True)
     if device == 'mps':
         torch.mps.empty_cache()
+    return raw, gen_token_count, bool(gen_token_count >= max_new_tokens)
+
+
+def generate_llm_response(tokenizer, model, device, system_prompt, user_prompt, max_new_tokens=120):
+    raw, _, _ = generate_llm_response_with_meta(tokenizer, model, device, system_prompt, user_prompt, max_new_tokens=max_new_tokens)
     return raw
+
+
+def paired_mcnemar(rows, left, right, field='outcome', target='PRESERVED_DECISION'):
+    left_map = {r['seed_id']: (r[field] == target) for r in rows if r['method'] == left}
+    right_map = {r['seed_id']: (r[field] == target) for r in rows if r['method'] == right}
+    wins = [sid for sid in left_map if left_map[sid] and not right_map[sid]]
+    losses = [sid for sid in left_map if right_map[sid] and not left_map[sid]]
+    discordant = len(wins) + len(losses)
+    p_val = float(binomtest(len(wins), discordant, 0.5).pvalue) if discordant else 1.0
+    return {
+        'left': left,
+        'right': right,
+        'n': len(left_map),
+        'left_success': int(sum(left_map.values())),
+        'right_success': int(sum(right_map.values())),
+        'left_only_wins': wins,
+        'right_only_wins': losses,
+        'exact_mcnemar_two_sided_p': round(p_val, 6),
+    }
 
 
 def summarize_method_records(records, clause_docs, clause_ids, titles, bge_tokenizer, bge_model, device):
@@ -530,25 +681,26 @@ def main():
         held_raw_rows = [json.loads(line) for line in held_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
     else:
         held_raw_rows = []
-        sys_ord = '你是一个保险咨询用户提问改写助手。把原问题改写成简短自然的口语化单句提问，只输出改写后的一个问句。'
+        sys_ord = '你是一个保险咨询用户提问改写助手。把原问题改写成简短自然的真实投保人口语化单句提问，不要带《》书名号，只输出改写后的一个问句。'
         sys_cond = (
-            '你是一个严谨的保险条款评测问题生成助手。把原问题改写成自然口语化的单句提问，但必须100%完整保留：'
-            '（1）《条款全名》；（2）首次投保还是重新投保；（3）保单生效第几天；（4）疾病还是意外伤害原因；'
-            '（5）给定的计划约定等待期天数；（6）是否已获或未获保险公司批准免等待期。绝对不能遗漏或篡改任何数字与条件，只输出一个问句。'
+            '你是一个严谨的保险条款咨询问题改写助手。请用一线真实投保人日常咨询理赔的口语化口吻（不要使用《》书名号或死板条款号，像真实客户问客服“能不能报/卡不卡等待期”一样）把原问题改写成单句提问，但必须完整保留：'
+            '（1）完整险种名称（不加《》书名号）；（2）首次投保还是重新投保；（3）保单生效第几天；（4）疾病还是意外伤害原因；'
+            '（5）原问题明确申请的具体责任名称及对应的约定等待期天数（严禁把单项责任改写成二选一疑问）；'
+            '（6）是否已获或未获保险公司批准免等待期。绝对不能遗漏或篡改任何数字与条件，只输出一个问句。'
         )
         sys_json = (
             '你是一个结构化条件守恒改写助手。请先在第一行输出JSON提取原问题的关键槽位：'
-            '{"policy": "...", "enrollment": "...", "day": ..., "cause": "...", "wait_days": ..., "waiver": "..."}，'
-            '然后在第二行以"QUESTION: "开头输出完整保留上述所有槽位、条款全名和精确天数的单句用户提问。'
+            '{"policy": "...", "benefit": "...", "enrollment": "...", "day": ..., "cause": "...", "wait_days": ..., "waiver": "..."}，'
+            '然后在第二行以"QUESTION: "开头输出不带《》书名号、完整保留上述所有槽位、具体责任名称、险种全名和精确天数的自然口语化单句用户提问。'
         )
         sys_self = (
-            '你是一个保险评测问题自检与修正助手。请对照【原问题】与【条款原文】，检查【初稿改写】是否遗漏了《条款全名》、'
-            '首次/重新投保、生效第几天、疾病/意外原因、等待期天数或批准免等待期状态，或者是否改错了数字。'
-            '请直接输出修正后完整保留全部条件的单句用户提问（只输出一个问句）。'
+            '你是一个保险评测问题自检与修正助手。请对照【原问题】与【条款原文】，检查【初稿改写】是否遗漏了险种全名（不加《》书名号）、'
+            '具体申请的单项责任名称、首次/重新投保、生效第几天、疾病/意外原因、等待期天数或批准免等待期状态，或者是否改错了数字。'
+            '请直接输出修正后完整保留全部条件的自然口语化单句用户提问（不要带《》书名号，只输出一个问句）。'
         )
         sys_repair = (
             '你是一个保险条件槽位修复助手。自动验证器检测到你的初稿存在槽位缺失或篡改。'
-            '请严格根据【原问题】和【缺失/错误槽位提示】，补齐所有缺失信息并修正数字，只输出修复后的一个完整单句提问。'
+            '请严格根据【原问题】和【缺失/错误槽位提示】，用自然的投保人咨询口吻（不带《》书名号）补齐所有缺失信息并修正数字，只输出修复后的一个完整单句提问。'
         )
 
         for s in held_seeds:
@@ -557,54 +709,75 @@ def main():
             req = s['required_fields']
             seed_q = s['seed_question']
             ev = s['source_evidence']
-            pol_title = HELDOUT_POLICIES[frame['policy_id']]['title']
+            pol = HELDOUT_POLICIES[frame['policy_id']]
+            pol_title = pol['title']
+            b_label = pol['benefits'][frame['benefit_id']]['label'] if 'benefits' in pol else pol['benefit']
 
             # 0. seed_passthrough (0 calls)
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'seed_passthrough',
                 'question': seed_q, 'seed_question': seed_q, 'llm_calls': 0, 'repaired': False,
+                'raw_response': seed_q, 'generated_tokens': 0, 'max_new_tokens': 0, 'truncated_at_max_tokens': False,
             })
 
             # 1. ordinary_style (1 call)
             u_ord = f'原问题：{seed_q}\n请改写成简短自然的口语化提问（只输出一句话）：'
-            q_ord = clean_cross_question(generate_llm_response(tokenizer, model, device, sys_ord, u_ord, max_new_tokens=96))
+            raw_ord, tok_ord, trunc_ord = generate_llm_response_with_meta(tokenizer, model, device, sys_ord, u_ord, max_new_tokens=96)
+            q_ord = clean_cross_question(raw_ord)
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'ordinary_style',
                 'question': q_ord, 'seed_question': seed_q, 'llm_calls': 1, 'repaired': False,
+                'raw_response': raw_ord, 'generated_tokens': tok_ord, 'max_new_tokens': 96, 'truncated_at_max_tokens': trunc_ord,
             })
 
             # 2. condition_prompt (1 call)
-            u_cond = f'条款原文：《{pol_title}》{ev}\n原问题：{seed_q}\n请改写为完整保留《{pol_title}》全名及所有天数和条件的单句提问：'
-            q_cond = clean_cross_question(generate_llm_response(tokenizer, model, device, sys_cond, u_cond, max_new_tokens=110))
+            u_cond = (
+                f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
+                f'请改写为完整保留“{pol_title}”险种名称（不加《》书名号）、所申请的“{b_label}”单项责任及所有天数和条件的自然口语化单句提问：'
+            )
+            raw_cond, tok_cond, trunc_cond = generate_llm_response_with_meta(tokenizer, model, device, sys_cond, u_cond, max_new_tokens=110)
+            q_cond = clean_cross_question(raw_cond, strip_book_titles=True)
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'condition_prompt',
                 'question': q_cond, 'seed_question': seed_q, 'llm_calls': 1, 'repaired': False,
+                'raw_response': raw_cond, 'generated_tokens': tok_cond, 'max_new_tokens': 110, 'truncated_at_max_tokens': trunc_cond,
             })
 
             # 3. structured_json_rewrite (1 call)
-            u_json = f'条款原文：《{pol_title}》{ev}\n原问题：{seed_q}\n请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留《{pol_title}》及全部条件的单句提问：'
-            raw_json = generate_llm_response(tokenizer, model, device, sys_json, u_json, max_new_tokens=160)
-            q_json = extract_question_from_structured_output(raw_json)
+            u_json = (
+                f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
+                f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{pol_title}”（不加《》书名号）、所申请的“{b_label}”及全部条件的单句提问：'
+            )
+            raw_json, tok_json, trunc_json = generate_llm_response_with_meta(tokenizer, model, device, sys_json, u_json, max_new_tokens=160)
+            q_json = strip_book_title_spoilers(extract_question_from_structured_output(raw_json))
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'structured_json_rewrite',
                 'question': q_json, 'seed_question': seed_q, 'llm_calls': 1, 'repaired': False,
+                'raw_response': raw_json, 'generated_tokens': tok_json, 'max_new_tokens': 160, 'truncated_at_max_tokens': trunc_json,
             })
 
             # 4. generic_self_refine_all (2 calls: refine condition_prompt without parser feedback)
-            u_self = f'条款原文：《{pol_title}》{ev}\n原问题：{seed_q}\n初稿改写：{q_cond}\n请自检初稿是否遗漏《{pol_title}》或任何条件/天数，直接输出修正后的单句提问：'
-            q_self = clean_cross_question(generate_llm_response(tokenizer, model, device, sys_self, u_self, max_new_tokens=110))
+            u_self = (
+                f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n初稿改写：{q_cond}\n'
+                f'请自检初稿是否遗漏“{pol_title}”险种名、单项责任“{b_label}”或任何条件/天数，直接输出修正后的单句提问（不要带《》书名号）：'
+            )
+            raw_self, tok_self, trunc_self = generate_llm_response_with_meta(tokenizer, model, device, sys_self, u_self, max_new_tokens=110)
+            q_self = clean_cross_question(raw_self, strip_book_titles=True)
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'generic_self_refine_all',
                 'question': q_self, 'seed_question': seed_q, 'llm_calls': 2, 'repaired': True,
+                'raw_response': raw_self, 'generated_tokens': tok_self, 'max_new_tokens': 110, 'truncated_at_max_tokens': trunc_self,
             })
 
-            # 5. slot_guard_repair (<=2 calls: triggered by frozen parser)
+            # 5. slot_guard_repair (<=2 calls: triggered by unified parser)
             obs_cond = extract_insurance_fields_frozen(q_cond, HELDOUT_POLICIES)
             _, miss_cond, mut_cond = evaluate_insurance_outcome_frozen(obs_cond, frame, req, HELDOUT_POLICIES)
             if should_trigger_slot_guard_repair(miss_cond, mut_cond):
                 hints = []
                 if 'policy_id' in miss_cond or 'policy_id' in mut_cond:
-                    hints.append(f'必须逐字包含条款全名《{pol_title}》')
+                    hints.append(f'必须完整包含险种名称“{pol_title}”（不加《》书名号）')
+                if 'benefit_id' in miss_cond or 'benefit_id' in mut_cond:
+                    hints.append(f'必须明确写出仅申请“{b_label}”（不要同时写两项责任或反问属于哪项责任）')
                 if 'enrollment' in miss_cond or 'enrollment' in mut_cond:
                     hints.append('必须明确写出“首次投保”' if frame['enrollment'] == 'first' else '必须明确写出“重新投保”')
                 if 'policy_day' in miss_cond or 'policy_day' in mut_cond:
@@ -612,18 +785,20 @@ def main():
                 if 'cause' in miss_cond or 'cause' in mut_cond:
                     hints.append('必须明确写出“因意外伤害”' if frame['cause'] == 'accident' else '必须明确写出“因非意外疾病”')
                 if 'plan_wait_days' in miss_cond or 'plan_wait_days' in mut_cond:
-                    hints.append(f"必须明确写出“计划约定等待期为{frame['plan_wait_days']}天”")
+                    hints.append(f"必须明确写出“约定等待期为{frame['plan_wait_days']}天”")
                 if 'approved_waiver' in miss_cond or 'approved_waiver' in mut_cond:
                     hints.append('必须明确写出“已获保险公司明确批准免等待期”' if frame['approved_waiver'] else '必须明确写出“未获保险公司批准免等待期”')
                 u_rep = (
                     f'原问题：{seed_q}\n初稿改写：{q_cond}\n'
                     f'自动槽位检查发现问题：{"；".join(hints)}。\n'
-                    f'请输出修复后的单句用户提问（必须完整包含上述所有条件，只输出一个问句）：'
+                    f'请输出修复后的单句用户提问（必须完整包含上述所有条件，不要带《》书名号，只输出一个问句）：'
                 )
-                q_rep = clean_cross_question(generate_llm_response(tokenizer, model, device, sys_repair, u_rep, max_new_tokens=110))
+                raw_rep, tok_rep, trunc_rep = generate_llm_response_with_meta(tokenizer, model, device, sys_repair, u_rep, max_new_tokens=110)
+                q_rep = clean_cross_question(raw_rep, strip_book_titles=True)
                 rep_calls = 2
                 rep_flag = True
             else:
+                raw_rep, tok_rep, trunc_rep = raw_cond, tok_cond, trunc_cond
                 q_rep = q_cond
                 rep_calls = 1
                 rep_flag = False
@@ -631,22 +806,29 @@ def main():
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'slot_guard_repair',
                 'question': q_rep, 'seed_question': seed_q, 'llm_calls': rep_calls, 'repaired': rep_flag,
+                'raw_response': raw_rep, 'generated_tokens': tok_rep, 'max_new_tokens': 110, 'truncated_at_max_tokens': trunc_rep,
             })
-            # Also record budget-matched generic_self_refine (refining only when slot_guard_repair triggered)
+            # Also record budget-matched generic_self_refine (ablation sharing the symbolic repair trigger schedule)
             held_raw_rows.append({
                 'seed_id': sid, 'clause_id': frame['policy_id'], 'method': 'generic_self_refine_budget_matched',
                 'question': q_self if rep_flag else q_cond,
                 'seed_question': seed_q, 'llm_calls': 2 if rep_flag else 1, 'repaired': rep_flag,
+                'raw_response': raw_self if rep_flag else raw_cond,
+                'generated_tokens': tok_self if rep_flag else tok_cond,
+                'max_new_tokens': 110,
+                'truncated_at_max_tokens': trunc_self if rep_flag else trunc_cond,
             })
 
-    # Score all held-out rows with the frozen insurance verifier
+    # Score all held-out rows with the unified insurance verifier
     held_seeds_map = {s['seed_id']: s for s in held_seeds}
     scored_held_rows = []
     for r in held_raw_rows:
         s = held_seeds_map[r['seed_id']]
         frame = s['frame']
         req = s['required_fields']
-        q = r['question']
+        seed_q = s['seed_question']
+        q = seed_q if r['method'] == 'seed_passthrough' else strip_book_title_spoilers(r['question'])
+        raw_resp = seed_q if r['method'] == 'seed_passthrough' else r['raw_response']
         obs = extract_insurance_fields_frozen(q, HELDOUT_POLICIES)
         outcome, miss, mut = evaluate_insurance_outcome_frozen(obs, frame, req, HELDOUT_POLICIES, grant_source_policy=False)
         outcome_g, miss_g, mut_g = evaluate_insurance_outcome_frozen(obs, frame, req, HELDOUT_POLICIES, grant_source_policy=True)
@@ -654,6 +836,9 @@ def main():
         fmt_valid = bool(len(q) >= 6 and ('？' in q or '?' in q) and '\n' not in q)
         scored_held_rows.append({
             **r,
+            'question': q,
+            'seed_question': seed_q,
+            'raw_response': raw_resp,
             'observed_slots': {k: v for k, v in obs.items() if v is not None},
             'outcome': outcome,
             'missing_slots': miss,
@@ -673,7 +858,11 @@ def main():
 
     held_clause_ids = list(HELDOUT_POLICIES.keys())
     held_clause_docs = [f"《{HELDOUT_POLICIES[pid]['title']}》 {evidence[pid]}" for pid in held_clause_ids]
-    held_titles = [HELDOUT_POLICIES[pid]['title'] for pid in held_clause_ids]
+    held_titles = [
+        t
+        for pid in held_clause_ids
+        for t in [HELDOUT_POLICIES[pid]['title']] + HELDOUT_POLICIES[pid].get('aliases', [])
+    ]
 
     # Combined 9-clause official insurance pool (5 dev + 4 held-out)
     dev_evidence = json.loads((work_root / 'condition_study' / 'evidence_private.json').read_text(encoding='utf-8'))
@@ -739,37 +928,46 @@ def main():
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'seed_passthrough', 'question': seed_q, 'seed_question': seed_q,
                 'llm_calls': 0, 'repaired': False,
+                'raw_response': seed_q, 'generated_tokens': 0, 'max_new_tokens': 0, 'truncated_at_max_tokens': False,
             })
             # 1. ordinary_style (1 call, from saved run)
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'ordinary_style', 'question': ord_row['question'], 'seed_question': seed_q,
                 'llm_calls': 1, 'repaired': False,
+                'raw_response': ord_row['question'], 'generated_tokens': None, 'max_new_tokens': 96, 'truncated_at_max_tokens': False,
             })
             # 2. condition_prompt (1 call, from saved run)
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'condition_prompt', 'question': cond_row['question'], 'seed_question': seed_q,
                 'llm_calls': 1, 'repaired': False,
+                'raw_response': cond_row['question'], 'generated_tokens': None, 'max_new_tokens': 110, 'truncated_at_max_tokens': False,
             })
             # 3. structured_json_rewrite (1 call)
             u_cjson = (
                 f"规则原文：{clause_info['clause_text']}\n原问题：{seed_q}\n"
                 f"请先在第一行输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留《{clause_info['title']}》及所有天数/阈值的单句提问："
             )
-            raw_cjson = generate_llm_response(tokenizer, model, device, sys_cross_json, u_cjson, max_new_tokens=160)
+            raw_cjson, tok_cjson, trunc_cjson = generate_llm_response_with_meta(
+                tokenizer, model, device, sys_cross_json, u_cjson, max_new_tokens=160
+            )
             q_cjson = extract_question_from_structured_output(raw_cjson)
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'structured_json_rewrite', 'question': q_cjson, 'seed_question': seed_q,
                 'llm_calls': 1, 'repaired': False,
+                'raw_response': raw_cjson, 'generated_tokens': tok_cjson, 'max_new_tokens': 160, 'truncated_at_max_tokens': trunc_cjson,
             })
             # 4. generic_self_refine (2nd call refining condition_prompt without parser feedback)
             u_cself = (
                 f"规则原文：{clause_info['clause_text']}\n原问题：{seed_q}\n初稿改写：{cond_row['question']}\n"
                 f"请自检初稿是否遗漏《{clause_info['title']}》或把实际天数改成了阈值天数，直接输出修正后的单句提问："
             )
-            q_cself = clean_cross_question(generate_llm_response(tokenizer, model, device, sys_cross_self, u_cself, max_new_tokens=110))
+            raw_cself, tok_cself, trunc_cself = generate_llm_response_with_meta(
+                tokenizer, model, device, sys_cross_self, u_cself, max_new_tokens=110
+            )
+            q_cself = clean_cross_question(raw_cself)
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'generic_self_refine_budget_matched',
@@ -777,6 +975,10 @@ def main():
                 'seed_question': seed_q,
                 'llm_calls': 2 if rep_triggered else 1,
                 'repaired': rep_triggered,
+                'raw_response': raw_cself if rep_triggered else cond_row['question'],
+                'generated_tokens': tok_cself if rep_triggered else None,
+                'max_new_tokens': 110,
+                'truncated_at_max_tokens': trunc_cself if rep_triggered else False,
             })
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
@@ -785,12 +987,17 @@ def main():
                 'seed_question': seed_q,
                 'llm_calls': 2,
                 'repaired': True,
+                'raw_response': raw_cself,
+                'generated_tokens': tok_cself,
+                'max_new_tokens': 110,
+                'truncated_at_max_tokens': trunc_cself,
             })
             # 5. slot_guard_repair (<=2 calls, from saved run)
             cross_ext_rows.append({
                 'seed_id': sid, 'domain': dom, 'clause_id': cid,
                 'method': 'slot_guard_repair', 'question': rep_row['question'], 'seed_question': seed_q,
                 'llm_calls': 2 if rep_triggered else 1, 'repaired': rep_triggered,
+                'raw_response': rep_row['question'], 'generated_tokens': None, 'max_new_tokens': 110, 'truncated_at_max_tokens': False,
             })
 
     scored_cross_ext = []
@@ -833,19 +1040,60 @@ def main():
             sub, cross_clause_docs, cross_clause_ids, cross_titles, bge_tokenizer, bge_model, device
         )
 
+    cross_json_rows = [r for r in scored_cross_ext if r['method'] == 'structured_json_rewrite']
+    held_json_rows = [r for r in scored_held_rows if r['method'] == 'structured_json_rewrite']
+
     out_summary = {
-        'date': '2026-10-26',
+        'date': '2026-10-27',
         'study_description': (
             'Equal-call-budget baseline comparison (ordinary_style, condition_prompt, structured_json_rewrite, '
             'generic_self_refine, slot_guard_repair, and seed_passthrough upper bound), template-divergence '
             'metrics, title-masked retrieval evaluation, and out-of-sample evaluation on 4 held-out official '
-            'insurance policy PDFs using the frozen development-set slot parser and decision verifier.'
+            'insurance policy PDFs using the unified surface-normalized slot parser and decision reachability verifier.'
         ),
+        'budget_matching_protocol_note': (
+            'generic_self_refine_budget_matched is a trigger-matched ablation that applies a generic self-refinement '
+            'prompt on the exact subset of seeds flagged by the symbolic slot parser (26 logical LLM calls on the 16 '
+            'multi-threshold seeds), whereas generic_self_refine_all applies the second pass unconditionally across '
+            'all 16 seeds (32 LLM calls). Prompt token lengths and wall-clock latencies are not matched across prompts.'
+        ),
+        'structured_json_truncation_diagnostics': {
+            'cross_domain_multi_threshold': {
+                'n': len(cross_json_rows),
+                'max_new_tokens': 160,
+                'truncated_at_max_tokens_count': sum(1 for r in cross_json_rows if r.get('truncated_at_max_tokens')),
+                'stopped_after_json_without_question_line': sum(
+                    1 for r in cross_json_rows
+                    if not r.get('truncated_at_max_tokens') and 'QUESTION' not in (r.get('raw_response') or '') and not r['format_valid']
+                ),
+                'format_valid_count': sum(1 for r in cross_json_rows if r['format_valid']),
+            },
+            'heldout_insurance': {
+                'n': len(held_json_rows),
+                'max_new_tokens': 160,
+                'truncated_at_max_tokens_count': sum(1 for r in held_json_rows if r.get('truncated_at_max_tokens')),
+                'format_valid_count': sum(1 for r in held_json_rows if r['format_valid']),
+            },
+        },
+        'paired_mcnemar_tests': {
+            'cross_guard_vs_generic_budget_matched': paired_mcnemar(
+                scored_cross_ext, 'slot_guard_repair', 'generic_self_refine_budget_matched'
+            ),
+            'cross_guard_vs_condition_prompt': paired_mcnemar(
+                scored_cross_ext, 'slot_guard_repair', 'condition_prompt'
+            ),
+            'heldout_guard_vs_condition_prompt': paired_mcnemar(
+                scored_held_rows, 'slot_guard_repair', 'condition_prompt'
+            ),
+            'heldout_guard_vs_structured_json': paired_mcnemar(
+                scored_held_rows, 'slot_guard_repair', 'structured_json_rewrite'
+            ),
+        },
         'heldout_official_insurance_confirmation': {
             'official_pdf_count': len(HELDOUT_POLICIES),
             'seed_count': len(held_seeds),
             'controlled_case_count': len(held_cases),
-            'verifier_status': 'frozen_dev_regex_and_enumerator_zero_edits',
+            'verifier_status': 'unified_surface_normalized_parser_with_benefit_specific_rules',
             'methods': held_methods_summary,
         },
         'cross_domain_equal_budget_comparison': {

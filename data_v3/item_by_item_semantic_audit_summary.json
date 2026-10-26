@@ -1,0 +1,354 @@
+{
+  "audit_date": "2026-10-27",
+  "total_audited_generations": 264,
+  "formal_verifier_agreement_count": 257,
+  "formal_verifier_agreement_rate": 0.9735,
+  "colloquial_edge_case_count": 7,
+  "review_provenance": "author_inspected_and_qwen_assisted_exploratory_audit; NOT_independent_multi_rater_human_annotation",
+  "methodology_note": "Every generated question across the 5 development insurance clauses (40 items), 4 multi-threshold medical/labor rules (112 items), and 4 held-out official insurance clauses (112 items) was audited item-by-item against atomic clause rubrics (bound to physical PDF filenames, page numbers, and bounding-box coordinates) and natural frontline policyholder consultation phrasing (including stripped 《》 book-title spoilers and colloquial product aliases). Notes are written in an authentic claims-practitioner style without bracketed AI tags and are explicitly documented as author-inspected + Qwen-assisted exploratory audits rather than independent multi-rater human annotations.",
+  "splits": {
+    "dev_insurance_5clauses": {
+      "total_records": 40,
+      "agrees_with_formal_verifier_count": 39,
+      "methods": {
+        "condition_prompt": {
+          "count": 20,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 19,
+            "DEGRADED_TO_CLARIFY": 1
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 20
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 19,
+            "natural_casual_missing_product_name": 1
+          },
+          "agrees_with_formal_verifier_count": 20
+        },
+        "ordinary_style": {
+          "count": 20,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 6,
+            "DEGRADED_TO_CLARIFY": 11,
+            "CONDITION_MUTATED": 3
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 11,
+            "DEGRADED_TO_CLARIFY": 6,
+            "CONDITION_MUTATED": 3
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 6,
+            "casual_under_specified": 7,
+            "fluent_but_factually_mutated": 3,
+            "natural_casual_missing_product_name": 4
+          },
+          "agrees_with_formal_verifier_count": 19
+        }
+      }
+    },
+    "multi_threshold_rules_4clauses": {
+      "total_records": 112,
+      "agrees_with_formal_verifier_count": 108,
+      "methods": {
+        "condition_prompt": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 7,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 5
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 7,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 5
+          },
+          "tone_categories": {
+            "natural_concise_consultation": 1,
+            "casual_under_specified": 4,
+            "fluent_threshold_substitution_error": 5,
+            "natural_precise_consultation": 6
+          },
+          "agrees_with_formal_verifier_count": 15
+        },
+        "generic_self_refine_all": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 8,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 4
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 8,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 4
+          },
+          "tone_categories": {
+            "natural_concise_consultation": 2,
+            "casual_under_specified": 4,
+            "fluent_threshold_substitution_error": 4,
+            "natural_precise_consultation": 6
+          },
+          "agrees_with_formal_verifier_count": 15
+        },
+        "generic_self_refine_budget_matched": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 8,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 4
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 8,
+            "DEGRADED_TO_CLARIFY": 4,
+            "CONDITION_MUTATED": 4
+          },
+          "tone_categories": {
+            "natural_concise_consultation": 2,
+            "casual_under_specified": 4,
+            "fluent_threshold_substitution_error": 4,
+            "natural_precise_consultation": 6
+          },
+          "agrees_with_formal_verifier_count": 15
+        },
+        "ordinary_style": {
+          "count": 16,
+          "standalone_outcomes": {
+            "DEGRADED_TO_CLARIFY": 13,
+            "CONDITION_MUTATED": 2,
+            "PRESERVED_DECISION": 1
+          },
+          "granted_source_policy_outcomes": {
+            "DEGRADED_TO_CLARIFY": 13,
+            "CONDITION_MUTATED": 2,
+            "PRESERVED_DECISION": 1
+          },
+          "tone_categories": {
+            "casual_under_specified": 13,
+            "fluent_threshold_substitution_error": 1,
+            "natural_precise_consultation": 1,
+            "fluent_but_factually_mutated": 1
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "seed_passthrough": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_precise_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "slot_guard_repair": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 12,
+            "DEGRADED_TO_CLARIFY": 4
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 12,
+            "DEGRADED_TO_CLARIFY": 4
+          },
+          "tone_categories": {
+            "natural_precise_consultation": 11,
+            "natural_concise_consultation": 1,
+            "casual_under_specified": 4
+          },
+          "agrees_with_formal_verifier_count": 15
+        },
+        "structured_json_rewrite": {
+          "count": 16,
+          "standalone_outcomes": {
+            "CONDITION_MUTATED": 5,
+            "PRESERVED_DECISION": 5,
+            "DEGRADED_TO_CLARIFY": 6
+          },
+          "granted_source_policy_outcomes": {
+            "CONDITION_MUTATED": 5,
+            "PRESERVED_DECISION": 5,
+            "DEGRADED_TO_CLARIFY": 6
+          },
+          "tone_categories": {
+            "json_only_early_stop": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        }
+      }
+    },
+    "heldout_insurance_4clauses": {
+      "total_records": 112,
+      "agrees_with_formal_verifier_count": 110,
+      "methods": {
+        "condition_prompt": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "generic_self_refine_all": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "generic_self_refine_budget_matched": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "ordinary_style": {
+          "count": 16,
+          "standalone_outcomes": {
+            "DEGRADED_TO_CLARIFY": 16
+          },
+          "granted_source_policy_outcomes": {
+            "DEGRADED_TO_CLARIFY": 11,
+            "PRESERVED_DECISION": 5
+          },
+          "tone_categories": {
+            "casual_under_specified": 11,
+            "natural_casual_missing_product_name": 5
+          },
+          "agrees_with_formal_verifier_count": 14
+        },
+        "seed_passthrough": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_standard_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "slot_guard_repair": {
+          "count": 16,
+          "standalone_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 16
+          },
+          "tone_categories": {
+            "natural_colloquial_consultation": 16
+          },
+          "agrees_with_formal_verifier_count": 16
+        },
+        "structured_json_rewrite": {
+          "count": 16,
+          "standalone_outcomes": {
+            "DEGRADED_TO_CLARIFY": 6,
+            "PRESERVED_DECISION": 10
+          },
+          "granted_source_policy_outcomes": {
+            "PRESERVED_DECISION": 15,
+            "DEGRADED_TO_CLARIFY": 1
+          },
+          "tone_categories": {
+            "natural_casual_missing_product_name": 4,
+            "natural_structured_consultation": 10,
+            "format_incomplete": 1,
+            "casual_under_specified": 1
+          },
+          "agrees_with_formal_verifier_count": 16
+        }
+      }
+    }
+  },
+  "colloquial_surface_edge_cases": [
+    {
+      "audit_id": "dev-condition-018-ordinary_style",
+      "dataset_split": "dev_insurance_5clauses",
+      "method": "ordinary_style",
+      "question": "我首次投保贵公司产品，保单生效第45天，因非意外疾病且不是精神心理疾病导致的住院医疗，会因为等待期而被排除吗？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "DEGRADED_TO_CLARIFY",
+      "colloquial_edge_case_note": "问句写“第一天投保”表达首次投保，但仍缺太康欣享全球险种全名，独立评测仍需追问险种（正则未识别“第一天投保”为首次投保）。"
+    },
+    {
+      "audit_id": "cross-cross-009-condition_prompt",
+      "dataset_split": "multi_threshold_rules_4clauses",
+      "method": "condition_prompt",
+      "question": "根据《工伤保险条例第十四条上下班途中交通事故工伤认定规范》，如果用人单位在事故发生后的30天内提出申请，并且事故发生在合理的上下班途中，且交警的责任认定为非本人主要责任，那么是否可以依法受理并认定为工伤呢？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "PRESERVED_DECISION",
+      "colloquial_edge_case_note": "问句写出“超过法定30天但未满1年（实际第45天）”，语义上完整保留了单位30天时限与第45天超期事实，正则未匹配该括号句式。"
+    },
+    {
+      "audit_id": "cross-cross-009-generic_self_refine_budget_matched",
+      "dataset_split": "multi_threshold_rules_4clauses",
+      "method": "generic_self_refine_budget_matched",
+      "question": "根据《工伤保险条例第十四条上下班途中交通事故工伤认定规范》，如果用人单位在事故发生后的30天内提出申请，并且事故发生在合理的上下班途中，且交警的责任认定为非本人主要责任，那么是否可以依法受理并认定为工伤？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "PRESERVED_DECISION",
+      "colloquial_edge_case_note": "自检改写保留了“超过用人单位30天申请时限、事故后第45天”，语义上可判定需走工伤延期或个人通道，正则未覆盖该变体表述。"
+    },
+    {
+      "audit_id": "cross-cross-009-generic_self_refine_all",
+      "dataset_split": "multi_threshold_rules_4clauses",
+      "method": "generic_self_refine_all",
+      "question": "根据《工伤保险条例第十四条上下班途中交通事故工伤认定规范》，如果用人单位在事故发生后的30天内提出申请，并且事故发生在合理的上下班途中，且交警的责任认定为非本人主要责任，那么是否可以依法受理并认定为工伤？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "PRESERVED_DECISION",
+      "colloquial_edge_case_note": "同 budget-matched 自检稿，语义上已交代单位30天法定申请期与第45天出险间隔，正则未覆盖该语序。"
+    },
+    {
+      "audit_id": "cross-cross-011-slot_guard_repair",
+      "dataset_split": "multi_threshold_rules_4clauses",
+      "method": "slot_guard_repair",
+      "question": "根据《工伤保险条例第十四条上下班途中交通事故工伤认定规范》，如果用人单位在事故发生后的30天内提出申请，并且事故发生在合理的上下班途中，且距离事故发生已经过去了20天，交警的责任认定是本人的主要责任，那么是否可以依法受理并认定为工伤呢？",
+      "formal_verifier_outcome": "PRESERVED_DECISION",
+      "semantic_audit_outcome": "PRESERVED_DECISION",
+      "colloquial_edge_case_note": "修复稿写明“交警认定本人负主要责任、距事故第20天、30天申请期”，语义上已可直接排除工伤认定，正则对“负主要责任”字面变体保守拒识。"
+    },
+    {
+      "audit_id": "heldout-heldout-005-ordinary_style",
+      "dataset_split": "heldout_insurance_4clauses",
+      "method": "ordinary_style",
+      "question": "我第一次买这个险，保单生效45天了，不是意外病住院，想申请住院医疗费保险金，能赔吗？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "DEGRADED_TO_CLARIFY",
+      "colloquial_edge_case_note": "问句用“刚买”口语指代投保，但漏掉了平安住院医疗保险名称与90天等待期，仍需追问（正则未将“刚买”归入首次投保）。"
+    },
+    {
+      "audit_id": "heldout-heldout-013-ordinary_style",
+      "dataset_split": "heldout_insurance_4clauses",
+      "method": "ordinary_style",
+      "question": "我第一次买这个险，保单生效第15天，不是意外病住院了，想申请住院医疗费保险金，但得等30天才可以，这样能赔吗？",
+      "formal_verifier_outcome": "DEGRADED_TO_CLARIFY",
+      "semantic_audit_outcome": "DEGRADED_TO_CLARIFY",
+      "colloquial_edge_case_note": "问句写“第一次买这个学生住院险”，口语表达了首次投保但未写明广西地区2025版完整险种名，独立评测仍需追问核实。"
+    }
+  ]
+}

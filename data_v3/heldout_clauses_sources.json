@@ -2,6 +2,13 @@
   {
     "id": "pa_2011_36",
     "title": "平安住院安心医疗保险",
+    "colloquial_name": "平安住院安心医疗险",
+    "aliases": [
+      "平安住院安心医疗险",
+      "平安住院安心险",
+      "住院安心医疗保险",
+      "住院安心医疗险"
+    ],
     "insurer": "平安",
     "url": "https://resources.pingan.com/app_upload/file/annuity/2011052415580436.pdf",
     "sha256": "10916a68758a238f696dbd4593cb198e5a5061eb80dfbcd5ba39aef745a1cf37",
@@ -31,6 +38,10 @@
   {
     "id": "pa_p0254",
     "title": "平安住院医疗保险",
+    "colloquial_name": "平安住院医疗险",
+    "aliases": [
+      "平安住院医疗险"
+    ],
     "insurer": "平安",
     "url": "https://resources.pingan.com/app_upload/file/paylx/20150422P0254.pdf",
     "sha256": "d6ad23849fec1e925d700e47d825c90088c790c0c533b2f548091031a35942cc",
@@ -60,6 +71,12 @@
   {
     "id": "pa_p0321",
     "title": "平安肺癌疾病保险",
+    "colloquial_name": "平安肺癌疾病险",
+    "aliases": [
+      "平安肺癌疾病险",
+      "平安肺癌险",
+      "肺癌疾病保险"
+    ],
     "insurer": "平安",
     "url": "https://resources.pingan.com/app_upload/file/annuity/20150309P0321.pdf",
     "sha256": "e04e0b452858d539886623bdce909e1a3927996234c24d36c271cb32e0dcdda6",
@@ -89,6 +106,13 @@
   {
     "id": "cpic_93896",
     "title": "附加（广西地区）学生幼儿住院医疗保险（2025版）",
+    "colloquial_name": "太平洋广西学生幼儿住院医疗险",
+    "aliases": [
+      "附加广西地区学生幼儿住院医疗保险",
+      "太平洋广西学生幼儿住院医疗险",
+      "太保广西学生幼儿住院险",
+      "广西学生幼儿住院医疗保险"
+    ],
     "insurer": "太平洋",
     "url": "https://www.cpic.com.cn/upload/resources/file/2026/03/31/93896.pdf",
     "sha256": "309d8f029fb8ea4266a6986c4a6863aa0f8c4dc416b5b3799250044ad76d2a48",

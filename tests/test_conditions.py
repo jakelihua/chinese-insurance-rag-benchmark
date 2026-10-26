@@ -292,5 +292,62 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(cross_methods['generic_self_refine_all']['preserved_decision'], 8)
         self.assertEqual(cross_methods['generic_self_refine_all']['condition_mutated'], 4)
 
+    def test_heldout_benefit_disambiguation_and_parser_parity(self):
+        import json
+        from condition_data import POLICIES
+        from equal_budget_and_heldout_study import (
+            HELDOUT_POLICIES,
+            evaluate_insurance_outcome_frozen,
+            extract_insurance_fields_frozen,
+        )
+        root = Path(__file__).parents[1]
+
+        # 1. Parser parity on all 40 development generations and boundary probes
+        dev_rows = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'generated_questions.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        for r in dev_rows:
+            self.assertEqual(
+                extract_fields_surface_normalized(r['question']),
+                extract_insurance_fields_frozen(r['question'], POLICIES),
+            )
+        for probe, expected_waiver in [
+            ('未获保险公司批准免除了等待期', False),
+            ('是否已获保险公司批准免等待期还不清楚', None),
+        ]:
+            dev_p = extract_fields_surface_normalized(probe)
+            held_p = extract_insurance_fields_frozen(probe, POLICIES)
+            self.assertEqual(dev_p, held_p)
+            self.assertIs(dev_p['approved_waiver'], expected_waiver)
+
+        # 2. Benefit-choice ambiguity on pa_2011_36 is rejected as DEGRADED_TO_CLARIFY
+        seed_f = dict(
+            policy_id='pa_2011_36', benefit_id='general_hospital',
+            enrollment='first', cause='illness', policy_day=45,
+            plan_wait_days=30, approved_waiver=False,
+        )
+        req = ['policy_id', 'benefit_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days']
+        ambig_q = (
+            '按《平安住院安心医疗保险》条款，我是首次投保，保单生效45天后因非意外疾病发生约定医疗事项，'
+            '是按一般住院医疗津贴（30天等待期）还是按癌症住院医疗津贴（90天等待期）承担责任？'
+        )
+        obs_ambig = extract_insurance_fields_frozen(ambig_q, HELDOUT_POLICIES)
+        self.assertIsNone(obs_ambig['benefit_id'])
+        out_ambig, miss_ambig, _ = evaluate_insurance_outcome_frozen(obs_ambig, seed_f, req, HELDOUT_POLICIES)
+        self.assertEqual(out_ambig, 'DEGRADED_TO_CLARIFY')
+        self.assertIn('benefit_id', miss_ambig)
+
+        # 3. Mismatched benefit vs waiting period (general_hospital with 90-day wait) is caught as CONDITION_MUTATED
+        contradict_q = (
+            '按《平安住院安心医疗保险》条款，我是首次投保，保单生效第45天，因非意外疾病住院治疗，'
+            '想申请一般住院医疗津贴（约定等待期为90天），这种情况会因为等待期限制而不能理赔吗？'
+        )
+        obs_con = extract_insurance_fields_frozen(contradict_q, HELDOUT_POLICIES)
+        out_con, _, mut_con = evaluate_insurance_outcome_frozen(obs_con, seed_f, req, HELDOUT_POLICIES)
+        self.assertEqual(out_con, 'CONDITION_MUTATED')
+        self.assertIn('plan_wait_days', mut_con)
+
 
 if __name__=='__main__':unittest.main()

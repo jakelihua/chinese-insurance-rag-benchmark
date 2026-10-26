@@ -9,10 +9,14 @@
 | [RAGEval, ACL 2025](https://aclanthology.org/2025.acl-long.418/) | 用结构化生成流程构建场景特定文档、问题、答案和依据 | 正式实验需要场景/结构控制生成基线，单纯有证据链不是新点 |
 | [DataMorgana, ACL Industry 2025](https://aclanthology.org/2025.acl-industry.33/) | 已支持企业问答生成中的问题类型及流量分布定制 | “控制问法和分布”不够独特，需预算公平地直接比较 |
 | [Can we Evaluate RAGs with Synthetic Data?, 2025](https://arxiv.org/abs/2508.11758) | 已比较合成/人工基准的系统排序；检索器与生成器结论不同 | 原选题与其直接重叠；需要进一步贡献，不能只换中文领域 |
-| [Beyond Benchmark Scores, 2026](https://arxiv.org/abs/2609.14579) | 用真实与合成问题展示分布差异及检索选型偏差 | 不能宣称首次发现合成评测与真实分布失配 |
-| [Prediction-Powered Inference, 2023](https://arxiv.org/abs/2301.09633) | 结合有限标注和模型预测开展统计推断 | 代理标签误差和查询分布变化是不同问题；不能无条件迁移无偏性保证 |
-| [Statistically Reliable LLM-Based Ranking Evaluation via PPI, 2026](https://arxiv.org/abs/2606.05308) | 已将预测驱动推断应用于排名指标和系统比较 | “少量人工标签＋大量自动分数选系统”也不是新点 |
-| [InsQABench, 2025](https://arxiv.org/abs/2501.10943) | 中文保险问答、合同和数据库任务，已有SQL/RAG方法 | 避免把它的模型生成问题/答案当作原生用户问题/专家真值 |
+| [Beyond Benchmark Scores, CIKM 2026](https://arxiv.org/abs/2609.14579) | 在大学院系信息系统上比较 1,851 个合成问题与 322 个真实学生调查问题的分布及检索表现差异 | 不能宣称首次发现合成问题与真实查询分布及检索表现失配 |
+| [Prediction-Powered Inference, Science 2023](https://arxiv.org/abs/2301.09633) | 结合有限黄金标注和大规模模型预测开展有效统计推断 | 代理标签误差和查询分布变化是不同问题；不能无条件迁移无偏性保证 |
+| [PRECISE: Statistically Reliable LLM-Based Ranking Evaluation via PPI, ACL 2026 GEM](https://arxiv.org/abs/2606.05308) | 将预测驱动推断（PPI）应用于少量人工相关性标注与大量 LLM 相关性判断结合的检索排序评估 | 属于检索排序统计校准工作，不能将其误列为澄清式问答基准 |
+| [QGEval, EMNLP 2024](https://aclanthology.org/2024.emnlp-main.658/) | 从流畅性、清晰度、简洁性、相关性、一致性、可回答性、答案一致性 7 个维度评估生成问句质量 | 已覆盖通用问句可回答性与答案一致性；本文区别在于针对条款规则的形式化可达结论集验证与反例见证 |
+| [ShARC, EMNLP 2018](https://aclanthology.org/D18-1233/) | 自然语言规则阅读理解与缺失条件追问经典基准 | “存在规则槽位、缺失时需追问”本身由 ShARC 确立；本文关注合成评测集改写阶段的可达结论保持与非关键槽位遗漏区分 |
+| [CLAMBER, ACL 2024](https://aclanthology.org/2024.acl-long.578/) 与 [AskBench, Findings of ACL 2026](https://aclanthology.org/2026.findings-acl.845/) | 评估问答系统在面对欠指定/歧义问题时识别未知信息并主动提出澄清问题的能力 | 它们评估“给定歧义问题后系统如何追问”；本文诊断“合成评测集生成时完整种子如何被改写退化为需追问问题” |
+| [RC-RAG, Findings of EMNLP 2024](https://aclanthology.org/2024.findings-emnlp.133/) | 通过反事实提示评估 RAG 置信度并开展选择性拒答风险控制 | 属于生成端置信度与拒答风险控制，并非评测集构建阶段的规则矛盾检测 |
+| [InsQABench, 2025](https://arxiv.org/abs/2501.10943) | 中文保险问答、条款阅读与数据库查询评测基准，包含 RAG 与 Text-to-SQL 任务 | 避免把模型生成的基准问题当作原生客户日志或专家理赔真值 |
 
 ## 当前候选方向：按风险排序，而非宣称创新
 

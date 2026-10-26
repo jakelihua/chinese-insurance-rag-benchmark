@@ -24,34 +24,55 @@ from condition_data import POLICIES, compact, decision
 from condition_guard import chinese_number, extract_fields
 
 
-def extract_fields_surface_normalized(text):
-    """Surface-tolerant slot extractor used ONLY to diagnose v1 regex false negatives."""
+def extract_fields_surface_normalized(text, policies=POLICIES):
+    """Surface-normalized slot extractor shared across development and held-out insurance clauses."""
     fields = extract_fields(text)
     norm = compact(text)
+    matches = [
+        sid for sid, p in policies.items()
+        if compact(p['title']) in norm or any(compact(a) in norm for a in p.get('aliases', []))
+    ]
+    fields['policy_id'] = matches[0] if len(matches) == 1 else None
+    if re.search(r'(?:疾病|生病).{0,12}(?:还是|或).{0,12}意外.{0,12}(?:还不清楚|尚不清楚|不清楚|不确定)', norm):
+        fields['cause'] = None
     num = r'([0-9零〇一二两三四五六七八九十百]+)'
     if fields['policy_day'] is None:
         day = re.findall(r'生效(?:算起|后|起|是|为|已经|已)?(?:的)?(?:第)?' + num + r'(?:天|日)', norm)
         if len(day) == 1:
             fields['policy_day'] = chinese_number(day[0])
     if fields['plan_wait_days'] is None:
-        wait = re.findall(r'(?:计划|责任|约定).{0,10}等待期(?:为|是)?' + num + r'(?:天|日)', norm)
+        wait = re.findall(r'(?:计划|责任|约定|条款).{0,10}等待期(?:为|是)?' + num + r'(?:天|日)', norm)
         if not wait:
-            wait = re.findall(r'等待期(?:为|是)' + num + r'(?:天|日)', norm)
+            wait = re.findall(r'等待期(?:为|是)?' + num + r'(?:天|日)', norm)
+        if not wait:
+            wait = re.findall(num + r'(?:天|日)(?:的)?等待期', norm)
         if len(wait) == 1:
             fields['plan_wait_days'] = chinese_number(wait[0])
-    if fields['approved_waiver'] is None:
-        if re.search(
-            r'(?:是否|有没有).{0,16}(?:批准|同意).{0,8}免(?:去|除)?等待期.{0,8}(?:还不清楚|尚不清楚|不清楚|不确定)',
-            norm,
-        ):
-            fields['approved_waiver'] = None
-        elif re.search(
-            r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?等待期',
-            norm,
-        ):
-            fields['approved_waiver'] = False
-        elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?等待期', norm):
-            fields['approved_waiver'] = True
+    if re.search(
+        r'(?:(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期.{0,8}(?:还不清楚|尚不清楚|不清楚|不确定))'
+        r'|(?:(?:还不清楚|尚不清楚|不清楚|不确定).{0,12}(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期)',
+        norm,
+    ):
+        fields['approved_waiver'] = None
+    elif re.search(
+        r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期',
+        norm,
+    ):
+        fields['approved_waiver'] = False
+    elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?(?:了)?等待期', norm):
+        fields['approved_waiver'] = True
+    if any('benefits' in p for p in policies.values()):
+        has_gen = bool(re.search(r'一般住院医疗津贴|一般住院津贴|普通住院津贴|一般住院', norm))
+        has_can = bool(re.search(r'癌症住院医疗津贴|癌症住院津贴|癌症津贴|癌症住院|初次患癌症|初次确诊癌症', norm))
+        choice_q = bool(re.search(r'(?:是按|属于|申请的).{0,18}(?:一般住院|普通住院|癌症住院).{0,18}(?:还是|或)', norm))
+        if choice_q or (has_gen and has_can):
+            fields['benefit_id'] = None
+        elif has_gen:
+            fields['benefit_id'] = 'general_hospital'
+        elif has_can:
+            fields['benefit_id'] = 'cancer_hospital'
+        else:
+            fields['benefit_id'] = None
     return fields
 
 
