@@ -1,0 +1,95 @@
+{
+  "seed_count": 16,
+  "controlled_case_count": 64,
+  "methods": {
+    "ordinary_style": {
+      "attempts": 16,
+      "format_valid": 16,
+      "preserved_decision": 1,
+      "degraded_to_clarify": 13,
+      "condition_mutated": 2,
+      "bm25_char2_top1": 1.0,
+      "bm25_char2_mrr": 1.0
+    },
+    "condition_prompt": {
+      "attempts": 16,
+      "format_valid": 16,
+      "preserved_decision": 6,
+      "degraded_to_clarify": 5,
+      "condition_mutated": 5,
+      "bm25_char2_top1": 1.0,
+      "bm25_char2_mrr": 1.0
+    },
+    "slot_guard_repair": {
+      "attempts": 16,
+      "format_valid": 16,
+      "preserved_decision": 11,
+      "degraded_to_clarify": 5,
+      "condition_mutated": 0,
+      "bm25_char2_top1": 1.0,
+      "bm25_char2_mrr": 1.0
+    }
+  },
+  "methods_v1_strict_regex": {
+    "ordinary_style": {
+      "attempts": 16,
+      "preserved_decision": 0,
+      "degraded_to_clarify": 16,
+      "condition_mutated": 0
+    },
+    "condition_prompt": {
+      "attempts": 16,
+      "preserved_decision": 1,
+      "degraded_to_clarify": 15,
+      "condition_mutated": 0
+    },
+    "slot_guard_repair": {
+      "attempts": 16,
+      "preserved_decision": 2,
+      "degraded_to_clarify": 14,
+      "condition_mutated": 0
+    }
+  },
+  "by_domain": {
+    "healthcare": {
+      "ordinary_style": {
+        "attempts": 8,
+        "preserved_decision": 1,
+        "degraded_to_clarify": 6,
+        "condition_mutated": 1
+      },
+      "condition_prompt": {
+        "attempts": 8,
+        "preserved_decision": 4,
+        "degraded_to_clarify": 3,
+        "condition_mutated": 1
+      },
+      "slot_guard_repair": {
+        "attempts": 8,
+        "preserved_decision": 7,
+        "degraded_to_clarify": 1,
+        "condition_mutated": 0
+      }
+    },
+    "legal": {
+      "ordinary_style": {
+        "attempts": 8,
+        "preserved_decision": 0,
+        "degraded_to_clarify": 7,
+        "condition_mutated": 1
+      },
+      "condition_prompt": {
+        "attempts": 8,
+        "preserved_decision": 2,
+        "degraded_to_clarify": 2,
+        "condition_mutated": 4
+      },
+      "slot_guard_repair": {
+        "attempts": 8,
+        "preserved_decision": 4,
+        "degraded_to_clarify": 4,
+        "condition_mutated": 0
+      }
+    }
+  }
+}

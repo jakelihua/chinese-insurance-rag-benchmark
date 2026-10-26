@@ -77,5 +77,31 @@ class ConditionTests(unittest.TestCase):
         self.assertAlmostEqual(res_perfect['cohen_kappa'],1.0)
         self.assertEqual(res_perfect['disagreement_count'],0)
 
+    def test_cross_domain_double_witness_and_counterfactuals(self):
+        from cross_domain_study import build_Controlled_Cases, cross_decision
+        seeds, cases = build_Controlled_Cases()
+        self.assertEqual(len(seeds), 16)
+        self.assertEqual(len(cases), 64)
+        missing_cases = [c for c in cases if c['variant'] == 'missing_critical']
+        self.assertEqual(len(missing_cases), 16)
+        for mc in missing_cases:
+            self.assertEqual(mc['reference_decision'], 'CLARIFY')
+            w = mc['counterexample_witnesses']
+            self.assertEqual(len(w), 2)
+            self.assertNotEqual(w[0]['decision'], w[1]['decision'])
+
+    def test_cross_domain_slot_extractor(self):
+        from cross_domain_study import build_seed_frames, render_question, extract_cross_slots_v2, evaluate_cross_outcome
+        for s in build_seed_frames():
+            q_complete = render_question(s, surface=False)
+            obs = extract_cross_slots_v2(q_complete, s)
+            outcome, missing, mutated = evaluate_cross_outcome(obs, s)
+            self.assertEqual(outcome, 'PRESERVED_DECISION', f"Failed on {s['seed_id']}: {missing} / {mutated}")
+            q_missing = render_question(s, drop_field=s['pivotal_field'])
+            obs_m = extract_cross_slots_v2(q_missing, s)
+            outcome_m, missing_m, _ = evaluate_cross_outcome(obs_m, s)
+            self.assertEqual(outcome_m, 'DEGRADED_TO_CLARIFY')
+            self.assertIn(s['pivotal_field'], missing_m)
+
 
 if __name__=='__main__':unittest.main()

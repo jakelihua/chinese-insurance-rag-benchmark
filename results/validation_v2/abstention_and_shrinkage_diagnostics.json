@@ -12,7 +12,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.8,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 2.6
+      "candidate_set_mean_size": 2.6,
+      "source_overlap_gated_wrong_selection_rate": 1.0,
+      "source_overlap_gated_mean_regret": 0.1399075929637042
     },
     {
       "budget": 25,
@@ -24,7 +26,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.8,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 2.6
+      "candidate_set_mean_size": 2.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 25,
@@ -36,7 +40,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.8,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 2.6
+      "candidate_set_mean_size": 2.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 50,
@@ -48,7 +54,9 @@
       "candidate_set_confident_wrong_rate": 0.2,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 0.8,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 1.0,
+      "source_overlap_gated_mean_regret": 0.1399075929637042
     },
     {
       "budget": 50,
@@ -60,7 +68,9 @@
       "candidate_set_confident_wrong_rate": 0.2,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 0.8,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 50,
@@ -72,7 +82,9 @@
       "candidate_set_confident_wrong_rate": 0.2,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 0.8,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 100,
@@ -84,7 +96,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.4,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.4
+      "candidate_set_mean_size": 1.4,
+      "source_overlap_gated_wrong_selection_rate": 1.0,
+      "source_overlap_gated_mean_regret": 0.1399075929637042
     },
     {
       "budget": 100,
@@ -96,7 +110,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.4,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.4
+      "candidate_set_mean_size": 1.4,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 100,
@@ -108,7 +124,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.4,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.4
+      "candidate_set_mean_size": 1.4,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 200,
@@ -120,7 +138,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 1.0,
+      "source_overlap_gated_mean_regret": 0.1399075929637042
     },
     {
       "budget": 200,
@@ -132,7 +152,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     },
     {
       "budget": 200,
@@ -144,7 +166,9 @@
       "candidate_set_confident_wrong_rate": 0.0,
       "candidate_set_abstention_rate": 0.6,
       "candidate_set_optimal_coverage": 1.0,
-      "candidate_set_mean_size": 1.6
+      "candidate_set_mean_size": 1.6,
+      "source_overlap_gated_wrong_selection_rate": 0.0,
+      "source_overlap_gated_mean_regret": 0.0
     }
   ]
 }

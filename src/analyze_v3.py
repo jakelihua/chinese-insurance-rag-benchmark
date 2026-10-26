@@ -158,6 +158,16 @@ def analyze_v3_generations(root, data_dir):
     return report
 
 
+def bigram_containment(query, doc):
+    q_s = re.sub(r'\s+', '', query)
+    d_s = re.sub(r'\s+', '', doc)
+    if len(q_s) < 2:
+        return 0.0
+    q_bg = {q_s[i:i + 2] for i in range(len(q_s) - 1)}
+    d_bg = {d_s[i:i + 2] for i in range(max(0, len(d_s) - 1))}
+    return len(q_bg & d_bg) / len(q_bg)
+
+
 def analyze_v2_abstention_and_ppi(v2_dir):
     npz = np.load(v2_dir / 'per_query_metrics.npz')
     manifest = json.loads((v2_dir / 'manifest.json').read_text(encoding='utf-8'))
@@ -174,10 +184,25 @@ def analyze_v2_abstention_and_ppi(v2_dir):
         trial_map[(t['budget'], t['repeat'], t['generation'], t['method'])] = t
 
     demos = [79, 513, 623]
-    # Read exact demonstration indices from evaluation_inputs if available
     eval_inputs_path = Path(manifest['all_generation_rows_preserved_in_work_directory']).parent / 'evaluation_inputs.json'
+    cal_ov2 = None
+    syn_ov2_by_mode = {}
     if eval_inputs_path.exists():
-        demos = json.loads(eval_inputs_path.read_text(encoding='utf-8'))['demonstration_indices_within_calibration']
+        eval_in = json.loads(eval_inputs_path.read_text(encoding='utf-8'))
+        demos = eval_in['demonstration_indices_within_calibration']
+        docs = eval_in['documents']
+        cal_ov2 = np.array([max(bigram_containment(r['question'], docs[g]) for g in r['gold']) for r in eval_in['calibration']])
+        common = manifest['matched_common_sources']
+        common_set = set(common)
+        gen_path = Path(manifest['all_generation_rows_preserved_in_work_directory']) / 'generations.jsonl'
+        if gen_path.exists():
+            gen_rows = [json.loads(line) for line in gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            for m_name in ['zero_shot', 'few_shot_3']:
+                sub = [r for r in gen_rows if r['mode'] == m_name and r['doc_id'] in common_set]
+                sub.sort(key=lambda r: common.index(r['doc_id']))
+                syn_ov2_by_mode[m_name] = np.array([bigram_containment(r['question'], docs[r['doc_id']]) for r in sub])
+        kw_queries, _ = base.synthetic_queries(docs)
+        syn_ov2_by_mode['keywords_matched'] = np.array([bigram_containment(kw_queries[d], docs[d]) for d in common])
     pool = sorted(set(range(len(real_cal))) - set(demos))
 
     summary_rows = []
@@ -185,11 +210,14 @@ def analyze_v2_abstention_and_ppi(v2_dir):
         for mode in ['keywords_matched', 'zero_shot', 'few_shot_3']:
             syn_scores = npz[mode][:, :, 0]
             syn_mean = syn_scores.mean(axis=0)
+            syn_ov2 = syn_ov2_by_mode.get(mode)
 
             forced_real_wrong = []
             forced_mix_wrong = []
             ppi_rectified_wrong = []
             ppi_rectified_regret = []
+            overlap_gated_wrong = []
+            overlap_gated_regret = []
             audit_wrong_confident = []
             audit_abstain_rate = []
             audit_set_coverage = []
@@ -209,25 +237,31 @@ def analyze_v2_abstention_and_ppi(v2_dir):
                 forced_mix_wrong.append(float(not t_mix['optimal']))
 
                 # 2. Power-tuned / variance-weighted linear control variate (unpaired PPI-style shrinkage)
-                # Under unpaired shift, shrinking real_cal toward synthetic mean by optimal variance weight
                 cal_var = cal_sub.var(axis=0, ddof=1) / len(selected)
                 syn_var = syn_scores.var(axis=0, ddof=1) / len(syn_scores)
                 bias_sq = np.square(syn_mean - cal_mean)
-                # Empirical MSE-minimizing shrinkage weight per system
                 w_mse = cal_var / np.maximum(cal_var + syn_var + bias_sq, 1e-12)
                 shrunk = (1.0 - w_mse) * cal_mean + w_mse * syn_mean
                 chosen_shrunk = int(np.argmax(shrunk))
                 ppi_rectified_wrong.append(float(chosen_shrunk != best_idx))
                 ppi_rectified_regret.append(float(truth.max() - truth[chosen_shrunk]))
 
+                # 2b. Relational Source-Overlap Gating (calibrating on query-to-source bigram containment)
+                if cal_ov2 is not None and syn_ov2 is not None:
+                    tau_cal = float(np.median(cal_ov2[selected]))
+                    mask_ov = syn_ov2 <= tau_cal
+                    if mask_ov.sum() < 5:
+                        mask_ov = syn_ov2 <= float(np.quantile(syn_ov2, 0.20))
+                    gated_mean = syn_scores[mask_ov].mean(axis=0)
+                    chosen_gated = int(np.argmax(gated_mean))
+                    overlap_gated_wrong.append(float(chosen_gated != best_idx))
+                    overlap_gated_regret.append(float(truth.max() - truth[chosen_gated]))
+
                 # 3. Support-Audited Candidate-Set / Abstention Rule:
-                # Paired bootstrap on the calibration sample (200 resamples) to form a 95% candidate set;
-                # Also if synthetic top-1 != calibration top-1 and falls within the calibration uncertainty band, include it.
                 boot_rng = np.random.default_rng(seed + 99999)
                 boot_idx = boot_rng.integers(0, len(selected), size=(200, len(selected)))
                 boot_means = cal_sub[boot_idx].mean(axis=1)  # (200, 8)
                 cal_winner = int(np.argmax(cal_mean))
-                # A system s is in the candidate set if the 95% upper bound of (m_s - m_{cal_winner}) >= 0
                 diffs = boot_means - boot_means[:, [cal_winner]]
                 upper_95 = np.quantile(diffs, 0.95, axis=0)
                 candidate_set = [s for s in range(len(systems)) if upper_95[s] >= 0.0]
@@ -241,7 +275,7 @@ def analyze_v2_abstention_and_ppi(v2_dir):
                 audit_set_coverage.append(float(covered))
                 audit_mean_set_size.append(float(len(candidate_set)))
 
-            summary_rows.append({
+            row_out = {
                 'budget': budget,
                 'generation': mode,
                 'real_only_wrong_selection_rate': float(np.mean(forced_real_wrong)),
@@ -252,7 +286,11 @@ def analyze_v2_abstention_and_ppi(v2_dir):
                 'candidate_set_abstention_rate': float(np.mean(audit_abstain_rate)),
                 'candidate_set_optimal_coverage': float(np.mean(audit_set_coverage)),
                 'candidate_set_mean_size': float(np.mean(audit_mean_set_size)),
-            })
+            }
+            if overlap_gated_wrong:
+                row_out['source_overlap_gated_wrong_selection_rate'] = float(np.mean(overlap_gated_wrong))
+                row_out['source_overlap_gated_mean_regret'] = float(np.mean(overlap_gated_regret))
+            summary_rows.append(row_out)
     return {
         'date': '2026-10-26',
         'note': 'Exploratory retrospective evaluation on validation_v2 per_query_metrics.npz; not an independent confirmation set.',
