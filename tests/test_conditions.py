@@ -137,5 +137,40 @@ class ConditionTests(unittest.TestCase):
         obs_hip = extract_cross_slots_v2('患者接受髋关节置换，术后第20天')
         self.assertEqual(obs_hip.get('threshold_days'), 35)
 
+    def test_cross_domain_equivalence_regions_reference_independence_and_negated_waivers(self):
+        from cross_domain_study import (
+            build_seed_frames, cross_decision, enumerate_cross_decisions,
+            evaluate_cross_outcome, extract_cross_slots_v2, render_question,
+        )
+        from analyze_v3 import extract_fields_surface_normalized
+        seeds = {s['seed_id']: s for s in build_seed_frames()}
+
+        # 1. Missing elapsed_day on 365-day threshold covers >365 equivalence region (e.g. 400 days)
+        seed_365 = seeds['cross-010']
+        obs_no_day = {k: seed_365[k] for k in seed_365['required_fields'] if k != 'elapsed_day'}
+        found_decs = enumerate_cross_decisions(obs_no_day)
+        self.assertEqual(found_decs, ['RULE_ELIGIBLE', 'RULE_EXCLUDED'])
+        self.assertEqual(cross_decision(dict(seed_365, elapsed_day=400)), 'RULE_EXCLUDED')
+        self.assertEqual(evaluate_cross_outcome(obs_no_day, seed_365)[0], 'DEGRADED_TO_CLARIFY')
+
+        # 2. Admissible completion set is strictly independent of reference seed_frame
+        a, b = seeds['cross-001'], seeds['cross-004']
+        obs_shared = {k: a[k] for k in a['required_fields']}
+        self.assertEqual(enumerate_cross_decisions(obs_shared, a), enumerate_cross_decisions(obs_shared, b))
+        self.assertEqual(evaluate_cross_outcome(obs_shared, a)[0], 'PRESERVED_DECISION')
+        self.assertNotEqual(evaluate_cross_outcome(obs_shared, b)[0], 'PRESERVED_DECISION')
+
+        # 3. Negated waivers are parsed as False and caught as CONDITION_MUTATED against positive waiver seeds
+        neg_waiver_q = render_question(b).replace('已获肿瘤专家组', '尚未获肿瘤专家组')
+        parsed_neg = extract_cross_slots_v2(neg_waiver_q)
+        self.assertIs(parsed_neg.get('approved_waiver'), False)
+        self.assertEqual(evaluate_cross_outcome(parsed_neg, b)[0], 'CONDITION_MUTATED')
+
+        self.assertIs(extract_cross_slots_v2('且未批准延长申请时限').get('approved_waiver'), False)
+        ins_neg = extract_fields_surface_normalized(
+            '按《平安员工及家属住院医疗保险》，我是重新投保，已经生效第20天，但未获保险公司批准免除等待期'
+        )
+        self.assertIs(ins_neg.get('approved_waiver'), False)
+
 
 if __name__=='__main__':unittest.main()

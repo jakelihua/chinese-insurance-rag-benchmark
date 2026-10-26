@@ -40,17 +40,29 @@ def extract_fields_surface_normalized(text):
         if len(wait) == 1:
             fields['plan_wait_days'] = chinese_number(wait[0])
     if fields['approved_waiver'] is None:
-        if re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?等待期', norm):
+        if re.search(
+            r'(?:是否|有没有).{0,16}(?:批准|同意).{0,8}免(?:去|除)?等待期.{0,8}(?:还不清楚|尚不清楚|不清楚|不确定)',
+            norm,
+        ):
+            fields['approved_waiver'] = None
+        elif re.search(
+            r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?等待期',
+            norm,
+        ):
+            fields['approved_waiver'] = False
+        elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?等待期', norm):
             fields['approved_waiver'] = True
     return fields
 
 
-def enumerate_admissible_decisions(observed, seed_frame, required_fields, grant_source_policy=False):
-    """Enumerate all formal rule decisions reachable by completing missing required fields
+def enumerate_admissible_decisions(observed, seed_frame=None, required_fields=None, grant_source_policy=False):
+    """Enumerate all formal rule decisions reachable by completing missing fields
     for a known policy contract (either extracted from the query or granted by source context).
+    Does not depend on seed_frame or required_fields unless grant_source_policy=True supplies policy_id.
+    Covers all equivalence regions (< w, == w, > w) across all policy waiting periods {7, 15, 25, 30, 90}.
     """
     eff = dict(observed)
-    if grant_source_policy and eff.get('policy_id') is None:
+    if grant_source_policy and eff.get('policy_id') is None and seed_frame is not None:
         eff['policy_id'] = seed_frame['policy_id']
     pid = eff.get('policy_id')
     if pid not in POLICIES:
@@ -61,15 +73,19 @@ def enumerate_admissible_decisions(observed, seed_frame, required_fields, grant_
     causes = [eff['cause']] if eff.get('cause') is not None else (
         ['illness', 'accident'] if policy['accident_exempt'] else ['illness']
     )
-    days = [eff['policy_day']] if eff.get('policy_day') is not None else [5, 10, 20, 45, 100]
+    days = (
+        [eff['policy_day']]
+        if eff.get('policy_day') is not None
+        else [5, 7, 10, 15, 20, 25, 30, 45, 60, 90, 120]
+    )
     if len(policy['days']) == 1:
+        waits = policy['days']
+    else:
         waits = (
             [eff['plan_wait_days']]
-            if (eff.get('plan_wait_days') is not None and 'plan_wait_days' in required_fields)
+            if (eff.get('plan_wait_days') is not None and eff.get('plan_wait_days') in policy['days'])
             else policy['days']
         )
-    else:
-        waits = [eff['plan_wait_days']] if eff.get('plan_wait_days') is not None else policy['days']
     for enr in enrollments:
         if eff.get('approved_waiver') is not None:
             waivers = [eff['approved_waiver']]
@@ -486,10 +502,12 @@ def rescore_multi_scale_summary(root, data_dir, v3_diag):
 
 
 def main():
+    proj_root = Path(__file__).resolve().parents[1]
+    work_root = proj_root.parents[1] / 'work'
     p = argparse.ArgumentParser()
-    p.add_argument('--work-condition', type=Path, required=True)
-    p.add_argument('--data-v3', type=Path, required=True)
-    p.add_argument('--results-v2', type=Path, required=True)
+    p.add_argument('--work-condition', type=Path, default=work_root / 'condition_study')
+    p.add_argument('--data-v3', type=Path, default=proj_root / 'data_v3')
+    p.add_argument('--results-v2', type=Path, default=proj_root / 'results' / 'validation_v2')
     args = p.parse_args()
 
     v3_diag = analyze_v3_generations(args.work_condition, args.data_v3)

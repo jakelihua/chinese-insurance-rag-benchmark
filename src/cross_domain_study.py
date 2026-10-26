@@ -123,7 +123,8 @@ def domain_values(frame, field):
     if field == 'condition':
         return ['qualified', 'disqualified']
     if field == 'elapsed_day':
-        return [7, 20, 45, 120]
+        # Complete equivalence-region representatives (< t, == t, > t) across all thresholds {10, 14, 30, 35, 90, 365}
+        return [7, 10, 12, 14, 20, 30, 32, 35, 45, 90, 120, 365, 400]
     if field == 'threshold_days':
         return CROSS_CLAUSES[cid]['wait_days_options']
     if field == 'approved_waiver':
@@ -177,7 +178,9 @@ def render_question(frame, surface=False, drop_field=None):
             parts.append(f'停用前序药物第{day}天' if not surface else f'停药已经满{day}天')
         if drop_field != 'threshold_days':
             parts.append(f'规定洗脱期为{thresh}天')
-        if waiver and drop_field != 'approved_waiver':
+        if drop_field == 'approved_waiver':
+            parts.append('且是否获肿瘤专家组急诊特批豁免洗脱期尚不清楚')
+        elif waiver:
             parts.append('且已获肿瘤专家组急诊特批豁免洗脱期')
         parts.append('请问现在能否纳入奥希替尼特药统筹报销？')
 
@@ -191,7 +194,9 @@ def render_question(frame, surface=False, drop_field=None):
             parts.append(f'术后第{day}天' if not surface else f'手术后第{day}日')
         if drop_field != 'condition':
             parts.append('无活动性出血并发症' if cond == 'qualified' else '出现活动性出血并发症')
-        if waiver and drop_field != 'approved_waiver':
+        if drop_field == 'approved_waiver':
+            parts.append('但是否获血液科会诊特批继续抗凝尚不清楚')
+        elif waiver:
             parts.append('但已获血液科会诊特批继续抗凝')
         parts.append('请问今日给药是否符合VTE预防临床路径？')
 
@@ -205,7 +210,9 @@ def render_question(frame, surface=False, drop_field=None):
             parts.append(f'距事故发生第{day}天' if not surface else f'事故发生后第{day}日')
         if drop_field != 'condition':
             parts.append('交警认定为非本人主要责任' if cond == 'qualified' else '交警认定为本人主要责任')
-        if waiver and drop_field != 'approved_waiver':
+        if drop_field == 'approved_waiver':
+            parts.append('且是否获人社部门书面批准延长申请时限尚不清楚')
+        elif waiver:
             parts.append('且已获人社部门书面批准延长申请时限')
         parts.append('请问能否依法受理并认定为工伤？')
 
@@ -218,7 +225,9 @@ def render_question(frame, surface=False, drop_field=None):
             parts.append(f'连续未付已达第{day}天' if not surface else f'累计拖欠补偿第{day}日')
         if drop_field != 'threshold_days':
             parts.append(f'法定解除阈值为{thresh}天')
-        if waiver and drop_field != 'approved_waiver':
+        if drop_field == 'approved_waiver':
+            parts.append('但是否已书面同意豁免逾期尚不清楚')
+        elif waiver:
             parts.append('但员工已书面同意豁免逾期并接受补发')
         parts.append('请问员工现在能否单方请求解除竞业限制约定？')
 
@@ -395,8 +404,18 @@ def extract_cross_slots_v2(text, seed_frame=None):
                 obs['elapsed_day'] = int(raw_d) if raw_d.isdigit() else cn_map.get(raw_d)
                 break
 
-    # 5. approved_waiver
-    if any(k in text for k in [
+    # 5. approved_waiver: check explicit uncertainty and negated approval/waiver BEFORE positive phrases
+    if re.search(
+        r'(?:是否|有没有)[^，。？]{0,20}(?:特批|豁免|批准延长|延长申请|书面同意)[^，。？]{0,12}(?:尚不清楚|还不清楚|不清楚|未知|不确定)',
+        text,
+    ):
+        obs['approved_waiver'] = 'unknown'
+    elif re.search(
+        r'(?:尚未|未曾|并未|未经|不予|未予|(?:未|没有|没)(?:获|获得|得到|取得|批准|同意|书面同意|特批|签署|给予))[^，。？]{0,14}(?:特批|豁免|批准延长|延长申请时限|延长申请时间|书面同意豁免|同意公司延期|同意豁免逾期)',
+        text,
+    ):
+        obs['approved_waiver'] = False
+    elif any(k in text for k in [
         '特批豁免', '会诊特批', '特批同意继续抗凝', '批准延长', '同意延长了申请时间',
         '书面同意豁免', '书面同意公司延期并补发', '豁免洗脱期', '特批继续抗凝',
         '延长申请时限', '延长了申请时限', '同意豁免逾期', '专家组急诊特批', '专家组的急诊特批', '特批免除',
@@ -405,24 +424,28 @@ def extract_cross_slots_v2(text, seed_frame=None):
     return obs
 
 
-def enumerate_cross_decisions(obs, seed_frame):
-    """Enumerate all formal rule decisions reachable by completing missing required fields."""
+def enumerate_cross_decisions(obs, seed_frame=None):
+    """Enumerate all formal rule decisions reachable from the observed slots alone.
+    Completely independent of seed_frame: relies solely on obs, CROSS_CLAUSES, and the public task
+    convention that extraordinary waivers default to False unless explicitly granted (True) or
+    explicitly marked as uncertain ('unknown').
+    """
     cid = obs.get('clause_id')
     if cid not in CROSS_CLAUSES:
         return []
-    req = seed_frame['required_fields']
     statuses = [obs['status']] if obs.get('status') is not None else domain_values({'clause_id': cid}, 'status')
     conditions = [obs['condition']] if obs.get('condition') is not None else domain_values({'clause_id': cid}, 'condition')
     days = [obs['elapsed_day']] if obs.get('elapsed_day') is not None else domain_values({'clause_id': cid}, 'elapsed_day')
     thresholds = (
         [obs['threshold_days']]
-        if obs.get('threshold_days') is not None
+        if (obs.get('threshold_days') is not None and obs.get('threshold_days') in CROSS_CLAUSES[cid]['wait_days_options'])
         else domain_values({'clause_id': cid}, 'threshold_days')
     )
-    if obs.get('approved_waiver') is not None:
-        waivers = [obs['approved_waiver']]
-    elif 'approved_waiver' in req:
+    w_obs = obs.get('approved_waiver')
+    if w_obs == 'unknown':
         waivers = [False, True]
+    elif isinstance(w_obs, bool):
+        waivers = [w_obs]
     else:
         waivers = [False]
     decisions = set()
@@ -445,12 +468,15 @@ def enumerate_cross_decisions(obs, seed_frame):
 
 def evaluate_cross_outcome(obs, seed_frame):
     req = seed_frame['required_fields']
-    mutated = [f for f in req if obs.get(f) is not None and obs.get(f) != seed_frame[f]]
-    missing = [f for f in req if obs.get(f) is None]
+    mutated = [
+        f for f in req
+        if obs.get(f) is not None and obs.get(f) != 'unknown' and obs.get(f) != seed_frame[f]
+    ]
+    missing = [f for f in req if obs.get(f) is None or obs.get(f) == 'unknown']
     if mutated:
         return 'CONDITION_MUTATED', missing, mutated
     if missing:
-        reachable = enumerate_cross_decisions(obs, seed_frame)
+        reachable = enumerate_cross_decisions(obs)
         if reachable == [cross_decision(seed_frame)]:
             return 'PRESERVED_DECISION', missing, mutated
         return 'DEGRADED_TO_CLARIFY', missing, mutated
@@ -497,9 +523,11 @@ def build_Controlled_Cases():
 
 
 def main():
+    proj_root = Path(__file__).resolve().parents[1]
+    work_root = proj_root.parents[1] / 'work'
     p = argparse.ArgumentParser()
-    p.add_argument('--model', type=Path, required=False)
-    p.add_argument('--out', type=Path, required=True)
+    p.add_argument('--model', type=Path, default=work_root / 'models' / 'qwen')
+    p.add_argument('--out', '--out-dir', dest='out', type=Path, default=proj_root / 'data_v3')
     p.add_argument('--score-only', action='store_true')
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -645,9 +673,10 @@ def main():
         'repaired_condition_prompt_records': sum(
             r['method'] == 'slot_guard_repair' and r.get('repaired', False) for r in records
         ),
-        'actual_llm_generation_calls': sum(
+        'estimated_llm_generation_calls_from_repaired_flag': sum(
             r['method'] != 'slot_guard_repair' or r.get('repaired', False) for r in records
         ),
+        'call_accounting_note': 'Derived from 16 ordinary_style + 16 condition_prompt + 10 repaired slot_guard_repair records (6 unrepaired records reuse condition_prompt outputs directly).',
         'methods': {},
         'methods_v1_strict_regex': {},
         'by_domain': {},

@@ -894,14 +894,52 @@
           "bm25_char2_mrr10": 0.49976646160856686,
           "bge_small_zh_mrr10": 0.5165698336750968,
           "rrf_bm25_bge_mrr10": 0.5567934988987621,
-          "delta_bge_minus_rrf": -0.04022366522366527
+          "delta_bge_minus_rrf": -0.04022366522366527,
+          "paired_bm25_gain_over_real": {
+            "mean": 0.09247930432140958,
+            "ci95": [
+              0.022652037290195184,
+              0.1632963564213564
+            ]
+          },
+          "paired_change_in_rrf_minus_bge_over_real": {
+            "mean": 0.012312979418242578,
+            "query_paired_ci95": [
+              -0.03748969962785752,
+              0.06486927546138072
+            ],
+            "source_doc_clustered_mean": 0.01852810367303121,
+            "source_doc_clustered_ci95": [
+              -0.03142238900391074,
+              0.06979367954911433
+            ]
+          }
         },
         "few_shot_3_query_aligned_on_matched_sources": {
           "pair_count": 209,
           "bm25_char2_mrr10": 0.3267904610009873,
           "bge_small_zh_mrr10": 0.4218386876281613,
           "rrf_bm25_bge_mrr10": 0.4238304093567251,
-          "delta_bge_minus_rrf": -0.0019917217285638222
+          "delta_bge_minus_rrf": -0.0019917217285638222,
+          "paired_bm25_gain_over_real": {
+            "mean": -0.08049669628616997,
+            "ci95": [
+              -0.15236291486291487,
+              -0.009105956178324628
+            ]
+          },
+          "paired_change_in_rrf_minus_bge_over_real": {
+            "mean": -0.025918964076858814,
+            "query_paired_ci95": [
+              -0.07363512949039264,
+              0.02168726741095162
+            ],
+            "source_doc_clustered_mean": -0.022488689517675024,
+            "source_doc_clustered_ci95": [
+              -0.07103380683996627,
+              0.025799689440993794
+            ]
+          }
         },
         "zero_shot_on_same_target_docs": {
           "doc_count": 207,
@@ -938,14 +976,52 @@
           "bm25_char2_mrr10": 0.6365909326693641,
           "bge_small_zh_mrr10": 0.7209150326797387,
           "rrf_bm25_bge_mrr10": 0.750153024172632,
-          "delta_bge_minus_rrf": -0.0292379914928933
+          "delta_bge_minus_rrf": -0.0292379914928933,
+          "paired_bm25_gain_over_real": {
+            "mean": 0.2456530760452329,
+            "ci95": [
+              0.16954715219421101,
+              0.32164948386762116
+            ]
+          },
+          "paired_change_in_rrf_minus_bge_over_real": {
+            "mean": -0.0019633779437700973,
+            "query_paired_ci95": [
+              -0.04785014005602241,
+              0.04379869540408757
+            ],
+            "source_doc_clustered_mean": -0.0035661726059077023,
+            "source_doc_clustered_ci95": [
+              -0.04736525018395879,
+              0.04206914222642699
+            ]
+          }
         },
         "few_shot_3_query_aligned_on_matched_sources": {
           "pair_count": 153,
           "bm25_char2_mrr10": 0.5648770619358854,
           "bge_small_zh_mrr10": 0.689101566552547,
           "rrf_bm25_bge_mrr10": 0.6904891586264135,
-          "delta_bge_minus_rrf": -0.001387592073866517
+          "delta_bge_minus_rrf": -0.001387592073866517,
+          "paired_bm25_gain_over_real": {
+            "mean": 0.17393920531175433,
+            "ci95": [
+              0.09440262215997511,
+              0.25381283068783067
+            ]
+          },
+          "paired_change_in_rrf_minus_bge_over_real": {
+            "mean": -0.029813777362796973,
+            "query_paired_ci95": [
+              -0.07907329598506067,
+              0.020376206037970704
+            ],
+            "source_doc_clustered_mean": -0.03202196993587721,
+            "source_doc_clustered_ci95": [
+              -0.08131241459056028,
+              0.018656378114159572
+            ]
+          }
         },
         "zero_shot_on_same_target_docs": {
           "doc_count": 151,
@@ -970,6 +1046,9 @@
     "sliding_window_max_tokens": 512,
     "sliding_window_stride_tokens": 256,
     "overflow_tail_chunks_encoded": 762,
+    "retokenized_tail_window_exact_id_match_count": 536,
+    "max_retokenized_content_tokens": 510,
+    "all_embeddings_and_scores_finite": true,
     "remaining_truncated_docs": 0,
     "real_test_queries": 2994,
     "512_trunc": {

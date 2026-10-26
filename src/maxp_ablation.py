@@ -37,12 +37,32 @@ def bigram_containment(query, doc):
 
 
 def paired_bootstrap_ci(diff_array, n_boot=10000, seed=20261026):
+    diff_array = np.asarray(diff_array, dtype=np.float64)
     rng = np.random.default_rng(seed)
     n = len(diff_array)
-    idx = rng.integers(0, n, size=(n_boot, n))
-    means = diff_array[idx].mean(axis=1)
+    means = []
+    batch = 100
+    for _ in range(n_boot // batch):
+        idx = rng.integers(0, n, size=(batch, n))
+        means.extend(diff_array[idx].mean(axis=1))
     lo, hi = np.quantile(means, [0.025, 0.975])
     return float(diff_array.mean()), [float(lo), float(hi)]
+
+
+def grouped_bootstrap_ci(diff_array, group_ids, n_boot=10000, seed=20261026):
+    """Cluster bootstrap resampling by unique source document ID."""
+    diff_array = np.asarray(diff_array, dtype=np.float64)
+    unique_groups = sorted(set(group_ids))
+    group_to_vals = {g: [] for g in unique_groups}
+    for val, g in zip(diff_array, group_ids):
+        group_to_vals[g].append(float(val))
+    group_means = np.array([np.mean(group_to_vals[g]) for g in unique_groups], dtype=np.float64)
+    rng = np.random.default_rng(seed)
+    g_count = len(unique_groups)
+    idx = rng.integers(0, g_count, size=(n_boot, g_count))
+    boot_means = group_means[idx].mean(axis=1)
+    lo, hi = np.quantile(boot_means, [0.025, 0.975])
+    return float(group_means.mean()), [float(lo), float(hi)]
 
 
 def compute_strata_and_sweep(ov2, bge_mrr, rrf_mrr, lengths, seed=20261026):
@@ -140,6 +160,7 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
 
     overflow_doc_ids = []
     overflow_texts = []
+    overflow_orig_ids = []
     truncated_count = 0
     for d_idx, text in enumerate(docs):
         ids = tokenizer.encode(text, add_special_tokens=True, truncation=False)
@@ -154,8 +175,19 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
                 chunk_text = tokenizer.decode(window_ids, skip_special_tokens=True)
                 overflow_doc_ids.append(d_idx)
                 overflow_texts.append(chunk_text)
+                overflow_orig_ids.append(window_ids)
                 if start + 510 >= len(content_ids):
                     break
+
+    retok_exact_match = 0
+    max_retok_len = 0
+    for orig_w, chunk_text in zip(overflow_orig_ids, overflow_texts):
+        re_ids = tokenizer.encode(chunk_text, add_special_tokens=False, truncation=False)
+        if re_ids == orig_w:
+            retok_exact_match += 1
+        if len(re_ids) > max_retok_len:
+            max_retok_len = len(re_ids)
+    assert max_retok_len <= 510, f'Expected <= 510 content tokens after retokenization, got {max_retok_len}'
 
     chunk_vecs = []
     batch_size = 32
@@ -168,6 +200,9 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
         chunk_vecs.append(cls.cpu().numpy().astype(np.float64))
     overflow_matrix = np.concatenate(chunk_vecs, axis=0)
     overflow_doc_ids_arr = np.array(overflow_doc_ids, dtype=np.int64)
+    assert np.isfinite(doc_emb_512).all(), 'Non-finite values in doc_emb_512'
+    assert np.isfinite(q_emb_test).all(), 'Non-finite values in q_emb_test'
+    assert np.isfinite(overflow_matrix).all(), 'Non-finite values in overflow_matrix'
 
     vectorizer = CountVectorizer(analyzer='char', ngram_range=(2, 2))
     bm25_docs = base.bm25_documents(vectorizer.fit_transform(docs))
@@ -180,9 +215,10 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
     for start in range(0, len(test_queries), 128):
         end = min(start + 128, len(test_queries))
         q_batch = q_emb_test[start:end]
-        dense_512 = q_batch @ doc_emb_512.T
+        dense_512 = np.einsum('qd,cd->qc', q_batch, doc_emb_512, optimize=True)
         dense_maxp = dense_512.copy()
-        chunk_sim = q_batch @ overflow_matrix.T
+        chunk_sim = np.einsum('qd,cd->qc', q_batch, overflow_matrix, optimize=True)
+        assert np.isfinite(dense_512).all() and np.isfinite(chunk_sim).all()
         for j in range(end - start):
             np.maximum.at(dense_maxp[j], overflow_doc_ids_arr, chunk_sim[j])
         lexical = (qx[start:end] @ bm25_docs.T).toarray()
@@ -210,6 +246,9 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
         'sliding_window_max_tokens': 512,
         'sliding_window_stride_tokens': 256,
         'overflow_tail_chunks_encoded': int(len(overflow_texts)),
+        'retokenized_tail_window_exact_id_match_count': int(retok_exact_match),
+        'max_retokenized_content_tokens': int(max_retok_len),
+        'all_embeddings_and_scores_finite': True,
         'remaining_truncated_docs': 0,
         'real_test_queries': len(test_queries),
         '512_trunc': {
@@ -240,11 +279,13 @@ def run_maxp_ablation(eval_in, emb_npz, bge_model_path):
 
 
 def main():
+    proj_root = Path(__file__).resolve().parents[1]
+    work_root = proj_root.parents[1] / 'work'
     p = argparse.ArgumentParser()
-    p.add_argument('--work-v2', type=Path, required=True)
-    p.add_argument('--results-v2', type=Path, required=True)
-    p.add_argument('--results-qwen-plus', type=Path, required=True)
-    p.add_argument('--bge-model', type=Path, required=True)
+    p.add_argument('--work-v2', type=Path, default=work_root / 'validation_v2')
+    p.add_argument('--results-v2', type=Path, default=proj_root / 'results' / 'validation_v2')
+    p.add_argument('--results-qwen-plus', type=Path, default=proj_root / 'results' / 'validation_v2_qwen_plus')
+    p.add_argument('--bge-model', type=Path, default=work_root / 'models' / 'bge')
     args = p.parse_args()
 
     eval_in = json.loads((args.work_v2 / 'evaluation_inputs.json').read_text(encoding='utf-8'))
@@ -350,6 +391,19 @@ def main():
         zs_q_aligned = npz_data['zero_shot'][matched_syn_pos, :, 0]
         fs_q_aligned = npz_data['few_shot_3'][matched_syn_pos, :, 0]
 
+        matched_doc_ids = [common[pos_idx] for pos_idx in matched_syn_pos]
+        real_rrf_minus_bge = sub_real[:, idx_rrf] - sub_real[:, idx_bge]
+        zs_rrf_minus_bge = zs_q_aligned[:, idx_rrf] - zs_q_aligned[:, idx_bge]
+        fs_rrf_minus_bge = fs_q_aligned[:, idx_rrf] - fs_q_aligned[:, idx_bge]
+
+        zs_dd_mean, zs_dd_ci = paired_bootstrap_ci(zs_rrf_minus_bge - real_rrf_minus_bge)
+        zs_dd_gmean, zs_dd_gci = grouped_bootstrap_ci(zs_rrf_minus_bge - real_rrf_minus_bge, matched_doc_ids)
+        fs_dd_mean, fs_dd_ci = paired_bootstrap_ci(fs_rrf_minus_bge - real_rrf_minus_bge)
+        fs_dd_gmean, fs_dd_gci = grouped_bootstrap_ci(fs_rrf_minus_bge - real_rrf_minus_bge, matched_doc_ids)
+
+        zs_bm25_gain_mean, zs_bm25_gain_ci = paired_bootstrap_ci(zs_q_aligned[:, idx_bm25] - sub_real[:, idx_bm25])
+        fs_bm25_gain_mean, fs_bm25_gain_ci = paired_bootstrap_ci(fs_q_aligned[:, idx_bm25] - sub_real[:, idx_bm25])
+
         confounding['matched_subsets'][label] = {
             'common_valid_synthetic_sources': len(common),
             'matched_real_test_queries': len(matched_q_indices),
@@ -368,6 +422,13 @@ def main():
                 'bge_small_zh_mrr10': float(zs_q_aligned[:, idx_bge].mean()),
                 'rrf_bm25_bge_mrr10': float(zs_q_aligned[:, idx_rrf].mean()),
                 'delta_bge_minus_rrf': float(zs_q_aligned[:, idx_bge].mean() - zs_q_aligned[:, idx_rrf].mean()),
+                'paired_bm25_gain_over_real': {'mean': zs_bm25_gain_mean, 'ci95': zs_bm25_gain_ci},
+                'paired_change_in_rrf_minus_bge_over_real': {
+                    'mean': zs_dd_mean,
+                    'query_paired_ci95': zs_dd_ci,
+                    'source_doc_clustered_mean': zs_dd_gmean,
+                    'source_doc_clustered_ci95': zs_dd_gci,
+                },
             },
             'few_shot_3_query_aligned_on_matched_sources': {
                 'pair_count': len(matched_syn_pos),
@@ -375,6 +436,13 @@ def main():
                 'bge_small_zh_mrr10': float(fs_q_aligned[:, idx_bge].mean()),
                 'rrf_bm25_bge_mrr10': float(fs_q_aligned[:, idx_rrf].mean()),
                 'delta_bge_minus_rrf': float(fs_q_aligned[:, idx_bge].mean() - fs_q_aligned[:, idx_rrf].mean()),
+                'paired_bm25_gain_over_real': {'mean': fs_bm25_gain_mean, 'ci95': fs_bm25_gain_ci},
+                'paired_change_in_rrf_minus_bge_over_real': {
+                    'mean': fs_dd_mean,
+                    'query_paired_ci95': fs_dd_ci,
+                    'source_doc_clustered_mean': fs_dd_gmean,
+                    'source_doc_clustered_ci95': fs_dd_gci,
+                },
             },
             'zero_shot_on_same_target_docs': {
                 'doc_count': len(syn_idx),

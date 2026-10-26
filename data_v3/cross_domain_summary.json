@@ -6,7 +6,8 @@
   "total_method_records": 48,
   "reused_unrepaired_condition_prompt_records": 6,
   "repaired_condition_prompt_records": 10,
-  "actual_llm_generation_calls": 42,
+  "estimated_llm_generation_calls_from_repaired_flag": 42,
+  "call_accounting_note": "Derived from 16 ordinary_style + 16 condition_prompt + 10 repaired slot_guard_repair records (6 unrepaired records reuse condition_prompt outputs directly).",
   "methods": {
     "ordinary_style": {
       "attempts": 16,
