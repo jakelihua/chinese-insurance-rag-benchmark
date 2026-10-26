@@ -172,7 +172,7 @@ class ConditionTests(unittest.TestCase):
         )
         self.assertIs(ins_neg.get('approved_waiver'), False)
 
-    def test_third_review_reachability_invariants_and_repair_trigger(self):
+    def test_reachability_invariants_and_repair_trigger(self):
         import json
         from cross_domain_study import (
             build_seed_frames, cross_decision, enumerate_cross_decisions,

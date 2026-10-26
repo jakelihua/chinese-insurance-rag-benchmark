@@ -1,11 +1,11 @@
 {
   "date": "2026-10-26",
-  "study_description": "Equal-call-budget baseline comparison (ordinary_style, condition_prompt, structured_json_rewrite, generic_self_refine, slot_guard_repair, and seed_passthrough upper bound), naturalness / template-divergence metrics, title-masked retrieval evaluation, and out-of-sample confirmation on 4 newly collected official insurance policy PDFs using the frozen Round 3 slot parser and decision verifier.",
+  "study_description": "Equal-call-budget baseline comparison (ordinary_style, condition_prompt, structured_json_rewrite, generic_self_refine, slot_guard_repair, and seed_passthrough upper bound), template-divergence metrics, title-masked retrieval evaluation, and out-of-sample evaluation on 4 held-out official insurance policy PDFs using the frozen development-set slot parser and decision verifier.",
   "heldout_official_insurance_confirmation": {
     "official_pdf_count": 4,
     "seed_count": 16,
     "controlled_case_count": 64,
-    "verifier_status": "frozen_round3_regex_and_enumerator_zero_edits",
+    "verifier_status": "frozen_dev_regex_and_enumerator_zero_edits",
     "methods": {
       "seed_passthrough": {
         "seed_count": 16,

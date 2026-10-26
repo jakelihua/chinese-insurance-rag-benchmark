@@ -1,14 +1,14 @@
-"""Round 3 & Cross-Round Analytical Diagnostics (CPU-only, deterministic).
+"""Analytical diagnostics for eligibility-condition preservation, clause retrieval
+discrimination, and retriever selection abstention (CPU-only, deterministic).
 
 Computes:
-1. Surface-normalized vs strict v1 slot-guard diagnostics and rule-decision
-   corruption/collision rates on the 40 paired LLM generations in data_v3.
+1. Surface-normalized vs. strict v1 slot-guard diagnostics and rule-decision
+   outcomes on the paired LLM generations in data_v3.
 2. Clause retrieval discrimination (top-1 target policy identification and MRR)
    comparing complete, surface, missing_critical, counterfactual, ordinary_style,
-   and condition_prompt queries over the 5 official clauses (standalone and
-   embedded in the 3,746-document corpus).
-3. Support-audited candidate-set abstention vs forced selection across the
-   Round 2 validation_v2 per-query metric matrices (budgets 25/50/100/200).
+   and condition_prompt queries over the 5 development official clauses.
+3. Candidate-set abstention vs. forced selection across the per-query metric
+   matrices (budgets 25/50/100/200).
 """
 import argparse
 import hashlib

@@ -404,7 +404,7 @@ def extract_cross_slots_v2(text, seed_frame=None):
                 obs['elapsed_day'] = int(raw_d) if raw_d.isdigit() else cn_map.get(raw_d)
                 break
 
-    # 5. approved_waiver: check explicit uncertainty and negated approval/waiver BEFORE positive phrases
+    # 5. approved_waiver: check explicit uncertainty and negated waiver before positive phrases
     if re.search(
         r'(?:是否|有没有)[^，。？]{0,20}(?:特批|豁免|批准延长|延长申请|书面同意)[^，。？]{0,12}(?:尚不清楚|还不清楚|不清楚|未知|不确定)',
         text,
@@ -425,10 +425,9 @@ def extract_cross_slots_v2(text, seed_frame=None):
 
 
 def enumerate_cross_decisions(obs, seed_frame=None):
-    """Enumerate all formal rule decisions reachable from the observed slots alone.
-    Completely independent of seed_frame: relies solely on obs, CROSS_CLAUSES, and the public task
-    convention that extraordinary waivers default to False unless explicitly granted (True) or
-    explicitly marked as uncertain ('unknown').
+    """Enumerate all rule decisions reachable from the observed slots alone.
+    Relies only on obs, CROSS_CLAUSES, and the task convention that extraordinary
+    waivers default to False unless explicitly granted (True) or marked uncertain ('unknown').
     """
     cid = obs.get('clause_id')
     if cid not in CROSS_CLAUSES:

@@ -1,23 +1,15 @@
-"""Equal-Call-Budget Baselines, Held-Out Official Clause Confirmation,
-Naturalness / Template-Divergence Metrics, and Title-Masked Retrieval Study.
+"""Out-of-sample official insurance clause evaluation, title-masked clause retrieval,
+and equal-call-budget baseline experiments.
 
-Addresses the Research Landscape & Competitive Audit (2026-10-26):
-1. Evaluates a frozen verifier (zero regex edits) on 4 newly collected, unseen
-   official Chinese insurance policy PDFs (pa_2011_36, pa_p0254, pa_p0321, cpic_93896;
-   16 held-out seeds, 64 controlled cases with double-completion witnesses).
-2. Compares 6 generation regimes under explicit call budgets on both the Held-Out
-   Official Insurance Confirmation Set (16 seeds) and the Multi-Threshold
-   Rule-Compiler Stress Test (16 seeds):
-   - seed_passthrough (0 LLM calls; information-preservation upper bound)
-   - ordinary_style (1 LLM call; unconstrained colloquial rewrite)
-   - condition_prompt (1 LLM call; open-loop slot-constrained prompt)
-   - structured_json_rewrite (1 LLM call; schema-first JSON extraction + question)
-   - generic_self_refine (2 LLM calls; equal-budget self-check without rule parser,
-     evaluated at both matched 2-call budget and full 32-call budget)
-   - slot_guard_repair (<=2 LLM calls; 1-step symbolic verifier-guided repair)
-3. Measures naturalness / template divergence (1 - kappa_2(q', q_seed)) and
-   Title-Masked Clause Retrieval (stripping policy titles and insurer names)
-   across both lexical (bm25_char2) and dense (bge_small_zh) retrievers.
+1. Evaluates the frozen development-set parser and reachability verifier on four
+   held-out official Chinese insurance policy PDFs (pa_2011_36, pa_p0254, pa_p0321,
+   cpic_93896; 16 seeds, 64 controlled cases with double-completion witnesses).
+2. Compares generation and refinement baselines under matched LLM call budgets:
+   seed_passthrough (0 calls), ordinary_style (1 call), condition_prompt (1 call),
+   structured_json_rewrite (1 call), generic_self_refine (2 calls without symbolic
+   parser feedback), and slot_guard_repair (<=2 calls with symbolic parser feedback).
+3. Computes template divergence (1 - kappa_2(q', q_seed)) and title-masked clause
+   retrieval across lexical (bm25_char2) and dense (bge_small_zh) retrievers.
 """
 import argparse
 import hashlib
@@ -526,9 +518,7 @@ def main():
             attn_implementation='eager',
         ).to(device).eval()
 
-    # =========================================================================
-    # 1. Held-Out Official Insurance Clauses Confirmation Benchmark (4 new PDFs, 16 seeds)
-    # =========================================================================
+    # 1. Held-out official insurance policies benchmark (4 unseen PDFs, 16 seeds)
     sources, evidence, held_seeds, held_cases = build_heldout_seeds_and_cases(args.raw_heldout)
     base.write_json(args.out_dir / 'heldout_clauses_sources.json', sources)
     with (args.out_dir / 'heldout_controlled_cases.jsonl').open('w', encoding='utf-8') as f:
@@ -707,9 +697,7 @@ def main():
         summary_4['combined_9clause_title_masked_retrieval'] = summary_9['title_masked_retrieval']
         held_methods_summary[m] = summary_4
 
-    # =========================================================================
-    # 2. Equal-Call-Budget Baselines on the 16-Seed Multi-Threshold Rule-Compiler Benchmark
-    # =========================================================================
+    # 2. Equal-call-budget baselines on the 16-seed multi-threshold rule benchmark
     cross_seeds = build_cross_seeds()
     cross_seeds_map = {s['seed_id']: s for s in cross_seeds}
     existing_cross_rows = [
@@ -849,15 +837,15 @@ def main():
         'date': '2026-10-26',
         'study_description': (
             'Equal-call-budget baseline comparison (ordinary_style, condition_prompt, structured_json_rewrite, '
-            'generic_self_refine, slot_guard_repair, and seed_passthrough upper bound), naturalness / template-divergence '
-            'metrics, title-masked retrieval evaluation, and out-of-sample confirmation on 4 newly collected official '
-            'insurance policy PDFs using the frozen Round 3 slot parser and decision verifier.'
+            'generic_self_refine, slot_guard_repair, and seed_passthrough upper bound), template-divergence '
+            'metrics, title-masked retrieval evaluation, and out-of-sample evaluation on 4 held-out official '
+            'insurance policy PDFs using the frozen development-set slot parser and decision verifier.'
         ),
         'heldout_official_insurance_confirmation': {
             'official_pdf_count': len(HELDOUT_POLICIES),
             'seed_count': len(held_seeds),
             'controlled_case_count': len(held_cases),
-            'verifier_status': 'frozen_round3_regex_and_enumerator_zero_edits',
+            'verifier_status': 'frozen_dev_regex_and_enumerator_zero_edits',
             'methods': held_methods_summary,
         },
         'cross_domain_equal_budget_comparison': {
