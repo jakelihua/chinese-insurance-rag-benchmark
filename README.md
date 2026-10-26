@@ -1,7 +1,7 @@
 # When Do Synthetic Queries Mislead Retriever Selection?
 ### Selection Reversal, Candidate-Set Abstention, and Eligibility-Condition Preservation in Chinese Insurance Retrieval
 
-**Author:** Shunchi Wang (Independent Researcher)  
+**Author:** Shunchi Wang (Independent Researcher, `jakelihua@gmail.com`)  
 **Paper Artifacts:**
 - 📄 **LaTeX Source & Overleaf Package:** [`paper/overleaf_package/main.tex`](paper/overleaf_package/main.tex) | [`paper/overleaf_submission.zip`](paper/overleaf_submission.zip)
 - 🇬🇧 **English Manuscript (Markdown):** [`paper/draft_en.md`](paper/draft_en.md)

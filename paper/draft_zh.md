@@ -1,6 +1,8 @@
 # 少量真实问题能否校准中文保险合成评测？面向检索器选型与业务条件守恒的探索研究
 
-**状态：研究草稿 v0.3，更新于2026-10-26；不是投稿终稿。** 作者、单位待由真实贡献者确认。当前实验覆盖公开保险问答回答检索（第一、二轮）与可追溯条款等待期受控条件验证（第三轮），不能据此声称完整RAG、Agent、实际理赔裁决或线上部署收益。第三轮双盲独立人工标注包已生成但尚未完成人工填写，文中不报告未经核验的专家一致率或确认性结论。
+**作者：** Shunchi Wang（Independent Researcher，`jakelihua@gmail.com`）  
+**代码与数据仓库：** [https://github.com/jakelihua/chinese-insurance-rag-benchmark](https://github.com/jakelihua/chinese-insurance-rag-benchmark)  
+**范围说明：** 当前实验覆盖公开保险问答回答检索（第一、二轮）与可追溯保险/医疗/劳动法条款受控条件验证（第三轮），不声称线上自动理赔裁决收益；第三轮双盲独立人工标注包已生成就绪，待人工完成后运行 `score_annotations.py` 统计专家一致率。
 
 ---
 
