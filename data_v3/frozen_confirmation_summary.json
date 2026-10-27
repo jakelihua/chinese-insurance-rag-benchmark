@@ -3283,8 +3283,21 @@
           {
             "pair_id": "qwen_plus:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "benefit_id"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_h716",
+              "enrollment": "first",
+              "cause": "illness",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "无",
             "seed_day": 45,
@@ -3295,8 +3308,20 @@
           {
             "pair_id": "qwen_plus:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_1714",
+              "enrollment": "first",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "因意外伤害无等待期",
             "seed_day": 45,
@@ -3307,8 +3332,20 @@
           {
             "pair_id": "qwen_plus:fconf-cross-005",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "clause_id"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "status": "primary",
+              "condition": "qualified",
+              "threshold_days": 10,
+              "elapsed_day": 5
+            },
             "json_day": 5,
             "json_day_raw": 5,
+            "json_status_raw": "路径内常规抗凝状态",
             "json_condition_raw": "无活动性出血并发症",
             "json_waiver_raw": "无",
             "seed_day": 5,
@@ -3319,8 +3356,20 @@
           {
             "pair_id": "qwen_plus:fconf-cross-014",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "threshold_days"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "clause_id": "law_work_injury",
+              "status": "primary",
+              "condition": "qualified",
+              "elapsed_day": 50
+            },
             "json_day": 50,
             "json_day_raw": 50,
+            "json_status_raw": "能依法受理并认定为工伤",
             "json_condition_raw": "事故发生在合理上下班途中，交警认定为非本人主要责任",
             "json_waiver_raw": "无延期批准",
             "seed_day": 50,
@@ -3331,8 +3380,21 @@
           {
             "pair_id": "deepseek:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "benefit_id"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_h716",
+              "enrollment": "first",
+              "cause": "illness",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病住院治疗",
             "json_waiver_raw": "无",
             "seed_day": 45,
@@ -3343,8 +3405,20 @@
           {
             "pair_id": "deepseek:fconf-ins-007",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "enrollment",
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_l0001",
+              "policy_day": 40,
+              "plan_wait_days": 30
+            },
             "json_day": 40,
             "json_day_raw": 40,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病住院治疗",
             "json_waiver_raw": "意外伤害、重新投保、指定产品首次投保",
             "seed_day": 40,
@@ -3355,8 +3429,20 @@
           {
             "pair_id": "deepseek:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_1714",
+              "enrollment": "first",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 45,
@@ -3367,8 +3453,20 @@
           {
             "pair_id": "deepseek:fconf-ins-017",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "cpic_106702",
+              "enrollment": "first",
+              "policy_day": 10,
+              "plan_wait_days": 15
+            },
             "json_day": 10,
             "json_day_raw": 10,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病住院治疗",
             "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 10,
@@ -3379,8 +3477,23 @@
           {
             "pair_id": "deepseek:fconf-cross-011",
             "outcome": "CONDITION_MUTATED",
+            "fine_outcome": "DECISION_CHANGED",
+            "missing_slots": [
+              "elapsed_day",
+              "threshold_days"
+            ],
+            "mutated_slots": [
+              "status"
+            ],
+            "extracted": {
+              "clause_id": "law_noncompete",
+              "status": "primary",
+              "condition": "qualified",
+              "approved_waiver": false
+            },
             "json_day": 105,
             "json_day_raw": 105,
+            "json_status_raw": "高级技术人员且负有保密义务",
             "json_condition_raw": "连续未支付经济补偿超过90天",
             "json_waiver_raw": "无书面同意豁免逾期并补足补偿",
             "seed_day": 105,
@@ -3391,8 +3504,20 @@
           {
             "pair_id": "deepseek:fconf-cross-014",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "threshold_days"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "clause_id": "law_work_injury",
+              "status": "primary",
+              "condition": "qualified",
+              "elapsed_day": 50
+            },
             "json_day": 50,
             "json_day_raw": 50,
+            "json_status_raw": "职工近亲属提出申请",
             "json_condition_raw": "合理上下班途中发生交通事故，交警认定为非本人主要责任",
             "json_waiver_raw": "无延期批准",
             "seed_day": 50,
@@ -3419,8 +3544,21 @@
           {
             "pair_id": "qwen_plus:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "benefit_id"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_h716",
+              "enrollment": "first",
+              "cause": "illness",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "无",
             "seed_day": 45,
@@ -3431,8 +3569,21 @@
           {
             "pair_id": "qwen_plus:fconf-ins-006",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "approved_waiver"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_2651",
+              "enrollment": "new",
+              "cause": "illness",
+              "policy_day": 12,
+              "plan_wait_days": 30
+            },
             "json_day": 12,
             "json_day_raw": 12,
+            "json_status_raw": "重新投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "保险公司审核同意免除等待期",
             "seed_day": 12,
@@ -3443,8 +3594,21 @@
           {
             "pair_id": "deepseek:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "benefit_id"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_h716",
+              "enrollment": "first",
+              "cause": "illness",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "无",
             "seed_day": 45,
@@ -3455,8 +3619,20 @@
           {
             "pair_id": "deepseek:fconf-ins-007",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "PARSE_UNCERTAIN",
+            "missing_slots": [
+              "enrollment",
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_l0001",
+              "policy_day": 40,
+              "plan_wait_days": 30
+            },
             "json_day": 40,
             "json_day_raw": 40,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病住院治疗",
             "json_waiver_raw": "意外伤害、重新投保、指定产品首次投保",
             "seed_day": 40,
@@ -3467,8 +3643,20 @@
           {
             "pair_id": "deepseek:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "pa_1714",
+              "enrollment": "first",
+              "policy_day": 45,
+              "plan_wait_days": 90
+            },
             "json_day": 45,
             "json_day_raw": 45,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 45,
@@ -3479,8 +3667,20 @@
           {
             "pair_id": "deepseek:fconf-ins-015",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "cpic_107082",
+              "enrollment": "first",
+              "policy_day": 22,
+              "plan_wait_days": 30
+            },
             "json_day": 22,
             "json_day_raw": 22,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病",
             "json_waiver_raw": "意外伤害或经审核免除等待期",
             "seed_day": 22,
@@ -3491,8 +3691,20 @@
           {
             "pair_id": "deepseek:fconf-ins-017",
             "outcome": "DEGRADED_TO_CLARIFY",
+            "fine_outcome": "CLARIFY_REQUIRED",
+            "missing_slots": [
+              "cause"
+            ],
+            "mutated_slots": [],
+            "extracted": {
+              "policy_id": "cpic_106702",
+              "enrollment": "first",
+              "policy_day": 10,
+              "plan_wait_days": 15
+            },
             "json_day": 10,
             "json_day_raw": 10,
+            "json_status_raw": "首次投保",
             "json_condition_raw": "非意外疾病住院治疗",
             "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 10,

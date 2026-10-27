@@ -1015,7 +1015,12 @@ class ConditionTests(unittest.TestCase):
             if rc['pair_id'] == 'deepseek:fconf-cross-011'
         ][0]
         self.assertEqual(rec_011['json_day_raw'], 105)
+        self.assertEqual(rec_011['json_status_raw'], '高级技术人员且负有保密义务')
         self.assertEqual(rec_011['json_condition_raw'], '连续未支付经济补偿超过90天')
+        self.assertEqual(rec_011['fine_outcome'], 'DECISION_CHANGED')
+        self.assertEqual(rec_011['missing_slots'], ['elapsed_day', 'threshold_days'])
+        self.assertEqual(rec_011['mutated_slots'], ['status'])
+        self.assertEqual(rec_011['extracted']['status'], 'primary')
         self.assertIsNone(rec_011['parsed_day'])
         self.assertIn('目前已达第105天', rec_011['rendered_or_generated_question'])
         self.assertEqual(
@@ -1032,6 +1037,49 @@ class ConditionTests(unittest.TestCase):
         self.assertIn('exploratory_6_comparisons_including_fair_structured', fc_sum['holm_bonferroni_multiple_testing_summary'])
         rag_audit = fc_sum['downstream_rag_selection_summary']['qwen_plus']['insurance_24_seeds']['retrieval_backend_audit']
         self.assertIn('lexical_zero_overlap_guard', rag_audit)
+
+        # Verify simulated HTTP response header capture (`x-request-id` / `x-dashscope-request-id` / `Date`)
+        class _FakeHTTPResp:
+            def __init__(self, body_dict, headers_dict):
+                self._raw = json.dumps(body_dict).encode('utf-8')
+                self.headers = headers_dict
+
+            def read(self):
+                return self._raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        with patch.dict('os.environ', {'DEEPSEEK_API_KEY': 'test-ds-key', 'DASHSCOPE_API_KEY': 'test-qwen-key'}):
+            with patch('urllib.request.urlopen', return_value=_FakeHTTPResp(
+                {'id': 'body-id-1', 'model': 'deepseek-flash', 'system_fingerprint': 'fp-123',
+                 'choices': [{'message': {'content': '测试回答？'}}],
+                 'usage': {'prompt_tokens': 12, 'completion_tokens': 5}},
+                {'X-Request-Id': 'req-ds-header-001', 'Date': 'Tue, 27 Oct 2026 12:00:00 GMT'},
+            )):
+                raw_ds, pt_ds, ct_ds, _, meta_ds = study.call_deepseek_chat('sys', 'usr', max_tokens=32, return_meta=True)
+                self.assertEqual(raw_ds, '测试回答？')
+                self.assertEqual((pt_ds, ct_ds), (12, 5))
+                self.assertEqual(meta_ds['request_id'], 'req-ds-header-001')
+                self.assertEqual(meta_ds['http_date'], 'Tue, 27 Oct 2026 12:00:00 GMT')
+                self.assertEqual(meta_ds['metadata_provenance'], 'live_http_response_capture')
+
+            with patch('urllib.request.urlopen', return_value=_FakeHTTPResp(
+                {'id': 'body-id-2', 'model': 'qwen-plus', 'system_fingerprint': None,
+                 'choices': [{'message': {'content': '通义回答？'}}],
+                 'usage': {'prompt_tokens': 15, 'completion_tokens': 6}},
+                {'x-dashscope-request-id': 'req-qwen-header-002', 'Date': 'Tue, 27 Oct 2026 12:01:00 GMT'},
+            )):
+                raw_qw, pt_qw, ct_qw, _, meta_qw = study.call_dashscope_qwen('sys', 'usr', max_tokens=32, return_meta=True)
+                self.assertEqual(raw_qw, '通义回答？')
+                self.assertEqual((pt_qw, ct_qw), (15, 6))
+                self.assertEqual(meta_qw['request_id'], 'req-qwen-header-002')
+                self.assertEqual(meta_qw['http_date'], 'Tue, 27 Oct 2026 12:01:00 GMT')
+                self.assertEqual(meta_qw['metadata_provenance'], 'live_http_response_capture')
+        study._LAST_API_META.clear()
 
 
 if __name__=='__main__':unittest.main()

@@ -793,6 +793,18 @@ def evaluate_gold_diagnostic_suite(suite):
 _LAST_API_META = {}
 
 
+def _extract_http_response_headers(response):
+    """Extract request_id and date headers from an HTTP response (`response.headers` / `resp.headers`)."""
+    hdrs = getattr(response, 'headers', None)
+    if hdrs is None:
+        return {}
+    lower_map = {str(k).lower(): str(v) for k, v in dict(hdrs.items()).items()}
+    return {
+        'request_id': lower_map.get('x-request-id') or lower_map.get('x-dashscope-request-id'),
+        'http_date': lower_map.get('date'),
+    }
+
+
 def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160, return_meta=False):
     """Call DeepSeek official API (deepseek-chat, temperature=0.0) and return
     (raw_text, prompt_tokens, completion_tokens, latency_ms[, api_meta])."""
@@ -821,6 +833,7 @@ def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160, return_meta=F
                 },
             )
             with urllib.request.urlopen(req, timeout=35) as resp:
+                hdr_meta = _extract_http_response_headers(resp) if getattr(resp, 'headers', None) is not None else {}
                 data = json.loads(resp.read().decode('utf-8'))
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
@@ -830,6 +843,9 @@ def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160, return_meta=F
                 'response_model': data.get('model', 'deepseek-chat'),
                 'endpoint': 'https://api.deepseek.com/chat/completions',
                 'system_fingerprint': data.get('system_fingerprint'),
+                'request_id': hdr_meta.get('request_id') or data.get('id'),
+                'http_date': hdr_meta.get('http_date'),
+                'metadata_provenance': 'live_http_response_capture',
             }
             _LAST_API_META['deepseek'] = meta
             if return_meta:
@@ -880,6 +896,7 @@ def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='
                 },
             )
             with urllib.request.urlopen(req, timeout=35) as resp:
+                hdr_meta = _extract_http_response_headers(resp) if getattr(resp, 'headers', None) is not None else {}
                 data = json.loads(resp.read().decode('utf-8'))
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
@@ -889,6 +906,9 @@ def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='
                 'response_model': data.get('model', model_name),
                 'endpoint': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
                 'system_fingerprint': data.get('system_fingerprint'),
+                'request_id': hdr_meta.get('request_id') or data.get('id'),
+                'http_date': hdr_meta.get('http_date'),
+                'metadata_provenance': 'live_http_response_capture',
             }
             _LAST_API_META['qwen_plus'] = meta
             if return_meta:
@@ -3596,8 +3616,13 @@ def main():
                     rejected_cases.append({
                         'pair_id': f"{r['model_family']}:{r['seed_id']}",
                         'outcome': r['outcome'],
+                        'fine_outcome': r.get('fine_outcome'),
+                        'missing_slots': r.get('missing_slots', []),
+                        'mutated_slots': r.get('mutated_slots', []),
+                        'extracted': r.get('extracted', {}),
                         'json_day': json_day,
                         'json_day_raw': j_obj.get('day'),
+                        'json_status_raw': j_obj.get('status') if 'status' in j_obj else j_obj.get('enrollment'),
                         'json_condition_raw': j_obj.get('condition') if 'condition' in j_obj else j_obj.get('cause'),
                         'json_waiver_raw': j_obj.get('waiver'),
                         'seed_day': seed_day,
