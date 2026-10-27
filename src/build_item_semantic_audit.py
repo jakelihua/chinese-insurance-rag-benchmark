@@ -20,6 +20,7 @@ from pathlib import Path
 from analyze_v3 import (
     evaluate_slot_completeness,
     extract_fields_surface_normalized,
+    load_dev_inputs_and_evidence,
 )
 from condition_data import POLICIES as DEV_POLICIES, decision as dev_decision
 from cross_domain_study import (
@@ -238,7 +239,7 @@ def main():
     records = []
 
     # 1. Development insurance set (40 generated questions across 20 seeds x 2 methods)
-    dev_inputs = json.loads((work_root / 'condition_study' / 'generation_inputs.json').read_text(encoding='utf-8'))
+    dev_inputs, _ = load_dev_inputs_and_evidence(work_root / 'condition_study', data_dir)
     dev_seeds = {r['seed_id']: r for r in dev_inputs['jobs']}
     dev_rows = [
         json.loads(line)
@@ -297,7 +298,8 @@ def main():
         cid = r['clause_id']
         c_meta = CROSS_CLAUSES[cid]
         obs = extract_cross_slots_v2(r['question'])
-        out_c, miss_c, mut_c = evaluate_cross_outcome(obs, s)
+        out_c, miss_c, mut_c = evaluate_cross_outcome(obs, s, grant_source_clause=False)
+        out_g, _, _ = evaluate_cross_outcome(obs, s, grant_source_clause=True)
         explanation, diag_cat = build_cross_verifier_explanation(
             s, obs, out_c, miss_c, mut_c, r['question'], r['method']
         )
@@ -312,7 +314,7 @@ def main():
             'truncated_at_max_tokens': bool(r.get('truncated_at_max_tokens')),
             'reference_decision': cross_decision(s),
             'standalone_outcome': out_c,
-            'granted_source_policy_outcome': out_c,
+            'granted_source_policy_outcome': out_g,
             'missing_slots': miss_c,
             'mutated_slots': mut_c,
             'diagnostic_category': diag_cat,
@@ -332,7 +334,9 @@ def main():
         records.append(rec)
 
     # 3. Extension official insurance benchmark (112 rows across 16 seeds x 7 methods)
-    _, _, held_seeds_list, _ = build_heldout_seeds_and_cases(work_root / 'condition_study' / 'raw_heldout')
+    _, _, held_seeds_list, _ = build_heldout_seeds_and_cases(
+        work_root / 'condition_study' / 'raw_heldout', out_dir=data_dir
+    )
     held_seeds = {s['seed_id']: s for s in held_seeds_list}
     held_rows = [
         json.loads(line)

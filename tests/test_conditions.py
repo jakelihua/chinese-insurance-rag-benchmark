@@ -429,5 +429,151 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(md_abs, norm_tex)
         self.assertLessEqual(len(md_abs.split()), 200)
 
+    def test_contrastive_negation_and_multiday_conflict_handling(self):
+        from condition_data import POLICIES
+        from cross_domain_study import (
+            build_seed_frames,
+            evaluate_cross_outcome,
+            extract_cross_slots_v2,
+            should_trigger_slot_guard_repair,
+        )
+        from equal_budget_and_heldout_study import (
+            evaluate_insurance_outcome_frozen,
+            extract_insurance_fields_frozen,
+        )
+
+        # 1. Insurance development seed (pa_h865, first, illness, day=20, wait=30)
+        ins_seed = {
+            'id': 'probe-ins-001',
+            'policy_id': 'pa_h865',
+            'enrollment': 'first',
+            'cause': 'illness',
+            'policy_day': 20,
+            'plan_wait_days': 30,
+            'approved_waiver': False,
+            'required_fields': ['policy_id', 'enrollment', 'policy_day', 'cause'],
+        }
+        q_contrast_ins = (
+            '我第一次买《平安员工及家属住院医疗保险》，不是保单生效第20天，而是第45天，'
+            '因为非意外生病住院治疗，想问这种情况能报销吗？'
+        )
+        obs_dev = extract_fields_surface_normalized(q_contrast_ins)
+        self.assertEqual(obs_dev['policy_day'], 45)
+        out_dev, _, _ = evaluate_rule_outcome_under_observed(obs_dev, ins_seed, ins_seed['required_fields'])
+        self.assertEqual(out_dev, 'COUNTERFACTUAL_FLIP')
+        obs_frozen = extract_insurance_fields_frozen(q_contrast_ins, POLICIES)
+        self.assertEqual(obs_frozen['policy_day'], 45)
+        out_frozen, _, _ = evaluate_insurance_outcome_frozen(
+            obs_frozen, ins_seed, ins_seed['required_fields'], POLICIES
+        )
+        self.assertEqual(out_frozen, 'CONDITION_MUTATED')
+
+        for q_ambig_ins in [
+            '我第一次买《平安员工及家属住院医疗保险》，保单生效不到20天，因为非意外生病住院治疗，想问这种情况能报销吗？',
+            '我第一次买《平安员工及家属住院医疗保险》，保单生效第20天或第45天，因为非意外生病住院治疗，想问这种情况能报销吗？',
+        ]:
+            obs_ambig = extract_fields_surface_normalized(q_ambig_ins)
+            self.assertIsNone(obs_ambig['policy_day'])
+            out_ambig, _, _ = evaluate_rule_outcome_under_observed(obs_ambig, ins_seed, ins_seed['required_fields'])
+            self.assertEqual(out_ambig, 'DEGRADED_TO_CLARIFY')
+
+        # 2. Multi-threshold seed cross-001 (med_egfr_tki, primary, elapsed_day=7, threshold_days=14, qualified)
+        from cross_domain_study import render_question
+        c_seed = build_seed_frames()[0]
+        base_q = render_question(c_seed)
+        q_contrast_cross = base_q.replace('停用前序药物第7天', '并不是停用前序药物第7天，而是第20天')
+        obs_c = extract_cross_slots_v2(q_contrast_cross)
+        self.assertEqual(obs_c['elapsed_day'], 20)
+        out_c, miss_c, mut_c = evaluate_cross_outcome(obs_c, c_seed)
+        self.assertEqual(out_c, 'CONDITION_MUTATED')
+        self.assertEqual(mut_c, ['elapsed_day'])
+        self.assertTrue(should_trigger_slot_guard_repair(miss_c, mut_c, out_c))
+
+        for q_ambig_cross in [
+            base_q.replace('停用前序药物第7天', '停用前序药物不到7天'),
+            base_q.replace('停用前序药物第7天', '停用前序药物第7天或第20天'),
+        ]:
+            obs_ac = extract_cross_slots_v2(q_ambig_cross)
+            self.assertIsNone(obs_ac.get('elapsed_day'))
+            out_ac, miss_ac, mut_ac = evaluate_cross_outcome(obs_ac, c_seed)
+            self.assertEqual(out_ac, 'DEGRADED_TO_CLARIFY')
+            self.assertIn('elapsed_day', miss_ac)
+            self.assertTrue(should_trigger_slot_guard_repair(miss_ac, mut_ac, out_ac))
+
+    def test_optional_unknown_waiver_triggers_repair_and_granted_source_sensitivity(self):
+        import json
+        from cross_domain_study import (
+            build_seed_frames,
+            evaluate_cross_outcome,
+            extract_cross_slots_v2,
+            render_question,
+            should_trigger_slot_guard_repair,
+        )
+        from score_annotations import compute_task_metrics
+        root = Path(__file__).parents[1]
+
+        # 1. Optional field set to 'unknown' must populate missing and trigger repair
+        c_seed = build_seed_frames()[0]
+        q_unk_waiver = render_question(c_seed, drop_field='approved_waiver')
+        obs_uw = extract_cross_slots_v2(q_unk_waiver)
+        self.assertEqual(obs_uw['approved_waiver'], 'unknown')
+        out_uw, miss_uw, mut_uw = evaluate_cross_outcome(obs_uw, c_seed)
+        self.assertEqual(out_uw, 'DEGRADED_TO_CLARIFY')
+        self.assertIn('approved_waiver', miss_uw)
+        self.assertTrue(should_trigger_slot_guard_repair(miss_uw, mut_uw, out_uw))
+
+        # 2. Granted-source-clause sensitivity counts on multi-threshold set
+        cd_sum = json.loads((root / 'data_v3' / 'cross_domain_summary.json').read_text(encoding='utf-8'))
+        cd_methods = cd_sum['methods']
+        self.assertEqual(cd_methods['ordinary_style']['preserved_decision'], 1)
+        self.assertEqual(cd_methods['ordinary_style']['granted_source_clause_preserved_decision'], 7)
+        self.assertEqual(cd_methods['slot_guard_repair']['preserved_decision'], 12)
+        self.assertEqual(cd_methods['slot_guard_repair']['granted_source_clause_preserved_decision'], 15)
+
+        eb_sum = json.loads((root / 'data_v3' / 'equal_budget_and_heldout_summary.json').read_text(encoding='utf-8'))
+        eb_methods = eb_sum['cross_domain_equal_budget_comparison']['methods']
+        self.assertEqual(eb_methods['ordinary_style']['preserved_decision'], 1)
+        self.assertEqual(eb_methods['ordinary_style']['granted_source_policy_preserved_decision'], 7)
+        self.assertEqual(eb_methods['slot_guard_repair']['preserved_decision'], 12)
+        self.assertEqual(eb_methods['slot_guard_repair']['granted_source_policy_preserved_decision'], 15)
+        self.assertEqual(eb_methods['generic_self_refine_budget_matched']['granted_source_policy_preserved_decision'], 8)
+        paired_granted = eb_sum['paired_mcnemar_tests'][
+            'cross_guard_vs_generic_budget_matched_granted_clause_sensitivity'
+        ]
+        self.assertEqual(len(paired_granted['left_only_wins']), 7)
+        self.assertEqual(len(paired_granted['right_only_wins']), 0)
+        self.assertAlmostEqual(paired_granted['exact_mcnemar_two_sided_p'], 0.015625)
+
+        # 3. Single-category Cohen's kappa returns None + undefined_single_category
+        keys = [f'item-{i}' for i in range(5)]
+        map_a = {k: {'label': 'PRESERVED_DECISION', 'reason': 'ok'} for k in keys}
+        map_b = {k: {'label': 'PRESERVED_DECISION', 'reason': 'ok'} for k in keys}
+        mapping = {k: {'original_id': k} for k in keys}
+        m_single = compute_task_metrics(keys, map_a, map_b, mapping)
+        self.assertEqual(m_single['raw_agreement'], 1.0)
+        self.assertIsNone(m_single['cohen_kappa'])
+        self.assertEqual(m_single['cohen_kappa_status'], 'undefined_single_category')
+
+        # 4. Reference list in draft_en.md matches corrected citations in references.bib
+        en_text = (root / 'paper' / 'draft_en.md').read_text(encoding='utf-8')
+        bib_text = (root / 'paper' / 'overleaf_package' / 'references.bib').read_text(encoding='utf-8')
+        self.assertNotIn('Feng et al., 2016', en_text)
+        self.assertIn('Feng et al., 2015', en_text)
+        for token in [
+            'Feng, M., Xiang, B., Glass, M. R., Wang, L., & Zhou, B. (2015). Applying Deep Learning to Answer Selection: A Study and An Open Task.',
+            'Divekar, A. (2026). Statistically Reliable LLM-Based Ranking Evaluation via Prediction-Powered Inference.',
+            'Chen, L., Zhang, R., Guo, J., Fan, Y., & Cheng, X. (2024). Controlling Risk of Retrieval-augmented Generation: A Counterfactual Prompting Framework.',
+            'Filice, S., Horowitz, G., Carmel, D., Karnin, Z., Lewin-Eytan, L., & Maarek, Y. (2025). Generating Q&A Benchmarks for RAG Evaluation with DataMorgana.',
+            'Fu, W., Wei, B., Hu, J., Cai, Z., & Liu, J. (2024). QGEval: Benchmarking Multi-dimensional Evaluation for Question Generation.',
+            'Kucia, F. J., & Gawlik, B. M. (2026). Beyond Benchmark Scores: How Synthetic and Authentic Query Distributions Diverge in RAG Evaluation.',
+            'van Elburg, J., van der Putten, P., & Marx, M. (2025). Can we Evaluate RAGs with Synthetic Data?',
+            'Zhang, T., Qin, P., Deng, Y., Huang, C., Lei, W., Liu, J., Jin, D., Liang, H., & Chua, T.-S. (2024). CLAMBER: A Benchmark of Identifying and Clarifying Ambiguous Information Needs in Large Language Models.',
+            'Zhao, J., Fang, K., & Cheng, L. (2026). When and What to Ask: AskBench and Rubric-Guided RLVR for LLM Clarification.',
+            'Zhu, K., Luo, Y., Xu, D., Yan, Y., Liu, Z., Yu, S., Wang, R., Wang, S., Li, Y., Zhang, N., Han, X., Liu, Z., & Sun, M. (2025). RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework.',
+        ]:
+            self.assertIn(token, en_text)
+        self.assertIn('year={2015}', bib_text)
+        self.assertIn('author={Divekar, Abhishek}', bib_text)
+
 
 if __name__=='__main__':unittest.main()

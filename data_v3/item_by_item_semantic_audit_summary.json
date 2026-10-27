@@ -118,9 +118,9 @@
             "PRESERVED_DECISION": 1
           },
           "granted_source_policy_outcomes": {
-            "DEGRADED_TO_CLARIFY": 13,
+            "DEGRADED_TO_CLARIFY": 7,
             "CONDITION_MUTATED": 2,
-            "PRESERVED_DECISION": 1
+            "PRESERVED_DECISION": 7
           },
           "diagnostic_categories": {
             "missing_pivotal_slot": 13,
@@ -150,8 +150,8 @@
             "DEGRADED_TO_CLARIFY": 4
           },
           "granted_source_policy_outcomes": {
-            "PRESERVED_DECISION": 12,
-            "DEGRADED_TO_CLARIFY": 4
+            "PRESERVED_DECISION": 15,
+            "DEGRADED_TO_CLARIFY": 1
           },
           "diagnostic_categories": {
             "all_slots_matched": 11,

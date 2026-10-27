@@ -31,7 +31,14 @@ def compute_task_metrics(keys, map_a, map_b, mapping, reference_field=None):
     labels_a = [map_a[k]['label'] for k in common]
     labels_b = [map_b[k]['label'] for k in common]
     raw_agree = float(np.mean([a == b for a, b in zip(labels_a, labels_b)]))
-    kappa = float(cohen_kappa_score(labels_a, labels_b)) if len(set(labels_a) | set(labels_b)) > 1 else 1.0
+    unique_labels = set(labels_a) | set(labels_b)
+    if len(unique_labels) > 1:
+        kappa_val = float(cohen_kappa_score(labels_a, labels_b))
+        kappa = None if np.isnan(kappa_val) else round(kappa_val, 4)
+        kappa_status = 'undefined_zero_variance' if kappa is None else 'defined'
+    else:
+        kappa = None
+        kappa_status = 'undefined_single_category'
     disagreements = []
     for k in common:
         if map_a[k]['label'] != map_b[k]['label']:
@@ -45,7 +52,8 @@ def compute_task_metrics(keys, map_a, map_b, mapping, reference_field=None):
         'expected': len(keys),
         'completed_common': len(common),
         'raw_agreement': round(raw_agree, 4),
-        'cohen_kappa': round(kappa, 4),
+        'cohen_kappa': kappa,
+        'cohen_kappa_status': kappa_status,
         'disagreement_count': len(disagreements),
         'disagreements': disagreements,
     }

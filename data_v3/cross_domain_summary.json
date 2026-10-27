@@ -18,6 +18,11 @@
       "preserved_decision": 1,
       "degraded_to_clarify": 13,
       "condition_mutated": 2,
+      "granted_source_clause_all_slots_preserved": 5,
+      "granted_source_clause_non_pivotal_slot_omitted_decision_preserved": 2,
+      "granted_source_clause_preserved_decision": 7,
+      "granted_source_clause_degraded_to_clarify": 7,
+      "granted_source_clause_condition_mutated": 2,
       "bm25_char2_top1": 1.0,
       "bm25_char2_mrr": 1.0
     },
@@ -30,6 +35,11 @@
       "preserved_decision": 7,
       "degraded_to_clarify": 4,
       "condition_mutated": 5,
+      "granted_source_clause_all_slots_preserved": 6,
+      "granted_source_clause_non_pivotal_slot_omitted_decision_preserved": 1,
+      "granted_source_clause_preserved_decision": 7,
+      "granted_source_clause_degraded_to_clarify": 4,
+      "granted_source_clause_condition_mutated": 5,
       "bm25_char2_top1": 1.0,
       "bm25_char2_mrr": 1.0
     },
@@ -42,6 +52,11 @@
       "preserved_decision": 12,
       "degraded_to_clarify": 4,
       "condition_mutated": 0,
+      "granted_source_clause_all_slots_preserved": 12,
+      "granted_source_clause_non_pivotal_slot_omitted_decision_preserved": 3,
+      "granted_source_clause_preserved_decision": 15,
+      "granted_source_clause_degraded_to_clarify": 1,
+      "granted_source_clause_condition_mutated": 0,
       "bm25_char2_top1": 1.0,
       "bm25_char2_mrr": 1.0
     }

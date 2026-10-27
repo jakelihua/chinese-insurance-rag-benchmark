@@ -21,13 +21,13 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 import experiment as base
 from condition_data import POLICIES, compact, decision
-from condition_guard import chinese_number, extract_fields
+from condition_guard import chinese_number, extract_fields, resolve_contrastive_and_negated_spans
 
 
 def extract_fields_surface_normalized(text, policies=POLICIES):
     """Surface-normalized slot extractor shared across development and held-out insurance clauses."""
     fields = extract_fields(text)
-    norm = compact(text)
+    norm = resolve_contrastive_and_negated_spans(compact(text))
     matches = [
         sid for sid, p in policies.items()
         if compact(p['title']) in norm or any(compact(a) in norm for a in p.get('aliases', []))
@@ -36,7 +36,12 @@ def extract_fields_surface_normalized(text, policies=POLICIES):
     if re.search(r'(?:疾病|生病).{0,12}(?:还是|或).{0,12}意外.{0,12}(?:还不清楚|尚不清楚|不清楚|不确定)', norm):
         fields['cause'] = None
     num = r'([0-9零〇一二两三四五六七八九十百]+)'
-    if fields['policy_day'] is None:
+    if re.search(
+        r'生效[^，。；！？]{0,18}?(?:第)?' + num + r'(?:天|日)\s*(?:或|还是|或者|以及|变成|改为)\s*(?:第)?' + num + r'(?:天|日)',
+        norm,
+    ):
+        fields['policy_day'] = None
+    elif fields['policy_day'] is None:
         day = re.findall(r'生效(?:算起|后|起|是|为|已经|已)?(?:的)?(?:第)?' + num + r'(?:天|日)', norm)
         if len(day) == 1:
             fields['policy_day'] = chinese_number(day[0])
@@ -187,8 +192,23 @@ def evaluate_slot_completeness(observed, seed_frame, required_fields, grant_sour
     return outcome, outcome, mutated, missing
 
 
+def load_dev_inputs_and_evidence(root, data_dir):
+    gen_in_path = root / 'generation_inputs.json'
+    fallback_path = data_dir / 'dev_seed_inputs.json'
+    if gen_in_path.exists():
+        inputs = json.loads(gen_in_path.read_text(encoding='utf-8'))
+    else:
+        inputs = json.loads(fallback_path.read_text(encoding='utf-8'))
+    ev_path = root / 'evidence_private.json'
+    if ev_path.exists():
+        evidence = json.loads(ev_path.read_text(encoding='utf-8'))
+    else:
+        evidence = inputs['evidence']
+    return inputs, evidence
+
+
 def analyze_v3_generations(root, data_dir):
-    inputs = json.loads((root / 'generation_inputs.json').read_text(encoding='utf-8'))
+    inputs, evidence = load_dev_inputs_and_evidence(root, data_dir)
     seeds = {r['seed_id']: r for r in inputs['jobs']}
     gen_rows = [json.loads(s) for s in (data_dir / 'generated_questions.jsonl').read_text(encoding='utf-8').splitlines()]
 
@@ -283,7 +303,6 @@ def analyze_v3_generations(root, data_dir):
         }
 
     # Clause retrieval discrimination over the 5 official clauses and combined 3751-doc corpus
-    evidence = json.loads((root / 'evidence_private.json').read_text(encoding='utf-8'))
     policy_ids = list(POLICIES.keys())
     clause_docs = [ f"《{POLICIES[pid]['title']}》 {evidence[pid]}" for pid in policy_ids ]
 
@@ -353,6 +372,14 @@ def analyze_v2_abstention_and_ppi(v2_dir):
                 syn_ov2_by_mode[m_name] = np.array([bigram_containment(r['question'], docs[r['doc_id']]) for r in sub])
         kw_queries, _ = base.synthetic_queries(docs)
         syn_ov2_by_mode['keywords_matched'] = np.array([bigram_containment(kw_queries[d], docs[d]) for d in common])
+    elif (v2_dir / 'overlap_cache.npz').exists():
+        ov_npz = np.load(v2_dir / 'overlap_cache.npz')
+        if 'demos' in ov_npz:
+            demos = ov_npz['demos'].tolist()
+        cal_ov2 = ov_npz['cal_ov2']
+        for m_name in ['keywords_matched', 'zero_shot', 'few_shot_3']:
+            if m_name in ov_npz:
+                syn_ov2_by_mode[m_name] = ov_npz[m_name]
     pool = sorted(set(range(len(real_cal))) - set(demos))
 
     summary_rows = []
@@ -450,7 +477,7 @@ def analyze_v2_abstention_and_ppi(v2_dir):
 
 def rescore_multi_scale_summary(root, data_dir, v3_diag):
     """Deterministically rescore saved Qwen-Plus and Qwen-Max generation logs alongside local 1.5B."""
-    inputs = json.loads((root / 'generation_inputs.json').read_text(encoding='utf-8'))
+    inputs, _ = load_dev_inputs_and_evidence(root, data_dir)
     seeds = {r['seed_id']: r for r in inputs['jobs']}
     fields_order = ['policy_id', 'enrollment', 'policy_day', 'cause', 'plan_wait_days', 'approved_waiver']
     denoms = v3_diag['required_field_denominators']
@@ -459,11 +486,13 @@ def rescore_multi_scale_summary(root, data_dir, v3_diag):
         'required_field_denominators': denoms,
         'qwen2.5-1.5b-instruct': v3_diag['methods'],
     }
-    for model_key, subdir in [
-        ('qwen-plus', 'generation_qwen_plus'),
-        ('qwen-max', 'generation_qwen_max'),
+    for model_key, subdir, fallback_name in [
+        ('qwen-plus', 'generation_qwen_plus', 'generated_questions_qwen_plus.jsonl'),
+        ('qwen-max', 'generation_qwen_max', 'generated_questions_qwen_max.jsonl'),
     ]:
         gpath = root / subdir / 'generations.jsonl'
+        if not gpath.exists():
+            gpath = data_dir / fallback_name
         if not gpath.exists():
             continue
         rows_all = [json.loads(line) for line in gpath.read_text(encoding='utf-8').splitlines() if line.strip()]

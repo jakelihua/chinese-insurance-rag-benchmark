@@ -13,6 +13,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import experiment as base
+from condition_guard import resolve_contrastive_and_negated_spans
 
 CROSS_CLAUSES = {
     'med_egfr_tki': {
@@ -319,15 +320,16 @@ def extract_cross_slots_v1(text, seed_frame):
 def extract_cross_slots_v2(text, seed_frame=None):
     """Synonym-aware slot parser (v2_synonym_aware). Does not access seed_frame."""
     obs = {}
+    resolved_text = resolve_contrastive_and_negated_spans(text)
     # 1. clause_id
     for cid, meta in CROSS_CLAUSES.items():
         if meta['title'] in text or any(a in text for a in meta['aliases']):
             obs['clause_id'] = cid
             break
     # 2. status (check discontinuation/exception phrases BEFORE '常规抗凝' so '已停用常规抗凝预防方案' -> 'secondary')
-    if any(k in text for k in ['二线转换', '二线', '耐药后', '已停用常规', '停用常规', '停止常规', '顺路接送家属', '已按月足额']):
+    if any(k in resolved_text for k in ['二线转换', '二线', '耐药后', '已停用常规', '停用常规', '停止常规', '顺路接送家属', '已按月足额']):
         obs['status'] = 'secondary'
-    elif any(k in text for k in [
+    elif any(k in resolved_text for k in [
         '一线初治', '常规抗凝', '上下班途中', '上班路上', '合理路线',
         '未支付补偿', '未支付经济补偿', '未支付竞业限制', '没有按时支付', '没按时支付',
         '拖欠补偿', '连续拖欠', '未付',
@@ -335,13 +337,13 @@ def extract_cross_slots_v2(text, seed_frame=None):
         obs['status'] = 'primary'
 
     # 3. condition: check negated/multi-word phrases before their un-negated substrings
-    if any(k in text for k in [
+    if any(k in resolved_text for k in [
         '不负有保密义务', '无保密义务', '没有保密义务', '未负有保密义务',
         '普通行政文员', '普通的行政文员',
         'T790M阴性', 'T790M突变阴性', '野生型',
     ]):
         obs['condition'] = 'disqualified'
-    elif any(k in text for k in [
+    elif any(k in resolved_text for k in [
         'T790M突变阳性', 'T790M阳性',
         '无活动性出血', '没有活动性出血', '没有发现活动性出血', '未出现活动性出血',
         '非本人主要责任', '不是本人主要责任', '不是他主要责任', '不是主要责任', '不主要责任', '并非本人主要责任',
@@ -349,7 +351,7 @@ def extract_cross_slots_v2(text, seed_frame=None):
         '高级技术人员', '高级管理人员', '负有保密义务',
     ]):
         obs['condition'] = 'qualified'
-    elif any(k in text for k in [
+    elif any(k in resolved_text for k in [
         '出现活动性出血', '出现了活动性出血', '有活动性出血', '发生活动性出血',
         '本人主要责任', '本人的主要责任', '全部责任',
     ]):
@@ -384,7 +386,7 @@ def extract_cross_slots_v2(text, seed_frame=None):
             obs['threshold_days'] = 365
 
     # Remove matched threshold clause phrase before searching elapsed_day to avoid conflating '事故发生后30天内提出申请' with elapsed_day
-    cleaned_for_day = re.sub(r'用人单位(?:须|在)?事故发生(?:之日|后)(?:起|的)?\s*\d+\s*[天日]内提出申请', '', text)
+    cleaned_for_day = re.sub(r'用人单位(?:须|在)?事故发生(?:之日|后)(?:起|的)?\s*\d+\s*[天日]内提出申请', '', resolved_text)
     cleaned_for_day = re.sub(r'法定的解除竞业限制的条件是连续未支付\s*\d+\s*[天日]', '', cleaned_for_day)
 
     m_paren = re.search(r'超过(?:了)?\d+天（即(\d+)天）', cleaned_for_day)
@@ -397,12 +399,19 @@ def extract_cross_slots_v2(text, seed_frame=None):
             r'(?:没有按时支付|没按时支付)[^。？]{0,18}?(?:已经|已)(?:连续|超过)?(?:未支付)?(?:了)?\s*(\d+)\s*[天日]',
             r'(?:第|满|达|已经)\s*(\d+|七|十|十四|二十|三十五|四十五|一百二十)\s*[天日]',
         ]
+        matched_days = []
         for pat in day_patterns:
-            m = re.findall(pat, cleaned_for_day)
-            if m:
-                raw_d = m[0]
-                obs['elapsed_day'] = int(raw_d) if raw_d.isdigit() else cn_map.get(raw_d)
-                break
+            for raw_d in re.findall(pat, cleaned_for_day):
+                val = int(raw_d) if raw_d.isdigit() else cn_map.get(raw_d)
+                if val is not None and val not in matched_days:
+                    matched_days.append(val)
+        if re.search(
+            r'(?:第)?(\d+|七|十|十四|二十|三十五|四十五|九十|一百二十)\s*[天日]\s*(?:或|还是|或者|以及|变成|改为)\s*(?:第)?(\d+|七|十|十四|二十|三十五|四十五|九十|一百二十)\s*[天日]',
+            cleaned_for_day,
+        ):
+            matched_days = []
+        if len(matched_days) == 1:
+            obs['elapsed_day'] = matched_days[0]
 
     # 5. approved_waiver: check explicit uncertainty and negated waiver before positive phrases
     if re.search(
@@ -468,20 +477,28 @@ def enumerate_cross_decisions(obs, seed_frame=None):
 ALL_CROSS_FIELDS = ['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']
 
 
-def should_trigger_slot_guard_repair(missing, mutated):
+def should_trigger_slot_guard_repair(missing, mutated, outcome=None):
     """Unified slot-guard repair trigger used identically by both fresh generation and --score-only."""
+    if outcome is not None and outcome != 'PRESERVED_DECISION':
+        return True
     return bool(missing or mutated)
 
 
-def evaluate_cross_outcome(obs, seed_frame):
+def evaluate_cross_outcome(obs, seed_frame, grant_source_clause=False):
+    eff = dict(obs)
+    if grant_source_clause and eff.get('clause_id') is None:
+        eff['clause_id'] = seed_frame['clause_id']
     req = seed_frame['required_fields']
     mutated = [
         f for f in ALL_CROSS_FIELDS
-        if obs.get(f) is not None and obs.get(f) != 'unknown' and obs.get(f) != seed_frame.get(f)
+        if eff.get(f) is not None and eff.get(f) != 'unknown' and eff.get(f) != seed_frame.get(f)
     ]
-    missing = [f for f in req if obs.get(f) is None or obs.get(f) == 'unknown']
+    missing = [f for f in req if eff.get(f) is None or eff.get(f) == 'unknown']
+    for f in ALL_CROSS_FIELDS:
+        if eff.get(f) == 'unknown' and f not in missing:
+            missing.append(f)
     ref_dec = cross_decision(seed_frame)
-    reachable = enumerate_cross_decisions(obs)
+    reachable = enumerate_cross_decisions(eff)
     if mutated:
         return 'CONDITION_MUTATED', missing, mutated
     if len(reachable) == 1:
@@ -542,6 +559,9 @@ def main():
     p.add_argument('--score-only', action='store_true')
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+    gen_path = args.out / 'cross_domain_generations.jsonl'
+    if args.score_only and not gen_path.exists():
+        raise FileNotFoundError(f'--score-only requires existing generation file: {gen_path}')
 
     seeds, cases = build_Controlled_Cases()
     seed_map = {s['seed_id']: s for s in seeds}
@@ -549,8 +569,7 @@ def main():
         for c in cases:
             f.write(json.dumps(c, ensure_ascii=False) + '\n')
 
-    gen_path = args.out / 'cross_domain_generations.jsonl'
-    if args.score_only and gen_path.exists():
+    if args.score_only:
         raw_records = [json.loads(line) for line in gen_path.open('r', encoding='utf-8') if line.strip()]
         by_seed = {}
         for r in raw_records:
@@ -566,7 +585,9 @@ def main():
                 records.append(r)
             cp_rec = records[-1]
             rep_orig = dict(by_seed[sid]['slot_guard_repair'])
-            if not should_trigger_slot_guard_repair(cp_rec['missing_slots'], cp_rec['mutated_slots']):
+            if not should_trigger_slot_guard_repair(
+                cp_rec['missing_slots'], cp_rec['mutated_slots'], cp_rec['outcome']
+            ):
                 rep_rec = dict(cp_rec)
                 rep_rec['method'] = 'slot_guard_repair'
                 rep_rec['repaired'] = False
@@ -639,7 +660,7 @@ def main():
                     'format_valid': bool(len(q_out) >= 6 and q_out.endswith(('？', '?'))),
                 })
                 if method == 'condition_prompt':
-                    if should_trigger_slot_guard_repair(missing, mutated):
+                    if should_trigger_slot_guard_repair(missing, mutated, outcome):
                         bad_fields = missing + mutated
                         needed_desc = '、'.join(SLOT_NAMES_ZH[f](s) for f in bad_fields)
                         repair_usr = (
@@ -700,6 +721,9 @@ def main():
         top1, mrr = [], []
         v1_outcomes = []
         v1_all_slots = []
+        granted_outcomes = []
+        granted_all_slots = []
+        granted_non_pivotal = []
         for idx, r in enumerate(sub):
             gold_idx = clause_ids.index(r['clause_id'])
             order = np.argsort(-scores[idx], kind='stable')
@@ -710,6 +734,12 @@ def main():
             v1_out, v1_miss, v1_mut = evaluate_cross_outcome(v1_obs, seed_map[r['seed_id']])
             v1_outcomes.append(v1_out)
             v1_all_slots.append(not v1_miss and not v1_mut)
+            g_out, g_miss, g_mut = evaluate_cross_outcome(
+                r['observed_slots'], seed_map[r['seed_id']], grant_source_clause=True
+            )
+            granted_outcomes.append(g_out)
+            granted_all_slots.append(not g_miss and not g_mut)
+            granted_non_pivotal.append(bool(g_miss) and not g_mut and g_out == 'PRESERVED_DECISION')
         summary['methods'][method] = {
             'attempts': len(sub),
             'format_valid': sum(r['format_valid'] for r in sub),
@@ -724,6 +754,11 @@ def main():
             'preserved_decision': sum(r['outcome'] == 'PRESERVED_DECISION' for r in sub),
             'degraded_to_clarify': sum(r['outcome'] == 'DEGRADED_TO_CLARIFY' for r in sub),
             'condition_mutated': sum(r['outcome'] == 'CONDITION_MUTATED' for r in sub),
+            'granted_source_clause_all_slots_preserved': sum(granted_all_slots),
+            'granted_source_clause_non_pivotal_slot_omitted_decision_preserved': sum(granted_non_pivotal),
+            'granted_source_clause_preserved_decision': sum(o == 'PRESERVED_DECISION' for o in granted_outcomes),
+            'granted_source_clause_degraded_to_clarify': sum(o == 'DEGRADED_TO_CLARIFY' for o in granted_outcomes),
+            'granted_source_clause_condition_mutated': sum(o == 'CONDITION_MUTATED' for o in granted_outcomes),
             'bm25_char2_top1': float(np.mean(top1)),
             'bm25_char2_mrr': float(np.mean(mrr)),
         }

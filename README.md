@@ -19,11 +19,11 @@ Retrieval-augmented generation (RAG) benchmarks often synthesize test queries fr
    - On four additional official insurance policy PDFs (`pa_2011_36`, `pa_p0254`, `pa_p0321`, `cpic_93896`) with textbook book-title markers (`《》`) and clause-number headers stripped, we conduct a retrospective post-refinement evaluation after adding colloquial product aliases and benefit-level disambiguation (`benefit_id`) to the shared parser (`extract_fields_surface_normalized`), explicitly modeling benefit-specific waiting-period rules (distinguishing general inpatient allowance [Article 4(1), 30-day wait, accident & continuous renewal exempt] from cancer inpatient allowance [Article 4(2), 90-day wait, continuous renewal exempt, no accident exemption] in `pa_2011_36`, and primary lung cancer excluding carcinoma in situ in `pa_p0321`) and separating contract PDF clause anchors (`source_type='pdf_contract_clause'`) from synthetic seed scenario parameters (`source_type='synthetic_seed_frame'`) in `atomic_rubrics`.
    - The unified verifier certifies $100.0\%$ ($64/64$) of controlled cases. Conversational rewrites (`ordinary_style`) achieve high lexical novelty ($1-\kappa_2=0.5380$) but $0/16$ ($0.0\%$) standalone decision determinacy ($5/16$ [$31.2\%$] when granted the source policy ID), while single-pass `condition_prompt` already reaches $16/16$ ($100.0\%$), so `slot_guard_repair` triggers $0$ repair calls (exact two-sided McNemar $p=1.0$ vs. `condition_prompt`, $p=0.03125$ vs. `structured_json_rewrite` at $10/16$). Masking product titles and insurer names drops 9-clause Top-1 retrieval from $75.0\%$ to $31.2\%$ on `bge_small_zh` for title-preserving queries.
 3. **Equal-Call-Budget Baseline Comparison on Multi-Threshold Composite Rules ($16$ seeds, $64$ cases, $7$ methods):**
-   - On a 16-seed ($64$-case) synthetic multi-threshold rule testbed inspired by clinical pathways and labor statutes (`med_egfr_tki`, `med_vte_prophylaxis`, `law_work_injury`, `law_noncompete`), all 6 non-JSON methods achieve $100.0\%$ ($16/16$) Top-1 retrieval on both `bm25_char2` and `bge_small_zh` (both standard and title-masked), yet `ordinary_style` preserves decision determinacy in only $6.2\%$ ($1/16$), and 1-call `structured_json_rewrite` fails two-line format validation ($0/16$ valid; $0/16$ hit the 160-token cap with `generated_tokens` $\in [45, 111]$, as the model stops immediately after closing the first-line JSON brace).
-   - At an identical $26$-call budget ($16$ initial $+$ $10$ second-pass calls on the shared 10-seed trigger schedule), unguided LLM self-refinement (`generic_self_refine_budget_matched`, $26$ calls; unchanged at $32$ calls in `generic_self_refine_all`) achieves $37.5\%$ ($6/16$) all-slot match and $50.0\%$ ($8/16$) decision determinacy with $25.0\%$ ($4/16$) threshold mutations, whereas symbolic parser-guided `slot_guard_repair` ($26$ calls) reaches $68.8\%$ ($11/16$) all-slot match, $75.0\%$ ($12/16$) decision determinacy, and $0.0\%$ ($0/16$) parser-detected mutations (exact two-sided McNemar $p=0.125$ vs. `generic_self_refine_budget_matched`, $p=0.0625$ vs. `condition_prompt`).
+   - On a 16-seed ($64$-case) synthetic multi-threshold rule testbed inspired by clinical pathways and labor statutes (`med_egfr_tki`, `med_vte_prophylaxis`, `law_work_injury`, `law_noncompete`), all 6 non-JSON methods achieve $100.0\%$ ($16/16$) Top-1 retrieval on both `bm25_char2` and `bge_small_zh` (both standard and title-masked), yet `ordinary_style` preserves standalone decision determinacy in only $6.2\%$ ($1/16$; $43.8\%$ [$7/16$] when the source `clause_id` is granted, while $9/16$ still fail on substantive conditions), and 1-call `structured_json_rewrite` fails two-line format validation ($0/16$ valid; $0/16$ hit the 160-token cap with `generated_tokens` $\in [45, 111]$, as the model stops immediately after closing the first-line JSON brace).
+   - At an identical $26$-call budget ($16$ initial $+$ $10$ second-pass calls on the shared 10-seed trigger schedule), unguided LLM self-refinement (`generic_self_refine_budget_matched`, $26$ calls; unchanged at $32$ calls in `generic_self_refine_all`) achieves $37.5\%$ ($6/16$) all-slot match and $50.0\%$ ($8/16$) decision determinacy (both standalone and granted-clause) with $25.0\%$ ($4/16$) threshold mutations, whereas symbolic parser-guided `slot_guard_repair` ($26$ calls) reaches $68.8\%$ ($11/16$) standalone all-slot match, $75.0\%$ ($12/16$) standalone decision determinacy ($93.8\%$ [$15/16$] under granted-clause sensitivity once the 3 `law_noncompete` title-omission cases `cross-013`, `014`, `016` are granted `clause_id`), and $0.0\%$ ($0/16$) parser-detected mutations (primary standalone exact two-sided McNemar $p=0.125$ vs. `generic_self_refine_budget_matched` and $p=0.0625$ vs. `condition_prompt`; post-hoc granted-clause sensitivity $p=0.015625$ and $p=0.007812$).
 4. **Deterministic Verifier Diagnostic Log, Watchlist & Appendix A Community-QA Retrieval Diagnostics:**
    - A deterministic 264-item verifier diagnostic log and manual-inspection watchlist (`data_v3/item_by_item_semantic_audit.jsonl`, explicitly marked as an automated parser explanation and 29-item surface-edge-case watchlist rather than external semantic validation or human annotation) documents per-slot extraction traces and edge cases.
-   - Appendix A reports corpus-level retrieval ranking and calibration diagnostics on `baoxianzhidao_filter.csv` ($3{,}746$ answers, $2{,}994$ held-out real queries, `Full-MaxP` zero-truncation check, source-sampling confounding vs. lexical copying decomposition, negative propensity-reweighting results, and paired-bootstrap candidate-set abstention).
+   - Appendix A reports corpus-level retrieval ranking and calibration diagnostics on `baoxianzhidao_filter.csv` ($3{,}746$ answers, $2{,}994$ held-out real queries, `Full-MaxP` zero-truncation check, source-sampling confounding vs. lexical copying decomposition, negative propensity-reweighting results, and heuristic paired-bootstrap candidate-set abstention).
 
 ---
 
@@ -66,7 +66,8 @@ Retrieval-augmented generation (RAG) benchmarks often synthesize test queries fr
 │   ├── maxp_ablation.py            # Source-sampling confounding, quantile sensitivity & Full-MaxP ablation
 │   ├── analyze_v3.py               # Slot completeness vs. decision determinacy, source_overlap_gated & abstention
 │   └── score_annotations.py        # Blinded human annotation unblinding & Cohen's kappa scorer
-├── tests/                          # Unit test suite (29/29 deterministic tests)
+├── tests/                          # Deterministic unit test suite
+├── requirements.txt                # Pinned Python dependencies for offline reproduction
 └── paper/                          # English & Chinese manuscripts + Overleaf LaTeX package
 ```
 
@@ -74,25 +75,28 @@ Retrieval-augmented generation (RAG) benchmarks often synthesize test queries fr
 
 ## Reproducing the Experiments & Running Unit Tests
 
-### 1. Run the Deterministic Unit Test Suite (29 Tests)
+### 0. Environment Setup
+```bash
+pip install -r requirements.txt
+```
+
+### 1. Run the Deterministic Unit Test Suite
 ```bash
 python3 -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-### 2. Official Policy Condition Verification, Held-Out Confirmation & Equal-Call-Budget Study
+### 2. Self-Contained Offline Rescoring & Verifier Diagnostics (Works in Clean Checkout Without `../../work/`)
+All four primary verification and diagnostic commands below run deterministically in an isolated git checkout (including with `HF_HUB_OFFLINE=1`) using the tracked seed definitions, generation logs, and precomputed embedding/overlap caches in `data_v3/` and `results/validation_v2/`:
 ```bash
-# Build 80 development controlled cases with single-field counterexamples
-python3 src/condition_data.py --root ../../work/condition_study --out data_v3
-
-# Run cross-round diagnostics, multi-threshold rescoring, held-out & equal-budget rescoring, and exploratory semantic audit
 python3 src/analyze_v3.py
 python3 src/cross_domain_study.py --score-only
 python3 src/equal_budget_and_heldout_study.py --score-only
 python3 src/build_item_semantic_audit.py
 ```
 
-### 3. Appendix A: Group-Disjoint Community-QA Split, LLM Query Synthesis & Full-MaxP Diagnostics
+### 3. Optional Full Regeneration from Raw Third-Party PDFs / Local Model Weights (Requires Local `../../work/`)
 ```bash
+python3 src/condition_data.py --root ../../work/condition_study --out data_v3
 python3 src/experiment.py --data ../../work/baoxianzhidao_filter.csv --out results --seed 20261025 --repeats 5
 python3 src/validate_v2.py --inputs ../../work/validation_v2/evaluation_inputs.json --generations ../../work/validation_v2/generation_float32 --embeddings ../../work/validation_v2/embedding_cache --bge-model ../../work/models/bge --out results/validation_v2
 python3 src/maxp_ablation.py

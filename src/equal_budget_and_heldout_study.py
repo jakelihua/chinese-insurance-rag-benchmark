@@ -18,7 +18,10 @@ import re
 import time
 from pathlib import Path
 
-import fitz
+try:
+    import fitz
+except ImportError:
+    fitz = None
 import numpy as np
 from scipy.stats import binomtest
 import torch
@@ -388,30 +391,45 @@ def build_atomic_clause_rubrics(frame, policy, anchor, pdf_file):
     return rubrics
 
 
-def build_heldout_seeds_and_cases(raw_heldout_dir):
+def build_heldout_seeds_and_cases(raw_heldout_dir, out_dir=None):
+    if out_dir is None:
+        out_dir = Path(__file__).resolve().parents[1] / 'data_v3'
     sources = []
     evidence = {}
     anchors = {}
+    cached_sources = {}
+    if (out_dir / 'heldout_clauses_sources.json').exists():
+        for s in json.loads((out_dir / 'heldout_clauses_sources.json').read_text(encoding='utf-8')):
+            cached_sources[s['id']] = s
+    cached_ev = {}
+    if (out_dir / 'dev_seed_inputs.json').exists():
+        cached_ev = json.loads((out_dir / 'dev_seed_inputs.json').read_text(encoding='utf-8')).get('heldout_evidence', {})
     for pid, pol in HELDOUT_POLICIES.items():
         pdf_path = raw_heldout_dir / f'{pid}.pdf'
-        sha = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
-        with fitz.open(pdf_path) as pdf:
-            anchor, text = source_anchor(pdf, pol)
-        anchors[pid] = anchor
-        sources.append({
-            'id': pid,
-            'title': pol['title'],
-            'colloquial_name': pol.get('colloquial_name', pol['title']),
-            'aliases': pol.get('aliases', []),
-            'insurer': pol['insurer'],
-            'url': pol['url'],
-            'sha256': sha,
-            'bytes': pdf_path.stat().st_size,
-            'document_type': 'heldout_formal_policy_clause',
-            'license_status': 'publicly accessible; no redistribution license verified',
-            'anchor': anchor,
-        })
-        evidence[pid] = text
+        if pdf_path.exists() and fitz is not None:
+            sha = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
+            with fitz.open(pdf_path) as pdf:
+                anchor, text = source_anchor(pdf, pol)
+            anchors[pid] = anchor
+            sources.append({
+                'id': pid,
+                'title': pol['title'],
+                'colloquial_name': pol.get('colloquial_name', pol['title']),
+                'aliases': pol.get('aliases', []),
+                'insurer': pol['insurer'],
+                'url': pol['url'],
+                'sha256': sha,
+                'bytes': pdf_path.stat().st_size,
+                'document_type': 'heldout_formal_policy_clause',
+                'license_status': 'publicly accessible; no redistribution license verified',
+                'anchor': anchor,
+            })
+            evidence[pid] = text
+        else:
+            s_entry = cached_sources[pid]
+            anchors[pid] = s_entry['anchor']
+            sources.append(s_entry)
+            evidence[pid] = cached_ev[pid]
 
     seed_configs = [
         # pa_2011_36: Clause 4(1) general_hospital (30d, accident_exempt=True) vs Clause 4(2) cancer_hospital (90d, accident_exempt=False)
@@ -525,18 +543,26 @@ def mask_titles_and_insurers(text, titles):
     return masked
 
 
-def evaluate_dense_and_lexical_clause_retrieval(clause_docs, query_list, gold_indices, bge_tokenizer, bge_model, device):
+def evaluate_dense_and_lexical_clause_retrieval(
+    clause_docs, query_list, gold_indices, bge_tokenizer, bge_model, device, bge_cache=None
+):
     bm25_res = base.evaluate_retrievers(clause_docs, {'q': (query_list, [{g} for g in gold_indices])})['q']
     idx_bm25 = base.SYSTEMS.index('bm25_char2')
     bm25_mrr = float(bm25_res[:, idx_bm25, 0].mean())
     bm25_top1 = float((bm25_res[:, idx_bm25, 0] == 1.0).mean())
 
     q_prefixed = ['为这个句子生成表示以用于检索相关文章：' + q for q in query_list]
-    with torch.inference_mode():
-        d_enc = bge_tokenizer(clause_docs, padding=True, truncation=True, max_length=512, return_tensors='pt').to(device)
-        d_emb = torch.nn.functional.normalize(bge_model(**d_enc).last_hidden_state[:, 0], p=2, dim=1).cpu().numpy().astype(np.float64)
-        q_enc = bge_tokenizer(q_prefixed, padding=True, truncation=True, max_length=512, return_tensors='pt').to(device)
-        q_emb = torch.nn.functional.normalize(bge_model(**q_enc).last_hidden_state[:, 0], p=2, dim=1).cpu().numpy().astype(np.float64)
+    if bge_model is not None and bge_tokenizer is not None:
+        with torch.inference_mode():
+            d_enc = bge_tokenizer(clause_docs, padding=True, truncation=True, max_length=512, return_tensors='pt').to(device)
+            d_emb = torch.nn.functional.normalize(bge_model(**d_enc).last_hidden_state[:, 0], p=2, dim=1).cpu().numpy().astype(np.float64)
+            q_enc = bge_tokenizer(q_prefixed, padding=True, truncation=True, max_length=512, return_tensors='pt').to(device)
+            q_emb = torch.nn.functional.normalize(bge_model(**q_enc).last_hidden_state[:, 0], p=2, dim=1).cpu().numpy().astype(np.float64)
+    elif bge_cache is not None:
+        d_emb = np.stack([bge_cache[d] for d in clause_docs], axis=0)
+        q_emb = np.stack([bge_cache[q] for q in q_prefixed], axis=0)
+    else:
+        raise FileNotFoundError('Neither local bge model nor bge_embedding_cache.npz is available.')
     sim = np.einsum('qd,cd->qc', q_emb, d_emb, optimize=True)
     bge_mrrs = []
     bge_top1s = []
@@ -599,14 +625,18 @@ def paired_mcnemar(rows, left, right, field='outcome', target='PRESERVED_DECISIO
     }
 
 
-def summarize_method_records(records, clause_docs, clause_ids, titles, bge_tokenizer, bge_model, device):
+def summarize_method_records(records, clause_docs, clause_ids, titles, bge_tokenizer, bge_model, device, bge_cache=None):
     n = len(records)
     qs = [r['question'] for r in records]
     golds = [clause_ids.index(r['clause_id']) for r in records]
-    full_ret = evaluate_dense_and_lexical_clause_retrieval(clause_docs, qs, golds, bge_tokenizer, bge_model, device)
+    full_ret = evaluate_dense_and_lexical_clause_retrieval(
+        clause_docs, qs, golds, bge_tokenizer, bge_model, device, bge_cache=bge_cache
+    )
     masked_docs = [mask_titles_and_insurers(d, titles) for d in clause_docs]
     masked_qs = [mask_titles_and_insurers(q, titles) for q in qs]
-    masked_ret = evaluate_dense_and_lexical_clause_retrieval(masked_docs, masked_qs, golds, bge_tokenizer, bge_model, device)
+    masked_ret = evaluate_dense_and_lexical_clause_retrieval(
+        masked_docs, masked_qs, golds, bge_tokenizer, bge_model, device, bge_cache=bge_cache
+    )
 
     novelties = [1.0 - bigram_containment(r['question'], r['seed_question']) for r in records]
     clause_copies = [bigram_containment(r['question'], clause_docs[clause_ids.index(r['clause_id'])]) for r in records]
@@ -656,10 +686,27 @@ def main():
     args = p.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    if args.score_only:
+        for req_file in [
+            args.out_dir / 'heldout_generations.jsonl',
+            args.out_dir / 'cross_domain_generations.jsonl',
+            args.out_dir / 'cross_domain_equal_budget_generations.jsonl',
+        ]:
+            if not req_file.exists():
+                raise FileNotFoundError(f'--score-only requires existing generation file: {req_file}')
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 
-    bge_tokenizer = AutoTokenizer.from_pretrained(str(args.bge_model), local_files_only=True)
-    bge_model = AutoModel.from_pretrained(str(args.bge_model), local_files_only=True, use_safetensors=True).to(device).eval()
+    bge_tokenizer = None
+    bge_model = None
+    bge_cache = None
+    if args.bge_model.exists():
+        bge_tokenizer = AutoTokenizer.from_pretrained(str(args.bge_model), local_files_only=True)
+        bge_model = AutoModel.from_pretrained(str(args.bge_model), local_files_only=True, use_safetensors=True).to(device).eval()
+    elif (args.out_dir / 'bge_embedding_cache.npz').exists():
+        cache_npz = np.load(args.out_dir / 'bge_embedding_cache.npz', allow_pickle=True)
+        bge_cache = {str(t): emb for t, emb in zip(cache_npz['texts'], cache_npz['embeddings'])}
+    else:
+        raise FileNotFoundError(f'BGE model not found at {args.bge_model} and no cache at {args.out_dir / "bge_embedding_cache.npz"}')
 
     tokenizer = None
     model = None
@@ -674,7 +721,7 @@ def main():
         ).to(device).eval()
 
     # 1. Held-out official insurance policies benchmark (4 unseen PDFs, 16 seeds)
-    sources, evidence, held_seeds, held_cases = build_heldout_seeds_and_cases(args.raw_heldout)
+    sources, evidence, held_seeds, held_cases = build_heldout_seeds_and_cases(args.raw_heldout, out_dir=args.out_dir)
     base.write_json(args.out_dir / 'heldout_clauses_sources.json', sources)
     with (args.out_dir / 'heldout_controlled_cases.jsonl').open('w', encoding='utf-8') as f:
         for c in held_cases:
@@ -775,8 +822,8 @@ def main():
 
             # 5. slot_guard_repair (<=2 calls: triggered by unified parser)
             obs_cond = extract_insurance_fields_frozen(q_cond, HELDOUT_POLICIES)
-            _, miss_cond, mut_cond = evaluate_insurance_outcome_frozen(obs_cond, frame, req, HELDOUT_POLICIES)
-            if should_trigger_slot_guard_repair(miss_cond, mut_cond):
+            out_cond, miss_cond, mut_cond = evaluate_insurance_outcome_frozen(obs_cond, frame, req, HELDOUT_POLICIES)
+            if should_trigger_slot_guard_repair(miss_cond, mut_cond, out_cond):
                 hints = []
                 if 'policy_id' in miss_cond or 'policy_id' in mut_cond:
                     hints.append(f'必须完整包含险种名称“{pol_title}”（不加《》书名号）')
@@ -869,7 +916,11 @@ def main():
     ]
 
     # Combined 9-clause official insurance pool (5 dev + 4 held-out)
-    dev_evidence = json.loads((work_root / 'condition_study' / 'evidence_private.json').read_text(encoding='utf-8'))
+    dev_ev_path = work_root / 'condition_study' / 'evidence_private.json'
+    if dev_ev_path.exists():
+        dev_evidence = json.loads(dev_ev_path.read_text(encoding='utf-8'))
+    else:
+        dev_evidence = json.loads((args.out_dir / 'dev_seed_inputs.json').read_text(encoding='utf-8'))['evidence']
     combined_9_ids = list(DEV_POLICIES.keys()) + held_clause_ids
     combined_9_docs = (
         [f"《{DEV_POLICIES[pid]['title']}》 {dev_evidence[pid]}" for pid in DEV_POLICIES]
@@ -884,8 +935,12 @@ def main():
         'generic_self_refine_all', 'slot_guard_repair',
     ]:
         sub = [r for r in scored_held_rows if r['method'] == m]
-        summary_4 = summarize_method_records(sub, held_clause_docs, held_clause_ids, held_titles, bge_tokenizer, bge_model, device)
-        summary_9 = summarize_method_records(sub, combined_9_docs, combined_9_ids, combined_9_titles, bge_tokenizer, bge_model, device)
+        summary_4 = summarize_method_records(
+            sub, held_clause_docs, held_clause_ids, held_titles, bge_tokenizer, bge_model, device, bge_cache=bge_cache
+        )
+        summary_9 = summarize_method_records(
+            sub, combined_9_docs, combined_9_ids, combined_9_titles, bge_tokenizer, bge_model, device, bge_cache=bge_cache
+        )
         summary_4['combined_9clause_standard_retrieval'] = summary_9['standard_retrieval']
         summary_4['combined_9clause_title_masked_retrieval'] = summary_9['title_masked_retrieval']
         held_methods_summary[m] = summary_4
@@ -1009,7 +1064,8 @@ def main():
         s = cross_seeds_map[r['seed_id']]
         q = r['question']
         obs = extract_cross_slots_v2(q)
-        outcome, miss, mut = evaluate_cross_outcome(obs, s)
+        outcome, miss, mut = evaluate_cross_outcome(obs, s, grant_source_clause=False)
+        outcome_g, miss_g, mut_g = evaluate_cross_outcome(obs, s, grant_source_clause=True)
         qmarks = q.count('？') + q.count('?')
         fmt_valid = bool(len(q) >= 6 and ('？' in q or '?' in q) and '\n' not in q)
         scored_cross_ext.append({
@@ -1019,6 +1075,10 @@ def main():
             'missing_slots': miss,
             'mutated_slots': mut,
             'all_slots_preserved': bool(not miss and not mut),
+            'granted_source_policy_outcome': outcome_g,
+            'granted_source_policy_missing_slots': miss_g,
+            'granted_source_policy_mutated_slots': mut_g,
+            'granted_source_policy_all_slots_preserved': bool(not miss_g and not mut_g),
             'format_valid': fmt_valid,
             'strict_single_qmark': bool(fmt_valid and qmarks == 1),
         })
@@ -1041,7 +1101,7 @@ def main():
     ]:
         sub = [r for r in scored_cross_ext if r['method'] == m]
         cross_methods_summary[m] = summarize_method_records(
-            sub, cross_clause_docs, cross_clause_ids, cross_titles, bge_tokenizer, bge_model, device
+            sub, cross_clause_docs, cross_clause_ids, cross_titles, bge_tokenizer, bge_model, device, bge_cache=bge_cache
         )
 
     cross_json_rows = [r for r in scored_cross_ext if r['method'] == 'structured_json_rewrite']
@@ -1085,6 +1145,20 @@ def main():
             ),
             'cross_guard_vs_condition_prompt': paired_mcnemar(
                 scored_cross_ext, 'slot_guard_repair', 'condition_prompt'
+            ),
+            'cross_guard_vs_generic_budget_matched_granted_clause_sensitivity': paired_mcnemar(
+                scored_cross_ext,
+                'slot_guard_repair',
+                'generic_self_refine_budget_matched',
+                field='granted_source_policy_outcome',
+                target='PRESERVED_DECISION',
+            ),
+            'cross_guard_vs_condition_prompt_granted_clause_sensitivity': paired_mcnemar(
+                scored_cross_ext,
+                'slot_guard_repair',
+                'condition_prompt',
+                field='granted_source_policy_outcome',
+                target='PRESERVED_DECISION',
             ),
             'heldout_guard_vs_condition_prompt': paired_mcnemar(
                 scored_held_rows, 'slot_guard_repair', 'condition_prompt'
