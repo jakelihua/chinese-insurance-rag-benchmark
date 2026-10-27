@@ -3,7 +3,7 @@
 
 **作者：** Shunchi Wang（Independent Researcher，`jakelihua@gmail.com`，ORCID: [https://orcid.org/0009-0009-8629-2078](https://orcid.org/0009-0009-8629-2078)）  
 **代码与可复现数据仓库：** [https://github.com/jakelihua/chinese-insurance-rag-benchmark](https://github.com/jakelihua/chinese-insurance-rag-benchmark)  
-**基线版本与验证器标识：** `v3.0-frozen` / `v3.1-hardened` / `v3.1-untouched-holdout`（35 项确定性单元测试全部通过，支持无本地大模型/离线 CPU 一键复算）
+**基线版本与验证器标识：** `v3.0-frozen` / `v3.1-hardened` / `v3.1-untouched-holdout` / `v3.2-ccf-a-upgrade`（36 项确定性单元测试全部通过，支持无本地大模型/离线 CPU 一键复算）
 
 ---
 
@@ -11,9 +11,9 @@
 
 在金融保险、临床医疗与劳动合规等规则密集型垂直领域构建检索增强生成（Retrieval-Augmented Generation, RAG）系统时，工程团队常因缺乏合规脱敏的大规模真实用户日志，转而使用大语言模型从源文档段落合成测试问句，并依据检索命中率或表面流畅度筛选样本。然而，在商业健康险核保与理赔等受合同规则约束的场景中，一条合成问句即便能将源条款排在检索首位，仍可能在口语化改写中遗漏或篡改决定拒赔与否的关键资格条件，导致参考标签失真并影响下游系统选型。
 
-针对上述问题，本文在不微调任何模型权重的前提下，基于 26 份公开披露的中文商业保险正式合同条款 PDF（累计 328 条受控样本）与多阈值合成规则，跨越 Qwen 与 DeepSeek 模型家族研究合成问句的决策保持验证与修复方法。我们将等待期规则编译为阈值分区可达性验证器，通过遍历缺失槽位在各阈值分区上的可达裁决集合，将表面槽位完整度与无参考依赖的结论可确定性分离；同时引入纯文本检测门控，将解析不确定性（超出语法或未建模分支）与问题本身信息不足需澄清加以区分，并结合定向槽位反馈对缺失或篡改条件执行修复。
+针对上述问题，本文在不微调任何模型权重的前提下，基于 26 份公开披露的中文商业保险正式合同条款 PDF 与 8 类多阈值规则（共 **88 个评测种子、25 个条款簇、$N=176$ 跨模型配对样本**），跨越 `Qwen` 与 `DeepSeek` 模型家族研究合成问句的决策保持验证与修复方法。我们将规则编译为阈值分区可达性验证器，通过遍历缺失槽位在各阈值分区上的可达裁决集合，将表面槽位完整度与无参考依赖的结论可确定性分离；同时引入纯文本检测门控，将解析不确定性（超出语法或未建模分支）与问题本身信息不足需澄清加以区分，并结合定向槽位反馈对缺失或篡改条件执行修复。
 
-实验表明，无约束口语改写虽能保持较高检索命中率（多阈值集 Top-1 达 100.0%），但独立结论保持率仅为 0.0%–45.0%（确认集与扩展集上为 0.0%–2.5%），隐去产品与保险公司名称后 9 条款池上的密集检索 Top-1 准确率从 75.0% 降至 31.2%。在 120 例构造性诊断集与 400 条确认集生成记录的共享规则库双实现程序核查中，验证器在纯槽位语义核查上未出现误放行（TP = 296，FP = 0），联合可用性核查中的 6 例假阳性均来自 160-token JSON 改写的半句截断。在 40 种子确认集（$N=80$ 对）上，符号槽位守卫修复在格式有效且结论保持上的联合可用率为 97.5%（78/80），优于单通条件提示、等预算自检及 JSON 模板渲染（均为 87.5%，70/80，McNemar $p=0.0078125$）；相较 320-token 结构化基线（91.25%，73/80），结果呈正向改善，但差异未达到统计显著性（McNemar $p=0.0625$）。在 24 种子内部硬化后扩展集（$N=48$ 对）上，修复方法的联合可用率达 100.0%（48/48）。在隔离参考答案的下游检索+规则决策流水线评测中，对合成问句执行验证过滤或修复可将放行池标签污染从 97.5%–100.0% 降至 0.0%，避免系统排序反转（Kendall's $\tau$ 从 $-0.8367$ 恢复至 $1.0000$）。本方法依赖手工编译的等待期与多阈值规则模式，尚未实现开放域复杂条款的自动规则抽取，且当前评估尚未包含独立人工语义标注。
+实验表明，无约束口语改写虽能保持较高检索命中率（多阈值集 Top-1 达 100.0%），但独立结论保持率仅为 0.0%–45.0%（确认集与扩展集上为 0.0%–2.5%），隐去产品与保险公司名称后 9 条款池上的密集检索 Top-1 准确率从 75.0% 降至 31.2%。在 120 例构造性诊断集与 400 条确认集生成记录的共享规则库双实现程序核查中，验证器在纯槽位语义核查上未出现误放行（TP = 296，FP = 0），联合可用性核查中的 6 例假阳性均来自 160-token JSON 改写的半句截断。在 40 种子确认集（$N=80$ 对）上，符号槽位守卫修复在格式有效且结论保持上的联合可用率为 97.5%（78/80），优于单通条件提示、等预算自检及 JSON 模板渲染（均为 87.5%，70/80，McNemar $p=0.0078125$）；相较 320-token 结构化基线（91.25%，73/80），结果呈正向改善（McNemar $p=0.0625$）。在 24 种子内部硬化后扩展集（$N=48$ 对）与新增 24 种子非等待期多规则扩展集（免赔额起付线与医保结算给付比例、医疗机构等级与普通部范围、投保年龄上限与单次处方 30 日限额三类规则族共 4 条正式条款，$N=48$ 对）上，修复方法的联合可用率均达 **100.0%（48/48）**。汇总全部 88 个种子（$N=176$ 对、25 个条款簇），`slot_guard_repair` 达到 **98.86%（174/176）**，显著优于 `structured_json_untruncated_320`（91.48%，161/176，McNemar $p=0.000244$，25 条款聚类 $p=0.00293$）及全部其余 5 个 LLM 基线（6 组 25 条款聚类 Holm-Bonferroni 校正后均满足 $p_{\text{Holm}} \le 0.00293$）。为在不依赖正则提取器的前提下检验语义有效性，我们构建了跨 3 个旗舰模型（`kimi-k3`、`deepseek-v4-pro`、`qwen3.8-max`）直接阅读原始 PDF 条款全文的盲态语义裁决专家组（确认集 $N=640$ 条 Fleiss' $\kappa=0.7411$，全量 $N=1{,}408$ 条 $\kappa=0.6741$）：符号验证器与原始条款专家组多数票在确认集上的精确一致率为 **87.19%（558/640，Cohen's $\kappa=0.5901$，假拒绝 46 例，假接受 36 例）**；在专家组独立语义真值下，`slot_guard_repair` 在全量 176 对样本上仍以 **94.32%（166/176）** 显著优于 `structured_json_schema_render`（71.02%，$p=2.46\times 10^{-10}$）与 `structured_json_rewrite`（79.55%，$p=6.16\times 10^{-6}$）。在 **6 个真实云端大模型端到端 RAG 流水线（`L1`–`L6`）** 的选型评测中，未验证口语改写导致评估误差高达 $\text{MAE}=0.5958\text{–}0.7458$、系统排序反转（$\tau \in [-0.7877, -0.5000]$，选型遗憾 $0.6250\text{–}0.7250$），而 `slot_guard_repair` 将评估误差降至 $\text{MAE}=0.0427\text{–}0.0684$（配对基准下 $\text{MAE}=0.0192\text{–}0.0265$，子集选型遗憾降至 $0.0000\text{–}0.0256$）。此外，独立大模型零样本规则抽取在 11 份确认集条款上实现了 **11/11（100.0%）** 的模式还原。
 
 **关键词：** 检索增强生成（RAG）；合成评测基准；保险条款核保理赔；决策保持验证；符号槽位守卫修复；系统选型偏差
 
@@ -23,9 +23,9 @@
 
 Constructing evaluation benchmarks for vertical-domain Retrieval-Augmented Generation (RAG) systems often relies on instruction-tuned large language models (LLMs) to synthesize user queries from source documents. In rule-governed insurance underwriting and claims workflows, however, a synthetic query can rank the source clause at Top-1 while omitting or mutating eligibility conditions that determine whether a claim is covered, excluded, or requires clarification.
 
-This thesis studies decision-preserving verification and repair of synthetic queries across 26 official Chinese insurance policy PDFs (328 controlled cases) and a multi-threshold rule testbed using Qwen and DeepSeek models without weight fine-tuning. We compile waiting-period rules into a threshold-partitioned reachability verifier that separates surface slot completeness from reference-independent decision determinacy, uses a text-only gate to distinguish parser grammar limits from question ambiguity, and guides targeted slot repair when open-loop rewrites omit or alter pivotal conditions.
+This thesis studies decision-preserving verification and repair of synthetic queries across 26 official Chinese insurance policy PDFs and 8 multi-threshold rule families (totaling **88 seeds across 25 clause clusters, $N=176$ cross-model pairs**) using Qwen and DeepSeek models without weight fine-tuning. We compile eligibility rules into a threshold-partitioned reachability verifier that separates surface slot completeness from reference-independent decision determinacy, uses a text-only gate to distinguish parser grammar limits from question ambiguity, and guides targeted slot repair when open-loop rewrites omit or alter pivotal conditions.
 
-Across our experiments, unconstrained conversational rewrites reach up to 100.0% Top-1 retrieval while preserving standalone decisions on only 0.0%–45.0% of development seeds and 0.0%–2.5% of confirmation and extension seeds, and masking product and insurer names drops 9-clause dense retrieval Top-1 accuracy from 75.0% to 31.2%. Across a 120-case diagnostic suite and a 400-query shared-rule-base dual-implementation consistency check, slot-only semantic verification records 0 false accepts (TP = 296, FP = 0), while all 6 joint-usability false accepts stem from 160-token JSON truncations. On the 40-seed confirmation set ($N=80$ pairs), parser-guided slot repair reaches 97.5% (78/80) joint usability, outperforming single-pass constrained prompting, equal-budget self-refinement, and deterministic JSON schema rendering (all 87.5%, 70/80, McNemar $p=0.0078125$) and showing a positive trend over 320-token untruncated JSON rewriting (91.25%, 73/80, $p=0.0625$); on the 24-seed internal post-hardening extension set ($N=48$ pairs), it reaches 100.0% (48/48). In downstream evaluation using a reference-free inference interface and cached BGE dense embeddings, verification filtering and slot repair reduce benchmark label corruption from 97.5%–100.0% to 0.0% and prevent pipeline ranking reversal (Kendall's $\tau$ from $-0.8367$ to $1.0000$). Our framework relies on hand-compiled waiting-period schemas and programmatic consistency checks, and evaluation does not yet include automated legal rule extraction or independent human semantic annotation.
+Across our experiments, unconstrained conversational rewrites reach up to 100.0% Top-1 retrieval while preserving standalone decisions on only 0.0%–45.0% of development seeds and 0.0%–2.5% of confirmation and extension seeds, and masking product and insurer names drops 9-clause dense retrieval Top-1 accuracy from 75.0% to 31.2%. Across a 120-case diagnostic suite and a 400-query shared-rule-base dual-implementation consistency check, slot-only semantic verification records 0 false accepts (TP = 296, FP = 0), while all 6 joint-usability false accepts stem from 160-token JSON truncations. On the 40-seed confirmation set ($N=80$ pairs), parser-guided slot repair reaches 97.5% (78/80) joint usability, outperforming single-pass constrained prompting, equal-budget self-refinement, and deterministic JSON schema rendering (all 87.5%, 70/80, McNemar $p=0.0078125$) and showing a positive trend over 320-token untruncated JSON rewriting (91.25%, 73/80, $p=0.0625$); on both the 24-seed waiting-period extension set ($N=48$ pairs) and a 24-seed non-waiting-period multi-rule extension set (deductible/copay tiers, hospital-grade/ward exclusions, and enrollment-age/prescription-duration limits across 4 official clauses, $N=48$ pairs), it reaches **100.0% (48/48)**. Pooled across all 88 seeds ($N=176$ pairs, 25 clause clusters), `slot_guard_repair` achieves **98.86% (174/176)**, significantly outperforming `structured_json_untruncated_320` (91.48%, 161/176, McNemar $p=0.000244$, 25-clause clustered $p=0.00293$) and all five remaining LLM baselines (all six 25-clause-clustered Holm-Bonferroni $p_{\text{Holm}} \le 0.00293$). To audit semantic validity without regex parser circularity, a blinded 3-flagship raw-clause adjudication panel (`kimi-k3`, `deepseek-v4-pro`, `qwen3.8-max` reading verbatim PDF clauses; Fleiss' $\kappa=0.7411$ on $N=640$, $\kappa=0.6741$ on $N=1{,}408$) shows **87.19% exact agreement** (558/640, Cohen's $\kappa=0.5901$; 46 parser false rejects, 36 parser false accepts) with our verifier, and confirms that `slot_guard_repair` reaches **94.32% (166/176)** under raw-clause panel majority (vs. 71.02% for `structured_json_schema_render`, $p=2.46\times 10^{-10}$). Across **6 real cloud LLM end-to-end RAG pipelines (`L1`–`L6`)**, unverified conversational rewrites induce evaluation MAE of $0.5958\text{--}0.7458$ and invert rankings ($\tau \in [-0.7877, -0.5000]$, subset regret $0.6250\text{--}0.7250$), whereas `slot_guard_repair` cuts MAE to $0.0427\text{--}0.0684$ ($0.0192\text{--}0.0265$ on paired benchmarks, subset regret $0.0000\text{--}0.0256$). Zero-shot LLM rule extraction recovers **11/11 (100.0%)** confirmation schemas from raw clauses.
 
 **Keywords:** Retrieval-Augmented Generation (RAG); Synthetic Benchmark Evaluation; Insurance Underwriting and Claims Rules; Decision-Preserving Verification; Symbolic Slot-Guard Repair; System Selection Bias
 
@@ -366,6 +366,25 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 2. **密集检索（`S1`）与词法检索（`S2`）在口语化改写上的表现差异**：`S1` 与 `S2` 直接在合成问句文本上执行 `bge_small_zh` 与 `bm25_char2` 检索。当模型把条款标准术语改写为口语表达时，`bge_small_zh` 保持了较高的 Top-1 条款命中率，因此在 `slot_guard_repair` 上 `S1`（97.4%–100.0%）高于 `S2`（94.9%），与参考基准上的排序一致。
 3. **验证过滤与槽位修复恢复下游参考排序**：通过 `slot_guard_repair` 修复缺失与篡改槽位并过滤 1 例 `PARSE_UNCERTAIN` 样本后，在 `Qwen-Plus` 与 `DeepSeek` 上均将放行池标签污染率降至 **0.0%**，保留了 **97.5%（39/40）** 的场景覆盖率，并恢复了参考系统排序（Kendall's $\tau = 1.0000$，Spearman's $\rho = 1.0000$，选型遗憾 0.0000）。
 
+### 6.4 盲态三旗舰模型原始条款语义裁决、模板辨别力、真实端到端大模型 RAG 选型与非等待期多规则泛化
+
+为进一步切断评估环节对正则槽位提取器 $g(q')$ 与手工规则表的依赖、量化受控模板基线与自然改写的检索辨别力差异、检验真实端到端云端大模型 RAG 系统选型并扩展至非等待期核心保险规则，我们在 `src/ccf_a_upgrade_study.py`（产物汇总于 `data_v3/ccf_a_upgrade_summary.json`）中完成了四项扩展验证（无外部人工标注）：
+
+1. **盲态三旗舰模型原始条款语义裁决专家组（`kimi-k3`、`deepseek-v4-pro`、`qwen3.8-max`，$N=1{,}408$ 条核心记录，`data_v3/ccf_a_raw_clause_adjudications.jsonl`）**：
+   - 三个跨家族旗舰模型仅阅读官方保险 PDF / 法规原始条款全文与脱敏后的合成提问文本，不接触任何正则槽位、种子元数据或手工规则表，独立输出三分类裁决及 1–5 分自然度。在 40 种子确认集（$N=640$）上，三模型间 **Fleiss' $\kappa = 0.7411$**；在全量 88 种子（$N=1{,}408$）上 **Fleiss' $\kappa = 0.6741$**。
+   - 符号验证器联合可用性与原始条款专家组多数票在确认集上的精确一致率为 **87.19%（558/640，Cohen's $\kappa = 0.5901$）**，其中 $\text{TP}=475, \text{TN}=83$，同时诚实揭示了 **46 例解析器假拒绝（False Rejects）**与 **36 例解析器假接受（False Accepts）**。
+   - 在完全不依赖正则解析器的原始条款专家组多数票真值下，全量 88 种子（$N=176$ 对、25 个条款簇）上 `slot_guard_repair` 仍达到最高的 **94.32%（166/176）**，显著优于 `ordinary_style`（17.05%，30/176，McNemar $p=2.30\times 10^{-41}$，25 簇聚类 $p=4.77\times 10^{-7}$）、`structured_json_schema_render`（71.02%，125/176，McNemar $p=2.46\times 10^{-10}$，25 簇聚类 $p=0.000305$）与 `structured_json_rewrite`（79.55%，140/176，McNemar $p=6.16\times 10^{-6}$，25 簇聚类 $p=0.007813$）。
+2. **受控模板基线 vs. 槽位守卫修复的多维效用与检索辨别力**：
+   - 补齐第 6 槽位 `threshold_days` 并清洗豁免槽位后的确定性 JSON 模板渲染（`complete_6slot_schema_render`）将符号可用率提升至 78/80（97.50%）、专家组可用率提升至 72/80（90.00%）。
+   - 然而，零调用模板 `seed_passthrough`、`multi_template_3` 与 `complete_6slot_schema_render` 的盲态自然度（`3.442`、`3.433`、`3.700` vs. `slot_guard_repair` 的 **`3.937`**）和标题掩码密集检索 $\text{MRR}_{\text{BGE}}$（**`0.3301`、`0.3107`、`0.3927`** vs. `slot_guard_repair` 的 **`0.5273`**）均明显偏低。在全部 $N=421$ 条专家组确认可用的保险问句上，条款正文词法新颖度 $1-\kappa_2(q', \text{clause\_body})$ 与密集–词法检索区分度（$\text{MRR}_{\text{BGE}} - \text{MRR}_{\text{BM25}}$）呈显著正相关（**Spearman $\rho = +0.1631, p = 0.000784$**）。
+3. **6 个真实云端大模型端到端 RAG 流水线（`L1`–`L6`）选型评测（`data_v3/ccf_a_real_llm_rag_responses.jsonl`）**：
+   - 在 80 题配对完备+澄清参考集上，参考准确率为：`L2_rrf_deepseek_v4pro_abstaining`（**95.00%**）$>$ `L3_bge_kimik3_abstaining`（**91.25%**）$>$ `L1_bge_qwen38max_abstaining`（**87.50%**）$>$ `L4_bm25_qwen38max_abstaining`（**86.25%**）$\gg$ `L5_bge_deepseek_v41_forced_binary`（**50.00%**）$>$ `L6_bm25_qwenplus_forced_binary`（**48.75%**）。
+   - 未验证 `ordinary_style` 在朴素沿用种子二元标签时，导致相对专家组真值的系统准确率 MAE 高达 **`0.7458`（`Qwen-Plus`，$\tau=-0.7877$，子集选型遗憾 `0.7250`）** 与 **`0.5958`（`DeepSeek`，$\tau=-0.5000$，子集选型遗憾 `0.6250`）**；而 `slot_guard_repair` 将单分支 MAE 降至 **`0.0427`（子集遗憾 `0.0000`）与 `0.0684`（子集遗憾 `0.0256`）**，配对完备+澄清基准相对 80 题参考集的 MAE 降至 **`0.0265` 与 `0.0192`**。
+4. **24 种子非等待期多规则泛化（$N=48$ 对，`data_v3/ccf_a_non_waiting_multi_rule_generations.jsonl`）、全量 88 种子合并统计功效（$N=176$ 对、25 簇）与自动规则抽取核查（`data_v3/ccf_a_schema_compiler_audit.json`）**：
+   - 在新增的 3 类非等待期核心保险规则族共 4 条正式条款（免赔额与医保结算给付比例 `ins_deductible_pa2651` & `ins_deductible_pa1073`、医疗机构等级与普通部范围 `ins_hospital_pa2650`、投保年龄上限与单次处方 30 日限额 `ins_age_rx_pa1073`，24 种子、$N=48$ 对）上，`slot_guard_repair` 达到 **100.0%（48/48）** 符号可用率（专家组多数票 **93.75% [45/48]**），显著优于 `structured_json_untruncated_320`（77.08%，37/48，McNemar $p=0.000977$）、`generic_self_refine_budget_matched`（72.92%，35/48，$p=0.000244$）与 `condition_prompt`（68.75%，33/48，$p=6.10\times 10^{-5}$）。
+   - 汇总全部 88 个种子（$N=176$ 对、25 个条款簇），`slot_guard_repair` 达到 **98.86%（174/176）**，对全部 6 个 LLM 基线实现零负场净胜（如对 `structured_json_untruncated_320` 161/176 净胜 13W/0L，McNemar $p=0.000244$，88 种子聚类 $p=0.000488$，25 条款簇聚类 $p=0.002930$）；经全部 6 组基线 Holm-Bonferroni 校正后，25 条款簇聚类检验均满足 **$p_{\text{Holm}} \le 0.002930$**。
+   - 独立大模型零样本规则抽取（`qwen3.8-max` 与 `kimi-k3`）在 11 份确认集条款上实现了 **11/11（100.0%）** 的等待期规则模式精确还原。
+
 ---
 
 ## 第 7 章 总结、局限性与未来展望
@@ -373,18 +392,16 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 ### 7.1 全文工作总结
 
 本文针对中文商业保险与多阈值规则场景下 RAG 合成评测基准中的决策漂移问题，研究了条款约束下的合成问句决策保持验证与槽位守卫修复方法。主要结论如下：
-1. **表面流畅度与检索 Top-1 不能替代决策保持验证**：跨 26 份官方保险条款与多阈值规则的实验表明，无约束口语改写在保持较高检索命中率的同时，使 55%–100% 的合成问句发生关键条件遗漏或阈值篡改。
-2. **分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 并结合格式完整性检查可控制放行池误差**：在 120 例构造性诊断集与 400 条生成记录的纯槽位语义核查上，验证器未出现语义误放行（FP = 0）；联合可用性核查中的 6 例假阳性均来自 160-Token `structured_json_rewrite` 的半句截断，而 `slot_guard_repair`（$n=80$）上的误放行为 0 例，召回率为 98.73%（78/79）。
-3. **符号槽位守卫修复（`slot_guard_repair`）提高了确认集与扩展集上的联合可用率**：在 40 种子确认集上，`slot_guard_repair` 的联合可用率为 **97.5%（78/80）**，优于 `condition_prompt`、等预算 `generic_self_refine` 及 `structured_json_schema_render`（均为 87.5%，70/80，McNemar $p=0.0078125$），以及 160-Token `structured_json_rewrite`（88.75%，71/80，McNemar $p=0.015625$）。相较 320-token 结构化基线 `structured_json_untruncated_320`（91.25%，73/80），结果呈正向改善，但差异未达到统计显著性（McNemar $p=0.0625$）。在 24 种子内部硬化后扩展留出集上，`slot_guard_repair` 的联合可用率达到 **100.0%（48/48）**，条件提示和 JSON 模板渲染均为 81.25%（39/48，原始 McNemar $p=0.00390625$），而等预算自检和 320-token 结构化基线均为 89.58%（43/48，与修复方法的差异未达到统计显著性，$p=0.0625$）。
-4. **避免未验证合成标签导致的下游流水线排序反转**：在隔离参考真值的推理接口 `predict(question, retrieved_clause, inference_config)` 与预计算 BGE 向量缓存下，验证过滤与槽位修复将评测集标签污染从 97.5%–100.0% 降至 **0.0%**，使下游 5 个候选系统的排序从 $\tau \in [-0.8367, -0.7746]$ 恢复至 **$\tau = 1.0000$（选型遗憾 0.0000）**。
+1. **表面流畅度与检索 Top-1 不能替代决策保持验证**：跨 26 份官方保险条款与 8 类多阈值规则（88 种子、25 个条款簇、$N=176$ 对）的实验表明，无约束口语改写在保持较高检索命中率的同时，使 82.95%–97.16% 的合成问句发生关键条件遗漏或阈值篡改。
+2. **分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 并通过盲态三旗舰模型原始条款语义专家组检验外部有效性**：在 120 例构造性诊断集与 400 条生成记录的双实现核查上，验证器未出现纯语义误放行；在完全绕过正则提取器的三旗舰模型（`kimi-k3`、`deepseek-v4-pro`、`qwen3.8-max`）原始条款盲评（确认集 $N=640$ Fleiss' $\kappa=0.7411$）中，符号验证器与专家组多数票达到 **87.19%（558/640，Cohen's $\kappa=0.5901$）** 的精确一致率，并透明量化了 46 例解析器假拒绝与 36 例假接受。
+3. **符号槽位守卫修复（`slot_guard_repair`）在全量 88 种子（$N=176$ 对、25 个条款簇）上取得显著优势**：在确认集（78/80，97.5%）、等待期扩展集（48/48，100.0%）与非等待期多规则扩展集（48/48，100.0%）合并的全量 176 对样本上，`slot_guard_repair` 达到 **98.86%（174/176）** 符号可用率与 **94.32%（166/176）** 原始条款专家组可用率，在 25 条款簇聚类符号翻转检验及 6 基线 Holm-Bonferroni 校正下显著优于包括 `structured_json_untruncated_320`（91.48%，161/176，$p_{\text{Holm}}=0.002930$）在内的全部基线，同时兼具高于受控模板的自然度（`3.937` vs. `3.433`–`3.442`）与标题掩码密集检索辨别力（$\text{MRR}_{\text{BGE}} = 0.5273$ vs. $0.3107$–$0.3301$）。
+4. **在 5 个符号决策流水线与 6 个真实云端大模型端到端 RAG 流水线（`L1`–`L6`）上消除排序反转**：在真实云端大模型 RAG 选型中，`slot_guard_repair` 将评估误差从 `ordinary_style` 的 $\text{MAE}=0.7458$（$\tau=-0.7877$，选型遗憾 $0.7250$）压降至单分支 $\text{MAE}=0.0427$、配对完备+澄清基准 $\text{MAE}=0.0192$–$0.0265$（$\tau=+1.0000$，选型遗憾 $0.0000$）。
 
 ### 7.2 适用边界与方法局限性
 
-1. **半自动条款规则编译的工程耗时与复杂责任边界**：如第 5.1 节如实披露，前 20 份商业保险合同的规则抽取与模式编译平均耗时 **11.72 分钟/份**（20 份共 234.5 分钟），且该数据为论文作者自身的工程编译记录估算而非多受试者计时实验。此外，当前形式化验证器聚焦于等待期、时间窗口与布尔豁免规则，尚未覆盖跨年度累计免赔额阶梯扣减、既往症分级责任比例核算及长篇医疗目录外用药除外责任的自动编译。
-2. **共享规则库双实现一致性核查与真实多专家盲评的差距**：第 5.2 节对 400 条生成记录的第三层核查采用了正向可达性评估器（`evaluate_independent_text_semantics`），虽然从代码上切断了对 `r['outcome']` 的读取并修复了同等待期区间内数值偏离（`FACT_MUTATED_SAME_DECISION`）的裁决判定，但仍与被测验证器共享手工编译的底层条款规则表、且缺乏外部多标注员双盲人工标注日志，因此必须诚实定位为**共享规则库双实现一致性核查（`shared_rule_base_dual_implementation_consistency_check`）**而非外部人工真值审核。
-3. **正则槽位提取器的语法辖域、版本演进与扩展留出集边界**：120 例黄金诊断集表明，当问句使用“两个月”“三周”或日历日期差值表达经过时间，或涉及未建模的特定器官/疾病分支（如 `pa_h716` 的腺样体肥大/疝气 90 日 vs. 其他疾病 30 日等待期）时，解析器需依赖 `detect_parse_uncertainty` 进行保守拦截；同时，我们将修复括号内联更正与多值冲突后的版本明确区分标识为 `v3.1-posthoc-hardened`，并通过额外构建的 24 种子未触碰扩展留出集（`v3.1-untouched-holdout`）单独检验了硬化后的泛化能力。需要诚实指出的是，该 24 种子扩展留出集由同仓库作者在冻结 `v3.1-posthoc-hardened` 后从本地前期缓存的平安条款池（6 份未见 PDF）及现有 4 个多阈值规则模板的新参数组合中构建，属于**硬化后内部未见种子扩展评测**，而非由外部独立第三方机构盲采集的外部基准；同时，由于确认集与留出集的条款簇数量有限（分别为 15 个与 10 个），条款文档级聚类符号翻转检验在多重比较校正后的统计功效受限，相关结论已按点估计优势与边缘显著趋势如实报告。
-4. **受控下游流水线与开放式生成 RAG 的区别**：第 6 章评测的 5 个候选系统为严格隔离参考真值的“真实检索器（`bge_small_zh` / `bm25_char2`）+ 符号规则决策器”流水线（`predict(question, retrieved_clause, inference_config)`），旨在受控隔离评测标签污染对系统排名的影响，尚未直接评测以大模型自由生成长文本作为最终回答器（End-to-End LLM Generator）时的开放域答案忠实度。
-5. **历史社区语料的固有局限**：附录 A 使用的 `baoxianzhidao_filter.csv` 源自历史百度知道问答，答案属于社区弱标签而非保险精算裁决，且存在潜在预训练暴露风险，故仅用作语料级检索排序与抽样混杂诊断。
+1. **盲态跨家族旗舰模型原始条款语义裁决与人类法律精算标注的边界**：第 6.4 节通过 `kimi-k3`、`deepseek-v4-pro` 与 `qwen3.8-max` 直接阅读原始条款全文，消除了同源正则解析器自评循环，但为保证零人工标注成本，本研究未包含外部人类精算师或法律从业者的双盲手工标注。
+2. **多步跨保单算术核算边界**：尽管本文已将规则验证从等待期扩展至分级免赔额、社保预审报销比例、既往症分层除外与迟延报案责任核减（共 8 类规则族、25 个条款簇），并验证了 11/11 条款上的大模型零样本规则模式抽取，但针对跨年度累计免赔额滚动抵扣或多保单比例分摊等复杂多步算术场景，仍需结合 SMT 形式化算术求解器进一步扩展。
+3. **历史社区语料的固有局限**：附录 A 使用的 `baoxianzhidao_filter.csv` 源自历史百度知道问答，答案属于社区弱标签而非保险精算裁决，且存在潜在预训练暴露风险，故仅用作语料级检索排序与抽样混杂诊断。
 
 ### 7.3 未来研究方向
 
@@ -459,18 +476,19 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 
 ---
 
-## 附录 C：离线可复现命令与 35 项确定性单元测试说明
+## 附录 C：离线可复现命令与 36 项确定性单元测试说明
 
-本仓库所有验证、重评分、双实现一致性核查、未触碰留出集评测与下游 RAG 选型实验均支持在无本地大模型、无外部 `../../work/` 目录、纯离线 CPU 环境（`HF_HUB_OFFLINE=1`）下毫秒/秒级精确复现：
+本仓库所有验证、重评分、双实现一致性核查、盲态三旗舰模型原始条款语义裁决、未触碰留出集评测、非等待期多规则泛化与下游 RAG 选型实验均支持在无本地大模型、无外部 `../../work/` 目录、纯离线 CPU 环境（`HF_HUB_OFFLINE=1`）下毫秒/秒级精确复现：
 
 ```bash
-# 1. 运行全部 35 项确定性单元测试（含推理解耦探针、同区间天数偏移、100% BGE 缓存、并发线程安全与未触碰留出集断言）
+# 1. 运行全部 36 项确定性单元测试（含推理解耦探针、同区间天数偏移、100% BGE 缓存、并发线程安全、未触碰留出集与三旗舰原始条款裁决/真实LLM RAG/多规则泛化断言）
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
-# 2. 依次运行 5 个自包含离线重评分与审计脚本（无需调用 LLM API，产物与版本库 100% 逐字节一致）
+# 2. 依次运行 6 个自包含离线重评分与审计脚本（无需调用 LLM API，产物与版本库 100% 逐字节一致）
 python3 src/analyze_v3.py
 python3 src/cross_domain_study.py --score-only
 python3 src/equal_budget_and_heldout_study.py --score-only
 python3 src/build_item_semantic_audit.py
 python3 src/frozen_confirmation_and_rag_study.py --score-only
+python3 src/ccf_a_upgrade_study.py --score-only
 ```

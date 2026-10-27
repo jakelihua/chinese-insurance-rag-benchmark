@@ -1,0 +1,2335 @@
+{
+  "study_version": "v3.2-ccf-a-upgrade",
+  "experiment_1_blinded_3flagship_raw_clause_adjudication": {
+    "adjudicator_panel": [
+      {
+        "judge_id": "kimi_k3",
+        "model": "kimi-k3"
+      },
+      {
+        "judge_id": "deepseek_v4_pro",
+        "model": "deepseek-v4-pro"
+      },
+      {
+        "judge_id": "qwen3_8_max",
+        "model": "qwen3.8-max"
+      }
+    ],
+    "evaluated_records_core_8_methods_confirm_40": 640,
+    "evaluated_records_core_methods_all_88_seeds": 1408,
+    "inter_adjudicator_agreement": {
+      "fleiss_kappa_3_flagship_judges": 0.7411,
+      "cohens_kappa_kimi_k3_vs_qwen3_8_max": 0.7527,
+      "cohens_kappa_kimi_k3_vs_deepseek_v4_pro": 0.7794,
+      "cohens_kappa_qwen3_8_max_vs_deepseek_v4_pro": 0.6973,
+      "cohens_kappa_symbolic_verifier_vs_panel_majority": 0.5901,
+      "exact_agreement_rate_verifier_vs_panel_majority": 0.8719,
+      "all_88_seeds_1408_records_fleiss_kappa": 0.6741,
+      "all_88_seeds_1408_records_verifier_vs_panel_cohens_kappa": 0.5736,
+      "all_88_seeds_1408_records_exact_agreement_rate": 0.848
+    },
+    "parser_vs_raw_clause_panel_error_audit_640": {
+      "parser_accepted_panel_accepted_tp": 475,
+      "parser_rejected_panel_rejected_tn": 83,
+      "parser_false_reject_count_panel_accepted": 46,
+      "parser_false_accept_count_panel_rejected": 36,
+      "parser_false_reject_examples": [
+        {
+          "seed_id": "fconf-ins-003",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《平安安康住院费用（B，2017）医疗保险》条款，申请腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗，首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-003",
+          "model_family": "qwen_plus",
+          "method": "condition_prompt",
+          "question": "平安安康住院费用（B，2017）医疗保险首次投保，保单生效第45天因腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院治疗，这项责任约定等待期是90天，又不是意外伤害引起的，保险公司之前也没审核同意免除等待期，这次住院医疗费用是不是因为还在等待期内所以不能赔？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-003",
+          "model_family": "qwen_plus",
+          "method": "slot_guard_repair",
+          "question": "平安安康住院费用B2017医疗保险首次投保，保单生效第45天因腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院治疗，该项责任约定等待期为90天，且非意外原因导致，保险公司也未审核同意免除等待期，这次腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗费用是否因等待期未届满而不予理赔？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-003",
+          "model_family": "qwen_plus",
+          "method": "generic_self_refine_budget_matched",
+          "question": "平安安康住院费用（B，2017）医疗保险首次投保，保单生效第45天因腺样体肥大、疝气、扁桃腺的疾病或女性生殖器官的疾病住院治疗，这项腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗责任约定等待期是90天，且非因意外伤害引起，也未获保险公司批准免除等待期，这次住院医疗费用是不是因为还在等待期内所以不予理赔？",
+          "parser_outcome": "CONDITION_MUTATED",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-004",
+          "model_family": "qwen_plus",
+          "method": "generic_self_refine_budget_matched",
+          "question": "平安安康住院费用（B，2017）医疗保险首次投保，保单生效第100天因腺样体肥大、疝气、扁桃腺的疾病或女性生殖器官的疾病住院治疗，这项“腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗”责任约定等待期为90天，非因意外伤害引起，且未获保险公司批准免除等待期，那这次住院医疗费用是否因仍在等待期内而不予理赔？",
+          "parser_outcome": "CONDITION_MUTATED",
+          "gold_decision": "WAIT_NOT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-005",
+          "model_family": "qwen_plus",
+          "method": "ordinary_style",
+          "question": "我刚买了平安安医保易核版，第18天因生病住院，这能报销吗？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 2
+        },
+        {
+          "seed_id": "fconf-ins-006",
+          "model_family": "qwen_plus",
+          "method": "ordinary_style",
+          "question": "我刚重新投保平安安医保易核版，第12天因生病住院，保险公司说免了等待期，这次能赔吗？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_NOT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-007",
+          "model_family": "qwen_plus",
+          "method": "ordinary_style",
+          "question": "我第一次买平安安医保星耀版，刚生效40天就因生病住院了，这能报销吗？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_NOT_EXCLUDED",
+          "panel_votes": 3
+        },
+        {
+          "seed_id": "fconf-ins-008",
+          "model_family": "qwen_plus",
+          "method": "ordinary_style",
+          "question": "平安安医保星耀版重新投保后第15天因生病住院，还没过等待期，这次能报销吗？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 2
+        },
+        {
+          "seed_id": "fconf-ins-014",
+          "model_family": "qwen_plus",
+          "method": "ordinary_style",
+          "question": "我买了平安e生保尊享版，刚过18天就因生病住院了，保险公司说不给免等待期，这次能赔吗？",
+          "parser_outcome": "DEGRADED_TO_CLARIFY",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 2
+        }
+      ],
+      "parser_false_accept_examples": [
+        {
+          "seed_id": "fconf-ins-010",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《平安附加守护全能（2023）提前给付重大疾病保险》条款，首次投保，保单生效第20天，因突发意外伤害住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "WAIT_NOT_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "WAIT_NOT_EXCLUDED",
+            "deepseek_v4_pro": "CLARIFY_REQUIRED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-ins-017",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《太保互联网母婴医疗保险》条款，首次投保，保单生效第10天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "WAIT_EXCLUDED",
+          "panel_votes": 0,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "CLARIFY_REQUIRED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-ins-018",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《太保互联网母婴医疗保险》条款，首次投保，保单生效第20天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "WAIT_NOT_EXCLUDED",
+          "panel_votes": 0,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "CLARIFY_REQUIRED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-001",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程》，患者属于二线转换申请，基因检测为T790M突变阳性，停用前序药物第10天，规定洗脱期为14天，请问现在能否纳入奥希替尼特药统筹报销？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-001",
+          "model_family": "qwen_plus",
+          "method": "condition_prompt",
+          "question": "按国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程，患者是二线转换申请、基因检测确认为EGFR T790M突变阳性、停用前序药物才第10天，而规程要求洗脱期必须满14天，现在能不能纳入奥希替尼特药统筹报销？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-001",
+          "model_family": "qwen_plus",
+          "method": "slot_guard_repair",
+          "question": "按国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程，患者属于二线转换申请、基因检测为T790M突变阳性、停用前序药物第10天，而规程规定洗脱期须满14天，现在能否纳入奥希替尼特药统筹报销？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-007",
+          "model_family": "qwen_plus",
+          "method": "seed_passthrough",
+          "question": "按《骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径》，患者接受髋关节置换（标准预防期35天），目前处于路径内常规抗凝状态，术后第5天，出现活动性出血并发症，请问今日给药是否符合VTE预防临床路径？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-007",
+          "model_family": "qwen_plus",
+          "method": "condition_prompt",
+          "question": "按骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径，患者做了髋关节置换、标准预防期是35天、目前在路径内常规抗凝状态、术后第5天出现活动性出血并发症，今天还能不能给低分子肝素？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-007",
+          "model_family": "qwen_plus",
+          "method": "slot_guard_repair",
+          "question": "按骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径，患者做了髋关节置换、标准预防期是35天、目前在路径内常规抗凝状态、术后第5天出现活动性出血并发症，今天还能不能给低分子肝素？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        },
+        {
+          "seed_id": "fconf-cross-007",
+          "model_family": "qwen_plus",
+          "method": "generic_self_refine_budget_matched",
+          "question": "按骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径，患者做了髋关节置换、标准预防期是35天、目前在路径内常规抗凝状态、术后第5天出现活动性出血并发症，今天还能不能给低分子肝素？",
+          "parser_outcome": "PRESERVED_DECISION",
+          "gold_decision": "RULE_EXCLUDED",
+          "panel_votes": 1,
+          "panel_decisions": {
+            "kimi_k3": "CLARIFY_REQUIRED",
+            "deepseek_v4_pro": "RULE_EXCLUDED",
+            "qwen3_8_max": "CLARIFY_REQUIRED"
+          }
+        }
+      ]
+    },
+    "four_tier_target_decomposition_by_method_n80": {
+      "seed_passthrough": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "76/80 (95.0%)",
+        "tier2_symbolic_reachability_joint_usable": "78/80 (97.5%)",
+        "tier3_raw_clause_panel_majority_usable": "68/80 (85.0%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "62/80 (77.5%)",
+        "tier4_third_party_kimi_k3_usable": "70/80 (87.5%)",
+        "panel_majority_count": 68,
+        "kimi_k3_usable_count": 70,
+        "mean_blinded_naturalness_1to5": 3.442
+      },
+      "multi_template_3": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "80/80 (100.0%)",
+        "tier2_symbolic_reachability_joint_usable": "78/80 (97.5%)",
+        "tier3_raw_clause_panel_majority_usable": "74/80 (92.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "68/80 (85.0%)",
+        "tier4_third_party_kimi_k3_usable": "74/80 (92.5%)",
+        "panel_majority_count": 74,
+        "kimi_k3_usable_count": 74,
+        "mean_blinded_naturalness_1to5": 3.433
+      },
+      "ordinary_style": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "0/80 (0.0%)",
+        "tier2_symbolic_reachability_joint_usable": "1/80 (1.25%)",
+        "tier3_raw_clause_panel_majority_usable": "15/80 (18.75%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "5/80 (6.25%)",
+        "tier4_third_party_kimi_k3_usable": "8/80 (10.0%)",
+        "panel_majority_count": 15,
+        "kimi_k3_usable_count": 8,
+        "mean_blinded_naturalness_1to5": 4.667
+      },
+      "condition_prompt": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "62/80 (77.5%)",
+        "tier2_symbolic_reachability_joint_usable": "70/80 (87.5%)",
+        "tier3_raw_clause_panel_majority_usable": "74/80 (92.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "69/80 (86.25%)",
+        "tier4_third_party_kimi_k3_usable": "74/80 (92.5%)",
+        "panel_majority_count": 74,
+        "kimi_k3_usable_count": 74,
+        "mean_blinded_naturalness_1to5": 3.958
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "68/80 (85.0%)",
+        "tier2_symbolic_reachability_joint_usable": "71/80 (88.75%)",
+        "tier3_raw_clause_panel_majority_usable": "70/80 (87.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "67/80 (83.75%)",
+        "tier4_third_party_kimi_k3_usable": "70/80 (87.5%)",
+        "panel_majority_count": 70,
+        "kimi_k3_usable_count": 70,
+        "mean_blinded_naturalness_1to5": 3.329
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "70/80 (87.5%)",
+        "tier2_symbolic_reachability_joint_usable": "73/80 (91.25%)",
+        "tier3_raw_clause_panel_majority_usable": "78/80 (97.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "74/80 (92.5%)",
+        "tier4_third_party_kimi_k3_usable": "78/80 (97.5%)",
+        "panel_majority_count": 78,
+        "kimi_k3_usable_count": 78,
+        "mean_blinded_naturalness_1to5": 3.533
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "53/80 (66.25%)",
+        "tier2_symbolic_reachability_joint_usable": "70/80 (87.5%)",
+        "tier3_raw_clause_panel_majority_usable": "66/80 (82.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "59/80 (73.75%)",
+        "tier4_third_party_kimi_k3_usable": "69/80 (86.25%)",
+        "panel_majority_count": 66,
+        "kimi_k3_usable_count": 69,
+        "mean_blinded_naturalness_1to5": 3.067
+      },
+      "complete_6slot_schema_render": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "78/80 (97.5%)",
+        "tier2_symbolic_reachability_joint_usable": "78/80 (97.5%)",
+        "tier3_raw_clause_panel_majority_usable": "72/80 (90.0%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "68/80 (85.0%)",
+        "tier4_third_party_kimi_k3_usable": "74/80 (92.5%)",
+        "panel_majority_count": 72,
+        "kimi_k3_usable_count": 74,
+        "mean_blinded_naturalness_1to5": 3.7
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "66/80 (82.5%)",
+        "tier2_symbolic_reachability_joint_usable": "70/80 (87.5%)",
+        "tier3_raw_clause_panel_majority_usable": "76/80 (95.0%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "72/80 (90.0%)",
+        "tier4_third_party_kimi_k3_usable": "76/80 (95.0%)",
+        "panel_majority_count": 76,
+        "kimi_k3_usable_count": 76,
+        "mean_blinded_naturalness_1to5": 3.95
+      },
+      "slot_guard_repair": {
+        "n_pairs": 80,
+        "tier1_strict_all_slots_and_format": "75/80 (93.75%)",
+        "tier2_symbolic_reachability_joint_usable": "78/80 (97.5%)",
+        "tier3_raw_clause_panel_majority_usable": "74/80 (92.5%)",
+        "tier3b_raw_clause_panel_unanimous_usable": "69/80 (86.25%)",
+        "tier4_third_party_kimi_k3_usable": "74/80 (92.5%)",
+        "panel_majority_count": 74,
+        "kimi_k3_usable_count": 74,
+        "mean_blinded_naturalness_1to5": 3.937
+      }
+    },
+    "extension_24_seeds_n48_panel_by_method": {
+      "ordinary_style": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 1,
+        "panel_majority_usable": 11,
+        "kimi_k3_usable": 6,
+        "mean_blinded_naturalness_1to5": 4.632
+      },
+      "condition_prompt": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 39,
+        "panel_majority_usable": 47,
+        "kimi_k3_usable": 48,
+        "mean_blinded_naturalness_1to5": 3.93
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 37,
+        "panel_majority_usable": 36,
+        "kimi_k3_usable": 40,
+        "mean_blinded_naturalness_1to5": 3.278
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 43,
+        "panel_majority_usable": 43,
+        "kimi_k3_usable": 47,
+        "mean_blinded_naturalness_1to5": 3.604
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 39,
+        "panel_majority_usable": 40,
+        "kimi_k3_usable": 44,
+        "mean_blinded_naturalness_1to5": 2.785
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 43,
+        "panel_majority_usable": 47,
+        "kimi_k3_usable": 48,
+        "mean_blinded_naturalness_1to5": 3.917
+      },
+      "slot_guard_repair": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 48,
+        "panel_majority_usable": 47,
+        "kimi_k3_usable": 48,
+        "mean_blinded_naturalness_1to5": 3.868
+      }
+    },
+    "non_waiting_multi_rule_24_seeds_n48_panel_by_method": {
+      "ordinary_style": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 3,
+        "panel_majority_usable": 4,
+        "kimi_k3_usable": 6,
+        "mean_blinded_naturalness_1to5": 4.514
+      },
+      "condition_prompt": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 33,
+        "panel_majority_usable": 41,
+        "kimi_k3_usable": 39,
+        "mean_blinded_naturalness_1to5": 3.25
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 30,
+        "panel_majority_usable": 34,
+        "kimi_k3_usable": 34,
+        "mean_blinded_naturalness_1to5": 3.049
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 37,
+        "panel_majority_usable": 42,
+        "kimi_k3_usable": 43,
+        "mean_blinded_naturalness_1to5": 3.347
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 14,
+        "panel_majority_usable": 19,
+        "kimi_k3_usable": 21,
+        "mean_blinded_naturalness_1to5": 2.361
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 35,
+        "panel_majority_usable": 42,
+        "kimi_k3_usable": 40,
+        "mean_blinded_naturalness_1to5": 3.306
+      },
+      "slot_guard_repair": {
+        "n_pairs": 48,
+        "symbolic_joint_usable": 48,
+        "panel_majority_usable": 45,
+        "kimi_k3_usable": 44,
+        "mean_blinded_naturalness_1to5": 3.021
+      }
+    },
+    "mcnemar_tests_under_raw_clause_panel_majority": {
+      "ordinary_style": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 15,
+        "slot_guard_wins": 59,
+        "baseline_wins": 0,
+        "exact_mcnemar_p_under_raw_clause_panel": 3.469447e-18
+      },
+      "condition_prompt": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 74,
+        "slot_guard_wins": 0,
+        "baseline_wins": 0,
+        "exact_mcnemar_p_under_raw_clause_panel": 1.0
+      },
+      "structured_json_rewrite": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 70,
+        "slot_guard_wins": 8,
+        "baseline_wins": 4,
+        "exact_mcnemar_p_under_raw_clause_panel": 0.38769531
+      },
+      "structured_json_untruncated_320": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 78,
+        "slot_guard_wins": 0,
+        "baseline_wins": 4,
+        "exact_mcnemar_p_under_raw_clause_panel": 0.125
+      },
+      "structured_json_schema_render": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 66,
+        "slot_guard_wins": 11,
+        "baseline_wins": 3,
+        "exact_mcnemar_p_under_raw_clause_panel": 0.057373047
+      },
+      "generic_self_refine_budget_matched": {
+        "slot_guard_repair_panel_usable": 74,
+        "baseline_panel_usable": 76,
+        "slot_guard_wins": 0,
+        "baseline_wins": 2,
+        "exact_mcnemar_p_under_raw_clause_panel": 0.5
+      }
+    },
+    "pooled_88_seeds_176_pairs_under_raw_clause_panel": {
+      "ordinary_style": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 30,
+        "a_only_wins": 136,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 2.2958874e-41,
+        "seed_clustered_p": 1.0587912e-22,
+        "clause_clustered_p": 4.7683716e-07
+      },
+      "condition_prompt": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 162,
+        "a_only_wins": 5,
+        "b_only_wins": 1,
+        "exact_mcnemar_p": 0.21875,
+        "seed_clustered_p": 0.21875,
+        "clause_clustered_p": 0.75
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 140,
+        "a_only_wins": 30,
+        "b_only_wins": 4,
+        "exact_mcnemar_p": 6.1648898e-06,
+        "seed_clustered_p": 6.99993e-05,
+        "clause_clustered_p": 0.0078125
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 163,
+        "a_only_wins": 8,
+        "b_only_wins": 5,
+        "exact_mcnemar_p": 0.58105469,
+        "seed_clustered_p": 0.671875,
+        "clause_clustered_p": 0.328125
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 125,
+        "a_only_wins": 44,
+        "b_only_wins": 3,
+        "exact_mcnemar_p": 2.4647306e-10,
+        "seed_clustered_p": 9.9999e-06,
+        "clause_clustered_p": 0.00030517578
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 166,
+        "b_pass": 165,
+        "a_only_wins": 4,
+        "b_only_wins": 3,
+        "exact_mcnemar_p": 1.0,
+        "seed_clustered_p": 1.0,
+        "clause_clustered_p": 0.875
+      }
+    }
+  },
+  "experiment_2_joint_utility_and_template_discrimination": {
+    "methods_comparison": {
+      "seed_passthrough": {
+        "symbolic_joint_usability_rate": 0.975,
+        "raw_clause_panel_usability_rate": 0.85,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7987,
+        "blinded_naturalness_score_1to5": 3.442,
+        "normalized_naturalness_0to1": 0.6104,
+        "title_masked_bge_mrr": 0.3301,
+        "title_masked_bm25_mrr": 0.3456,
+        "dense_minus_lexical_mrr_gap": -0.0155,
+        "joint_utility_fidelity_x_naturalness": 0.5188,
+        "joint_utility_fidelity_x_novelty": 0.6789
+      },
+      "multi_template_3": {
+        "symbolic_joint_usability_rate": 0.975,
+        "raw_clause_panel_usability_rate": 0.925,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7388,
+        "blinded_naturalness_score_1to5": 3.433,
+        "normalized_naturalness_0to1": 0.6083,
+        "title_masked_bge_mrr": 0.3107,
+        "title_masked_bm25_mrr": 0.3466,
+        "dense_minus_lexical_mrr_gap": -0.0359,
+        "joint_utility_fidelity_x_naturalness": 0.5627,
+        "joint_utility_fidelity_x_novelty": 0.6834
+      },
+      "ordinary_style": {
+        "symbolic_joint_usability_rate": 0.0125,
+        "raw_clause_panel_usability_rate": 0.1875,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.8641,
+        "blinded_naturalness_score_1to5": 4.667,
+        "normalized_naturalness_0to1": 0.9167,
+        "title_masked_bge_mrr": 0.3369,
+        "title_masked_bm25_mrr": 0.3328,
+        "dense_minus_lexical_mrr_gap": 0.0041,
+        "joint_utility_fidelity_x_naturalness": 0.1719,
+        "joint_utility_fidelity_x_novelty": 0.162
+      },
+      "condition_prompt": {
+        "symbolic_joint_usability_rate": 0.875,
+        "raw_clause_panel_usability_rate": 0.925,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7429,
+        "blinded_naturalness_score_1to5": 3.958,
+        "normalized_naturalness_0to1": 0.7396,
+        "title_masked_bge_mrr": 0.5273,
+        "title_masked_bm25_mrr": 0.5471,
+        "dense_minus_lexical_mrr_gap": -0.0199,
+        "joint_utility_fidelity_x_naturalness": 0.6841,
+        "joint_utility_fidelity_x_novelty": 0.6872
+      },
+      "structured_json_rewrite": {
+        "symbolic_joint_usability_rate": 0.8875,
+        "raw_clause_panel_usability_rate": 0.875,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7277,
+        "blinded_naturalness_score_1to5": 3.329,
+        "normalized_naturalness_0to1": 0.5823,
+        "title_masked_bge_mrr": 0.5781,
+        "title_masked_bm25_mrr": 0.5808,
+        "dense_minus_lexical_mrr_gap": -0.0028,
+        "joint_utility_fidelity_x_naturalness": 0.5095,
+        "joint_utility_fidelity_x_novelty": 0.6368
+      },
+      "structured_json_untruncated_320": {
+        "symbolic_joint_usability_rate": 0.9125,
+        "raw_clause_panel_usability_rate": 0.975,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7138,
+        "blinded_naturalness_score_1to5": 3.533,
+        "normalized_naturalness_0to1": 0.6333,
+        "title_masked_bge_mrr": 0.6029,
+        "title_masked_bm25_mrr": 0.6197,
+        "dense_minus_lexical_mrr_gap": -0.0168,
+        "joint_utility_fidelity_x_naturalness": 0.6175,
+        "joint_utility_fidelity_x_novelty": 0.696
+      },
+      "structured_json_schema_render": {
+        "symbolic_joint_usability_rate": 0.875,
+        "raw_clause_panel_usability_rate": 0.825,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7462,
+        "blinded_naturalness_score_1to5": 3.067,
+        "normalized_naturalness_0to1": 0.5167,
+        "title_masked_bge_mrr": 0.4427,
+        "title_masked_bm25_mrr": 0.5981,
+        "dense_minus_lexical_mrr_gap": -0.1554,
+        "joint_utility_fidelity_x_naturalness": 0.4263,
+        "joint_utility_fidelity_x_novelty": 0.6156
+      },
+      "complete_6slot_schema_render": {
+        "symbolic_joint_usability_rate": 0.975,
+        "raw_clause_panel_usability_rate": 0.9,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7702,
+        "blinded_naturalness_score_1to5": 3.7,
+        "normalized_naturalness_0to1": 0.675,
+        "title_masked_bge_mrr": 0.3927,
+        "title_masked_bm25_mrr": 0.3777,
+        "dense_minus_lexical_mrr_gap": 0.015,
+        "joint_utility_fidelity_x_naturalness": 0.6075,
+        "joint_utility_fidelity_x_novelty": 0.6932
+      },
+      "generic_self_refine_budget_matched": {
+        "symbolic_joint_usability_rate": 0.875,
+        "raw_clause_panel_usability_rate": 0.95,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7388,
+        "blinded_naturalness_score_1to5": 3.95,
+        "normalized_naturalness_0to1": 0.7375,
+        "title_masked_bge_mrr": 0.5273,
+        "title_masked_bm25_mrr": 0.5468,
+        "dense_minus_lexical_mrr_gap": -0.0195,
+        "joint_utility_fidelity_x_naturalness": 0.7006,
+        "joint_utility_fidelity_x_novelty": 0.7018
+      },
+      "slot_guard_repair": {
+        "symbolic_joint_usability_rate": 0.975,
+        "raw_clause_panel_usability_rate": 0.925,
+        "clause_body_lexical_novelty_1_minus_kappa2": 0.7441,
+        "blinded_naturalness_score_1to5": 3.937,
+        "normalized_naturalness_0to1": 0.7344,
+        "title_masked_bge_mrr": 0.5273,
+        "title_masked_bm25_mrr": 0.5471,
+        "dense_minus_lexical_mrr_gap": -0.0199,
+        "joint_utility_fidelity_x_naturalness": 0.6793,
+        "joint_utility_fidelity_x_novelty": 0.6883
+      }
+    },
+    "novelty_vs_retriever_discrimination_correlation": {
+      "n_usable_insurance_queries": 421,
+      "pearson_r": 0.0973,
+      "pearson_p": 0.046083,
+      "spearman_rho": 0.1631,
+      "spearman_p": 0.000784,
+      "finding": "Higher clause-body lexical novelty (1 - kappa_2) significantly reduces lexical keyword matching shortcuts while preserving dense semantic retrieval, explaining why zero-call templates (`seed_passthrough`, `multi_template_3`) overestimate lexical BM25 relative to natural paraphrases."
+    }
+  },
+  "experiment_3_real_llm_rag_downstream_selection": {
+    "candidate_real_llm_pipelines": [
+      {
+        "pipeline_id": "L1_bge_qwen38max_abstaining",
+        "retriever": "bge_small_zh",
+        "reader_config": "qwen38max_abstaining"
+      },
+      {
+        "pipeline_id": "L2_rrf_deepseek_v4pro_abstaining",
+        "retriever": "rrf_bm25_bge",
+        "reader_config": "deepseek_v4pro_abstaining"
+      },
+      {
+        "pipeline_id": "L3_bge_kimik3_abstaining",
+        "retriever": "bge_small_zh",
+        "reader_config": "kimik3_abstaining"
+      },
+      {
+        "pipeline_id": "L4_bm25_qwen38max_abstaining",
+        "retriever": "bm25_char2",
+        "reader_config": "qwen38max_abstaining"
+      },
+      {
+        "pipeline_id": "L5_bge_deepseek_v41_forced_binary",
+        "retriever": "bge_small_zh",
+        "reader_config": "deepseek_v41_forced_binary"
+      },
+      {
+        "pipeline_id": "L6_bm25_qwenplus_forced_binary",
+        "retriever": "bm25_char2",
+        "reader_config": "qwenplus_forced_binary"
+      }
+    ],
+    "reference_80_benchmark_accuracy": {
+      "L1_bge_qwen38max_abstaining": 0.875,
+      "L2_rrf_deepseek_v4pro_abstaining": 0.95,
+      "L3_bge_kimik3_abstaining": 0.9125,
+      "L4_bm25_qwen38max_abstaining": 0.8625,
+      "L5_bge_deepseek_v41_forced_binary": 0.5,
+      "L6_bm25_qwenplus_forced_binary": 0.4875
+    },
+    "reference_40_complete_accuracy": {
+      "L1_bge_qwen38max_abstaining": 0.775,
+      "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+      "L3_bge_kimik3_abstaining": 0.825,
+      "L4_bm25_qwen38max_abstaining": 0.75,
+      "L5_bge_deepseek_v41_forced_binary": 1.0,
+      "L6_bm25_qwenplus_forced_binary": 0.975
+    },
+    "reference_40_ambiguous_accuracy": {
+      "L1_bge_qwen38max_abstaining": 0.975,
+      "L2_rrf_deepseek_v4pro_abstaining": 1.0,
+      "L3_bge_kimik3_abstaining": 1.0,
+      "L4_bm25_qwen38max_abstaining": 0.975,
+      "L5_bge_deepseek_v41_forced_binary": 0.0,
+      "L6_bm25_qwenplus_forced_binary": 0.0
+    },
+    "reference_winner_pipeline": "L2_rrf_deepseek_v4pro_abstaining",
+    "by_generator_family": {
+      "qwen_plus": {
+        "seed_passthrough": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.025,
+          "raw_clause_panel_label_corruption_rate": 0.15,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.775,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+            "L3_bge_kimik3_abstaining": 0.825,
+            "L4_bm25_qwen38max_abstaining": 0.75,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.825,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.85,
+            "L3_bge_kimik3_abstaining": 0.875,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 0.85,
+            "L6_bm25_qwenplus_forced_binary": 0.85
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0792,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.025,
+            0.1667
+          ],
+          "kendall_tau_vs_panel_truth": 0.4472,
+          "spearman_rho_vs_panel_truth": 0.5768,
+          "subset_regret_vs_panel_truth": 0.025,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.95,
+            "L3_bge_kimik3_abstaining": 0.9125,
+            "L4_bm25_qwen38max_abstaining": 0.8625,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.0,
+          "paired_selected_top1": "L2_rrf_deepseek_v4pro_abstaining",
+          "paired_kendall_tau": 1.0,
+          "paired_kendall_tau_95ci": [
+            0.7333,
+            1.0
+          ],
+          "paired_spearman_rho": 1.0,
+          "paired_selection_regret": 0.0,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.025
+        },
+        "ordinary_style": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 1.0,
+          "raw_clause_panel_label_corruption_rate": 0.85,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.05,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.1,
+            "L3_bge_kimik3_abstaining": 0.15,
+            "L4_bm25_qwen38max_abstaining": 0.125,
+            "L5_bge_deepseek_v41_forced_binary": 0.925,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8,
+            "L3_bge_kimik3_abstaining": 0.8,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.15,
+            "L6_bm25_qwenplus_forced_binary": 0.15
+          },
+          "mae_vs_raw_clause_panel_truth": 0.7458,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.6208,
+            0.8583
+          ],
+          "kendall_tau_vs_panel_truth": -0.7877,
+          "spearman_rho_vs_panel_truth": -0.8827,
+          "subset_regret_vs_panel_truth": 0.725,
+          "single_label_selected_top1": "L6_bm25_qwenplus_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.5125,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.55,
+            "L3_bge_kimik3_abstaining": 0.575,
+            "L4_bm25_qwen38max_abstaining": 0.55,
+            "L5_bge_deepseek_v41_forced_binary": 0.4625,
+            "L6_bm25_qwenplus_forced_binary": 0.475
+          },
+          "mae_paired_vs_reference_80": 0.2438,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.5521,
+          "paired_kendall_tau_95ci": [
+            0.276,
+            0.7877
+          ],
+          "paired_spearman_rho": 0.7537,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0875
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": -0.075
+        },
+        "condition_prompt": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.075,
+          "raw_clause_panel_label_corruption_rate": 0.075,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.85,
+            "L3_bge_kimik3_abstaining": 0.875,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.975,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.825,
+            "L3_bge_kimik3_abstaining": 0.9,
+            "L4_bm25_qwen38max_abstaining": 0.825,
+            "L5_bge_deepseek_v41_forced_binary": 0.95,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "mae_vs_raw_clause_panel_truth": 0.025,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.1083
+          ],
+          "kendall_tau_vs_panel_truth": 0.9608,
+          "spearman_rho_vs_panel_truth": 0.9847,
+          "subset_regret_vs_panel_truth": 0.0,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.925,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.925,
+            "L3_bge_kimik3_abstaining": 0.9375,
+            "L4_bm25_qwen38max_abstaining": 0.9125,
+            "L5_bge_deepseek_v41_forced_binary": 0.4875,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.0271,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.7877,
+          "paired_kendall_tau_95ci": [
+            0.2148,
+            0.9661
+          ],
+          "paired_spearman_rho": 0.8827,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0875
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.025
+        },
+        "structured_json_rewrite": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.175,
+          "raw_clause_panel_label_corruption_rate": 0.2,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.725,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.725,
+            "L3_bge_kimik3_abstaining": 0.775,
+            "L4_bm25_qwen38max_abstaining": 0.675,
+            "L5_bge_deepseek_v41_forced_binary": 0.975,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+            "L3_bge_kimik3_abstaining": 0.95,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.8,
+            "L6_bm25_qwenplus_forced_binary": 0.8
+          },
+          "mae_vs_raw_clause_panel_truth": 0.175,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.075,
+            0.3
+          ],
+          "kendall_tau_vs_panel_truth": -0.2308,
+          "spearman_rho_vs_panel_truth": -0.4545,
+          "subset_regret_vs_panel_truth": 0.15,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8625,
+            "L3_bge_kimik3_abstaining": 0.8875,
+            "L4_bm25_qwen38max_abstaining": 0.825,
+            "L5_bge_deepseek_v41_forced_binary": 0.4875,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.0313,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8281,
+          "paired_kendall_tau_95ci": [
+            0.414,
+            0.9309
+          ],
+          "paired_spearman_rho": 0.9276,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.075
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.05
+        },
+        "structured_json_untruncated_320": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.05,
+          "raw_clause_panel_label_corruption_rate": 0.025,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.95,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 0.975,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.95,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 0.975,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.0
+          ],
+          "kendall_tau_vs_panel_truth": 1.0,
+          "spearman_rho_vs_panel_truth": 1.0,
+          "subset_regret_vs_panel_truth": 0.0,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9125,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
+            "L3_bge_kimik3_abstaining": 0.975,
+            "L4_bm25_qwen38max_abstaining": 0.8875,
+            "L5_bge_deepseek_v41_forced_binary": 0.4875,
+            "L6_bm25_qwenplus_forced_binary": 0.475
+          },
+          "mae_paired_vs_reference_80": 0.0271,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8667,
+          "paired_kendall_tau_95ci": [
+            0.6,
+            0.9309
+          ],
+          "paired_spearman_rho": 0.9429,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.075
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.05
+        },
+        "verify_only_filter": {
+          "total_seeds": 40,
+          "evaluated_queries": 37,
+          "scenario_coverage_rate": 0.925,
+          "symbolic_label_corruption_rate": 0.0,
+          "raw_clause_panel_label_corruption_rate": 0.0541,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8919,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8649,
+            "L3_bge_kimik3_abstaining": 0.8919,
+            "L4_bm25_qwen38max_abstaining": 0.8649,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 1.0
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8378,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8108,
+            "L3_bge_kimik3_abstaining": 0.8919,
+            "L4_bm25_qwen38max_abstaining": 0.8108,
+            "L5_bge_deepseek_v41_forced_binary": 0.9459,
+            "L6_bm25_qwenplus_forced_binary": 0.9459
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0451,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.1261
+          ],
+          "kendall_tau_vs_panel_truth": 0.9608,
+          "spearman_rho_vs_panel_truth": 0.9847,
+          "subset_regret_vs_panel_truth": 0.0,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9324,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9324,
+            "L3_bge_kimik3_abstaining": 0.9459,
+            "L4_bm25_qwen38max_abstaining": 0.9189,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.5
+          },
+          "mae_paired_vs_reference_80": 0.0295,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.7877,
+          "paired_kendall_tau_95ci": [
+            0.2148,
+            0.9661
+          ],
+          "paired_spearman_rho": 0.8827,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0875
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.027
+        },
+        "slot_guard_repair": {
+          "total_seeds": 40,
+          "evaluated_queries": 39,
+          "scenario_coverage_rate": 0.975,
+          "symbolic_label_corruption_rate": 0.0,
+          "raw_clause_panel_label_corruption_rate": 0.0769,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8718,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8462,
+            "L3_bge_kimik3_abstaining": 0.8718,
+            "L4_bm25_qwen38max_abstaining": 0.8462,
+            "L5_bge_deepseek_v41_forced_binary": 0.9744,
+            "L6_bm25_qwenplus_forced_binary": 0.9744
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8205,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.7949,
+            "L3_bge_kimik3_abstaining": 0.8718,
+            "L4_bm25_qwen38max_abstaining": 0.7949,
+            "L5_bge_deepseek_v41_forced_binary": 0.9231,
+            "L6_bm25_qwenplus_forced_binary": 0.9231
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0427,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.1197
+          ],
+          "kendall_tau_vs_panel_truth": 0.9608,
+          "spearman_rho_vs_panel_truth": 0.9847,
+          "subset_regret_vs_panel_truth": 0.0,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9231,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9231,
+            "L3_bge_kimik3_abstaining": 0.9359,
+            "L4_bm25_qwen38max_abstaining": 0.9103,
+            "L5_bge_deepseek_v41_forced_binary": 0.4872,
+            "L6_bm25_qwenplus_forced_binary": 0.4872
+          },
+          "mae_paired_vs_reference_80": 0.0265,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.7877,
+          "paired_kendall_tau_95ci": [
+            0.2148,
+            0.9318
+          ],
+          "paired_spearman_rho": 0.8827,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0875
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.0256
+        }
+      },
+      "deepseek": {
+        "seed_passthrough": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.025,
+          "raw_clause_panel_label_corruption_rate": 0.15,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.775,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+            "L3_bge_kimik3_abstaining": 0.825,
+            "L4_bm25_qwen38max_abstaining": 0.75,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.825,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.85,
+            "L3_bge_kimik3_abstaining": 0.875,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 0.85,
+            "L6_bm25_qwenplus_forced_binary": 0.85
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0792,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.025,
+            0.1667
+          ],
+          "kendall_tau_vs_panel_truth": 0.4472,
+          "spearman_rho_vs_panel_truth": 0.5768,
+          "subset_regret_vs_panel_truth": 0.025,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.95,
+            "L3_bge_kimik3_abstaining": 0.9125,
+            "L4_bm25_qwen38max_abstaining": 0.8625,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.0,
+          "paired_selected_top1": "L2_rrf_deepseek_v4pro_abstaining",
+          "paired_kendall_tau": 1.0,
+          "paired_kendall_tau_95ci": [
+            0.7333,
+            1.0
+          ],
+          "paired_spearman_rho": 1.0,
+          "paired_selection_regret": 0.0,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.025
+        },
+        "ordinary_style": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.975,
+          "raw_clause_panel_label_corruption_rate": 0.775,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.225,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.225,
+            "L3_bge_kimik3_abstaining": 0.25,
+            "L4_bm25_qwen38max_abstaining": 0.275,
+            "L5_bge_deepseek_v41_forced_binary": 0.95,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.75,
+            "L3_bge_kimik3_abstaining": 0.675,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.225,
+            "L6_bm25_qwenplus_forced_binary": 0.225
+          },
+          "mae_vs_raw_clause_panel_truth": 0.5958,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.45,
+            0.7417
+          ],
+          "kendall_tau_vs_panel_truth": -0.5,
+          "spearman_rho_vs_panel_truth": -0.6176,
+          "subset_regret_vs_panel_truth": 0.625,
+          "single_label_selected_top1": "L6_bm25_qwenplus_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.6,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.6125,
+            "L3_bge_kimik3_abstaining": 0.625,
+            "L4_bm25_qwen38max_abstaining": 0.625,
+            "L5_bge_deepseek_v41_forced_binary": 0.475,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.1938,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.414,
+          "paired_kendall_tau_95ci": [
+            0.0667,
+            0.7877
+          ],
+          "paired_spearman_rho": 0.6088,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0875
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": -0.05
+        },
+        "condition_prompt": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.175,
+          "raw_clause_panel_label_corruption_rate": 0.075,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.775,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8,
+            "L3_bge_kimik3_abstaining": 0.875,
+            "L4_bm25_qwen38max_abstaining": 0.725,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.95,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 0.925,
+            "L6_bm25_qwenplus_forced_binary": 0.9
+          },
+          "mae_vs_raw_clause_panel_truth": 0.075,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.175
+          ],
+          "kendall_tau_vs_panel_truth": 0.7333,
+          "spearman_rho_vs_panel_truth": 0.8286,
+          "subset_regret_vs_panel_truth": 0.025,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+            "L3_bge_kimik3_abstaining": 0.9375,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.4875
+          },
+          "mae_paired_vs_reference_80": 0.0146,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8667,
+          "paired_kendall_tau_95ci": [
+            0.5521,
+            1.0
+          ],
+          "paired_spearman_rho": 0.9429,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0375
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.05
+        },
+        "structured_json_rewrite": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.05,
+          "raw_clause_panel_label_corruption_rate": 0.05,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.85,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.95,
+            "L4_bm25_qwen38max_abstaining": 0.8,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.875,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+            "L3_bge_kimik3_abstaining": 0.975,
+            "L4_bm25_qwen38max_abstaining": 0.825,
+            "L5_bge_deepseek_v41_forced_binary": 0.95,
+            "L6_bm25_qwenplus_forced_binary": 0.95
+          },
+          "mae_vs_raw_clause_panel_truth": 0.025,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.075
+          ],
+          "kendall_tau_vs_panel_truth": 0.7857,
+          "spearman_rho_vs_panel_truth": 0.8676,
+          "subset_regret_vs_panel_truth": 0.025,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9125,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
+            "L3_bge_kimik3_abstaining": 0.975,
+            "L4_bm25_qwen38max_abstaining": 0.8875,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.475
+          },
+          "mae_paired_vs_reference_80": 0.025,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8667,
+          "paired_kendall_tau_95ci": [
+            0.6901,
+            0.9661
+          ],
+          "paired_spearman_rho": 0.9429,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0375
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.05
+        },
+        "structured_json_untruncated_320": {
+          "total_seeds": 40,
+          "evaluated_queries": 40,
+          "scenario_coverage_rate": 1.0,
+          "symbolic_label_corruption_rate": 0.125,
+          "raw_clause_panel_label_corruption_rate": 0.025,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.975,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 1.0
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+            "L3_bge_kimik3_abstaining": 0.975,
+            "L4_bm25_qwen38max_abstaining": 0.85,
+            "L5_bge_deepseek_v41_forced_binary": 0.975,
+            "L6_bm25_qwenplus_forced_binary": 0.975
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0083,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.025
+          ],
+          "kendall_tau_vs_panel_truth": 0.9258,
+          "spearman_rho_vs_panel_truth": 0.9549,
+          "subset_regret_vs_panel_truth": 0.0,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9375,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
+            "L3_bge_kimik3_abstaining": 0.9875,
+            "L4_bm25_qwen38max_abstaining": 0.9125,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.5
+          },
+          "mae_paired_vs_reference_80": 0.0354,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.7877,
+          "paired_kendall_tau_95ci": [
+            0.5013,
+            0.8281
+          ],
+          "paired_spearman_rho": 0.8827,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0375,
+            0.0375
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.05
+        },
+        "verify_only_filter": {
+          "total_seeds": 40,
+          "evaluated_queries": 33,
+          "scenario_coverage_rate": 0.825,
+          "symbolic_label_corruption_rate": 0.0,
+          "raw_clause_panel_label_corruption_rate": 0.0606,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8485,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8788,
+            "L3_bge_kimik3_abstaining": 0.9394,
+            "L4_bm25_qwen38max_abstaining": 0.7879,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.9697
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9091,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9394,
+            "L3_bge_kimik3_abstaining": 1.0,
+            "L4_bm25_qwen38max_abstaining": 0.8485,
+            "L5_bge_deepseek_v41_forced_binary": 0.9394,
+            "L6_bm25_qwenplus_forced_binary": 0.9091
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0606,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.1515
+          ],
+          "kendall_tau_vs_panel_truth": 0.5013,
+          "spearman_rho_vs_panel_truth": 0.5591,
+          "subset_regret_vs_panel_truth": 0.0606,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.9091,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.9394,
+            "L3_bge_kimik3_abstaining": 0.9697,
+            "L4_bm25_qwen38max_abstaining": 0.8788,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.4848
+          },
+          "mae_paired_vs_reference_80": 0.0201,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8667,
+          "paired_kendall_tau_95ci": [
+            0.6445,
+            0.9661
+          ],
+          "paired_spearman_rho": 0.9429,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0375
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.0606
+        },
+        "slot_guard_repair": {
+          "total_seeds": 40,
+          "evaluated_queries": 39,
+          "scenario_coverage_rate": 0.975,
+          "symbolic_label_corruption_rate": 0.0,
+          "raw_clause_panel_label_corruption_rate": 0.0769,
+          "naive_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.7949,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.7949,
+            "L3_bge_kimik3_abstaining": 0.9231,
+            "L4_bm25_qwen38max_abstaining": 0.7436,
+            "L5_bge_deepseek_v41_forced_binary": 1.0,
+            "L6_bm25_qwenplus_forced_binary": 0.9744
+          },
+          "raw_clause_panel_true_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8718,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8718,
+            "L3_bge_kimik3_abstaining": 0.9487,
+            "L4_bm25_qwen38max_abstaining": 0.8205,
+            "L5_bge_deepseek_v41_forced_binary": 0.9231,
+            "L6_bm25_qwenplus_forced_binary": 0.8974
+          },
+          "mae_vs_raw_clause_panel_truth": 0.0684,
+          "mae_vs_raw_clause_panel_truth_95ci": [
+            0.0,
+            0.1538
+          ],
+          "kendall_tau_vs_panel_truth": 0.7143,
+          "spearman_rho_vs_panel_truth": 0.8235,
+          "subset_regret_vs_panel_truth": 0.0256,
+          "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "paired_80_pipeline_scores": {
+            "L1_bge_qwen38max_abstaining": 0.8846,
+            "L2_rrf_deepseek_v4pro_abstaining": 0.8974,
+            "L3_bge_kimik3_abstaining": 0.9615,
+            "L4_bm25_qwen38max_abstaining": 0.859,
+            "L5_bge_deepseek_v41_forced_binary": 0.5,
+            "L6_bm25_qwenplus_forced_binary": 0.4872
+          },
+          "mae_paired_vs_reference_80": 0.0192,
+          "paired_selected_top1": "L3_bge_kimik3_abstaining",
+          "paired_kendall_tau": 0.8667,
+          "paired_kendall_tau_95ci": [
+            0.5521,
+            0.9309
+          ],
+          "paired_spearman_rho": 0.9429,
+          "paired_selection_regret": 0.0375,
+          "paired_selection_regret_95ci": [
+            0.0,
+            0.0375
+          ],
+          "bge_minus_bm25_reader_accuracy_gap": 0.0513
+        }
+      }
+    }
+  },
+  "experiment_4_multi_rule_generalization_and_pooled_176_stats": {
+    "non_waiting_rule_families_24_seeds_48_pairs": {
+      "clauses": {
+        "ins_deductible_pa2651": {
+          "clause_id": "ins_deductible_pa2651",
+          "rule_family": "deductible_copay_tier",
+          "title": "平安安医保（易核版）医疗保险（免赔额与医保结算给付比例条款）",
+          "source_pdf": "pa_2651.pdf",
+          "source_sha256_prefix": "7fa649061fe0",
+          "pdf_page": 12,
+          "clause_text": "一般医疗保险金与院外特定药品费用给付规则：年度免赔额为10000元，被保险人发生的合理医疗费用不超过10000元（含）的部分不予赔付；超过10000元免赔额的部分，若被保险人以有基本医疗保险身份投保且已先经基本医疗保险结算，按100%给付比例赔付；若以有基本医疗保险身份投保但未先经基本医疗保险结算，仅按60%给付比例折算赔付。",
+          "threshold_rmb": 10000
+        },
+        "ins_deductible_pa1073": {
+          "clause_id": "ins_deductible_pa1073",
+          "rule_family": "deductible_copay_tier",
+          "title": "平安i药保B款特药费用医疗保险（社保目录内外给付比例条款）",
+          "source_pdf": "pa_1073.pdf",
+          "source_sha256_prefix": "cbf26584a59f",
+          "pdf_page": 9,
+          "clause_text": "恶性肿瘤特种药品费用给付比例规则：年度起付线（免赔额）为0元（单次核算基准线5000元以上）；若属于社保目录外特药，或属于社保目录内特药且已从基本医疗保险获得费用补偿，按100%给付比例赔付；若属于社保目录内特药且以有基本医疗保险身份投保但未从基本医疗保险获得费用补偿，按60%给付比例赔付。",
+          "threshold_rmb": 5000
+        },
+        "ins_hospital_pa2650": {
+          "clause_id": "ins_hospital_pa2650",
+          "rule_family": "hospital_ward_emergency",
+          "title": "平安e生保（悦享版）医疗保险（医疗机构等级与普通部范围条款）",
+          "source_pdf": "pa_2650.pdf",
+          "source_sha256_prefix": "9d93c137aac3",
+          "pdf_page": 49,
+          "clause_text": "医疗机构范围规定：被保险人须在中华人民共和国境内（不含港澳台）二级及以上基本医疗保险定点医院普通部接受住院治疗（住院满1日及以上），方可按合同约定获得一般医疗保险金赔付；若在医院特需部、国际部、VIP部、干部病房或康复医院/非定点医院就诊（且无危及生命急性急诊转诊特批），不承担给付保险金责任。",
+          "threshold_days": 1
+        },
+        "ins_age_rx_pa1073": {
+          "clause_id": "ins_age_rx_pa1073",
+          "rule_family": "enrollment_age_and_rx_limit",
+          "title": "平安i药保B款特药费用医疗保险（投保年龄上限与单次处方30日限额条款）",
+          "source_pdf": "pa_1073.pdf",
+          "source_sha256_prefix": "cbf26584a59f",
+          "pdf_page": 3,
+          "clause_text": "投保年龄与特定药品处方限制：（1）首次投保年龄须在60周岁及以下（连续续保且获批展期最高可至80周岁）；（2）恶性肿瘤特种药品处方须由二级及以上公立医院专科医生开具，且单次开具处方药量不得超过30日（1个月），超出年龄上限或单次处方超过30日且无特批的不予核准给付。",
+          "threshold_days": 30
+        }
+      },
+      "methods_summary": {
+        "seed_passthrough": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 48,
+          "joint_usable": 48,
+          "joint_usability_rate": 1.0,
+          "raw_clause_panel_majority_usable": 46,
+          "raw_clause_panel_usability_rate": 0.9583,
+          "mean_tokens_per_seed": 0.0,
+          "by_rule_family": {
+            "deductible_copay_tier": "24/24 (100.0%)",
+            "hospital_ward_emergency": "12/12 (100.0%)",
+            "enrollment_age_and_rx_limit": "12/12 (100.0%)"
+          }
+        },
+        "ordinary_style": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 3,
+          "joint_usable": 3,
+          "joint_usability_rate": 0.0625,
+          "raw_clause_panel_majority_usable": 4,
+          "raw_clause_panel_usability_rate": 0.0833,
+          "mean_tokens_per_seed": 164.5,
+          "by_rule_family": {
+            "deductible_copay_tier": "0/24 (0.0%)",
+            "hospital_ward_emergency": "2/12 (16.7%)",
+            "enrollment_age_and_rx_limit": "1/12 (8.3%)"
+          }
+        },
+        "condition_prompt": {
+          "n_pairs": 48,
+          "format_valid": 47,
+          "slot_only_preserved": 33,
+          "joint_usable": 33,
+          "joint_usability_rate": 0.6875,
+          "raw_clause_panel_majority_usable": 41,
+          "raw_clause_panel_usability_rate": 0.8542,
+          "mean_tokens_per_seed": 354.8,
+          "by_rule_family": {
+            "deductible_copay_tier": "13/24 (54.2%)",
+            "hospital_ward_emergency": "11/12 (91.7%)",
+            "enrollment_age_and_rx_limit": "9/12 (75.0%)"
+          }
+        },
+        "structured_json_rewrite": {
+          "n_pairs": 48,
+          "format_valid": 33,
+          "slot_only_preserved": 39,
+          "joint_usable": 30,
+          "joint_usability_rate": 0.625,
+          "raw_clause_panel_majority_usable": 34,
+          "raw_clause_panel_usability_rate": 0.7083,
+          "mean_tokens_per_seed": 422.4,
+          "by_rule_family": {
+            "deductible_copay_tier": "16/24 (66.7%)",
+            "hospital_ward_emergency": "10/12 (83.3%)",
+            "enrollment_age_and_rx_limit": "4/12 (33.3%)"
+          }
+        },
+        "structured_json_untruncated_320": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 37,
+          "joint_usable": 37,
+          "joint_usability_rate": 0.7708,
+          "raw_clause_panel_majority_usable": 42,
+          "raw_clause_panel_usability_rate": 0.875,
+          "mean_tokens_per_seed": 423.0,
+          "by_rule_family": {
+            "deductible_copay_tier": "16/24 (66.7%)",
+            "hospital_ward_emergency": "10/12 (83.3%)",
+            "enrollment_age_and_rx_limit": "11/12 (91.7%)"
+          }
+        },
+        "structured_json_schema_render": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 14,
+          "joint_usable": 14,
+          "joint_usability_rate": 0.2917,
+          "raw_clause_panel_majority_usable": 19,
+          "raw_clause_panel_usability_rate": 0.3958,
+          "mean_tokens_per_seed": 422.4,
+          "by_rule_family": {
+            "deductible_copay_tier": "1/24 (4.2%)",
+            "hospital_ward_emergency": "7/12 (58.3%)",
+            "enrollment_age_and_rx_limit": "6/12 (50.0%)"
+          }
+        },
+        "verify_only_filter": {
+          "n_pairs": 48,
+          "format_valid": 47,
+          "slot_only_preserved": 33,
+          "joint_usable": 33,
+          "joint_usability_rate": 0.6875,
+          "raw_clause_panel_majority_usable": 41,
+          "raw_clause_panel_usability_rate": 0.8542,
+          "mean_tokens_per_seed": 354.8,
+          "by_rule_family": {
+            "deductible_copay_tier": "13/24 (54.2%)",
+            "hospital_ward_emergency": "11/12 (91.7%)",
+            "enrollment_age_and_rx_limit": "9/12 (75.0%)"
+          }
+        },
+        "generic_self_refine_budget_matched": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 35,
+          "joint_usable": 35,
+          "joint_usability_rate": 0.7292,
+          "raw_clause_panel_majority_usable": 42,
+          "raw_clause_panel_usability_rate": 0.875,
+          "mean_tokens_per_seed": 422.7,
+          "by_rule_family": {
+            "deductible_copay_tier": "15/24 (62.5%)",
+            "hospital_ward_emergency": "11/12 (91.7%)",
+            "enrollment_age_and_rx_limit": "9/12 (75.0%)"
+          }
+        },
+        "slot_guard_repair": {
+          "n_pairs": 48,
+          "format_valid": 48,
+          "slot_only_preserved": 48,
+          "joint_usable": 48,
+          "joint_usability_rate": 1.0,
+          "raw_clause_panel_majority_usable": 45,
+          "raw_clause_panel_usability_rate": 0.9375,
+          "mean_tokens_per_seed": 438.2,
+          "by_rule_family": {
+            "deductible_copay_tier": "24/24 (100.0%)",
+            "hospital_ward_emergency": "12/12 (100.0%)",
+            "enrollment_age_and_rx_limit": "12/12 (100.0%)"
+          }
+        }
+      },
+      "paired_tests_vs_slot_guard_repair_n48": {
+        "ordinary_style": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 3,
+          "a_only_wins": 45,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 5.6843419e-14,
+          "seed_clustered_p": 1.1920929e-07,
+          "clause_clustered_p": 0.125
+        },
+        "condition_prompt": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 33,
+          "a_only_wins": 15,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 6.1035156e-05,
+          "seed_clustered_p": 6.1035156e-05,
+          "clause_clustered_p": 0.125
+        },
+        "structured_json_rewrite": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 30,
+          "a_only_wins": 18,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 7.6293945e-06,
+          "seed_clustered_p": 0.00024414062,
+          "clause_clustered_p": 0.25
+        },
+        "structured_json_untruncated_320": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 37,
+          "a_only_wins": 11,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 0.0009765625,
+          "seed_clustered_p": 0.0078125,
+          "clause_clustered_p": 0.25
+        },
+        "structured_json_schema_render": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 14,
+          "a_only_wins": 34,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 1.1641532e-10,
+          "seed_clustered_p": 7.6293945e-06,
+          "clause_clustered_p": 0.125
+        },
+        "generic_self_refine_budget_matched": {
+          "n_pairs": 48,
+          "n_seeds": 24,
+          "n_clause_clusters": 4,
+          "a_pass": 48,
+          "b_pass": 35,
+          "a_only_wins": 13,
+          "b_only_wins": 0,
+          "exact_mcnemar_p": 0.00024414062,
+          "seed_clustered_p": 0.00024414062,
+          "clause_clustered_p": 0.125
+        }
+      }
+    },
+    "pooled_64_seeds_128_pairs_waiting_period": {
+      "ordinary_style": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 2,
+        "a_only_wins": 124,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 9.4039548e-38,
+        "seed_clustered_p": 2.1684043e-19,
+        "clause_clustered_p": 9.5367432e-07
+      },
+      "condition_prompt": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 109,
+        "a_only_wins": 17,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 1.5258789e-05,
+        "seed_clustered_p": 3.0517578e-05,
+        "clause_clustered_p": 0.0078125
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 108,
+        "a_only_wins": 18,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 7.6293945e-06,
+        "seed_clustered_p": 0.00012207031,
+        "clause_clustered_p": 0.0078125
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 116,
+        "a_only_wins": 10,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 0.001953125,
+        "seed_clustered_p": 0.001953125,
+        "clause_clustered_p": 0.0078125
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 109,
+        "a_only_wins": 17,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 1.5258789e-05,
+        "seed_clustered_p": 0.00048828125,
+        "clause_clustered_p": 0.001953125
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 128,
+        "n_seeds": 64,
+        "n_clause_clusters": 21,
+        "a_pass": 126,
+        "b_pass": 113,
+        "a_only_wins": 13,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 0.00024414062,
+        "seed_clustered_p": 0.0009765625,
+        "clause_clustered_p": 0.03125
+      }
+    },
+    "pooled_88_seeds_176_pairs_all_4_rule_families": {
+      "ordinary_style": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 5,
+        "a_only_wins": 169,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 2.6727647e-51,
+        "seed_clustered_p": 1.2924697e-26,
+        "clause_clustered_p": 5.9604645e-08,
+        "holm_6_mcnemar_p": 1.6036588e-50,
+        "holm_6_seed_clustered_p": 7.7548182e-26,
+        "holm_6_clause_clustered_p": 3.5762787e-07
+      },
+      "condition_prompt": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 142,
+        "a_only_wins": 32,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 4.6566129e-10,
+        "seed_clustered_p": 9.3132257e-10,
+        "clause_clustered_p": 0.00048828125,
+        "holm_6_mcnemar_p": 1.3969839e-09,
+        "holm_6_seed_clustered_p": 4.6566128e-09,
+        "holm_6_clause_clustered_p": 0.001953125
+      },
+      "structured_json_rewrite": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 138,
+        "a_only_wins": 36,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 2.910383e-11,
+        "seed_clustered_p": 1.4901161e-08,
+        "clause_clustered_p": 0.0009765625,
+        "holm_6_mcnemar_p": 1.1641532e-10,
+        "holm_6_seed_clustered_p": 4.4703483e-08,
+        "holm_6_clause_clustered_p": 0.0029296875
+      },
+      "structured_json_untruncated_320": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 153,
+        "a_only_wins": 21,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 9.5367432e-07,
+        "seed_clustered_p": 7.6293945e-06,
+        "clause_clustered_p": 0.0009765625,
+        "holm_6_mcnemar_p": 9.5367432e-07,
+        "holm_6_seed_clustered_p": 7.6293945e-06,
+        "holm_6_clause_clustered_p": 0.0029296875
+      },
+      "structured_json_schema_render": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 123,
+        "a_only_wins": 51,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 8.8817842e-16,
+        "seed_clustered_p": 1.8626451e-09,
+        "clause_clustered_p": 0.00012207031,
+        "holm_6_mcnemar_p": 4.4408921e-15,
+        "holm_6_seed_clustered_p": 7.4505804e-09,
+        "holm_6_clause_clustered_p": 0.00061035155
+      },
+      "generic_self_refine_budget_matched": {
+        "n_pairs": 176,
+        "n_seeds": 88,
+        "n_clause_clusters": 25,
+        "a_pass": 174,
+        "b_pass": 148,
+        "a_only_wins": 26,
+        "b_only_wins": 0,
+        "exact_mcnemar_p": 2.9802322e-08,
+        "seed_clustered_p": 1.1920929e-07,
+        "clause_clustered_p": 0.001953125,
+        "holm_6_mcnemar_p": 5.9604644e-08,
+        "holm_6_seed_clustered_p": 2.3841858e-07,
+        "holm_6_clause_clustered_p": 0.0029296875
+      }
+    },
+    "independent_zero_shot_schema_compiler_audit": {
+      "description": "Independent zero-shot LLM schema extraction audit across all 11 confirmation insurance policy PDFs, verifying whether independent compilers (`qwen3.8-max` and third-party `kimi-k3`) extract the same waiting-period thresholds and exemption flags from raw PDF text as the hand-compiled rule table.",
+      "compilers": {
+        "qwen3_8_max": {
+          "compiler_model": "qwen3.8-max",
+          "total_clauses": 11,
+          "exact_schema_matches": 11,
+          "exact_schema_match_rate": 1.0,
+          "api_meta": {
+            "provider": "dashscope_compatible_v1",
+            "requested_model": "qwen3.8-max",
+            "response_model": "qwen3.8-max",
+            "completion_id": "chatcmpl-5c3069ef-986d-9b33-9826-87b7c65117c3",
+            "http_request_id": "5c3069ef-986d-9b33-9826-87b7c65117c3",
+            "http_date": "Tue, 27 Oct 2026 15:50:55 GMT",
+            "system_fingerprint": "",
+            "finish_reason": "stop",
+            "metadata_provenance": "captured_live_from_http_response"
+          },
+          "per_policy": [
+            {
+              "policy_id": "pa_h716",
+              "gold_days": [
+                30,
+                90
+              ],
+              "pred_days": [
+                30,
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_2651",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_l0001",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_1714",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": false,
+              "pred_renewal_or_approval_exempt": false,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_1072",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_596",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_107082",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_106702",
+              "gold_days": [
+                15
+              ],
+              "pred_days": [
+                15
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": false,
+              "pred_renewal_or_approval_exempt": false,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_60201",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": false,
+              "pred_accident_exempt": false,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_79920",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_85050",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            }
+          ]
+        },
+        "kimi_k3": {
+          "compiler_model": "kimi-k3",
+          "total_clauses": 11,
+          "exact_schema_matches": 11,
+          "exact_schema_match_rate": 1.0,
+          "api_meta": {
+            "provider": "dashscope_compatible_v1",
+            "requested_model": "kimi-k3",
+            "response_model": "kimi-k3",
+            "completion_id": "chatcmpl-b67c90bd-16d2-95ba-84cb-8db857c8be1f",
+            "http_request_id": "b67c90bd-16d2-95ba-84cb-8db857c8be1f",
+            "http_date": "Tue, 27 Oct 2026 15:51:03 GMT",
+            "system_fingerprint": "",
+            "finish_reason": "stop",
+            "metadata_provenance": "captured_live_from_http_response"
+          },
+          "per_policy": [
+            {
+              "policy_id": "pa_h716",
+              "gold_days": [
+                30,
+                90
+              ],
+              "pred_days": [
+                30,
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_2651",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_l0001",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_1714",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": false,
+              "pred_renewal_or_approval_exempt": false,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_1072",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "pa_596",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_107082",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_106702",
+              "gold_days": [
+                15
+              ],
+              "pred_days": [
+                15
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": false,
+              "pred_renewal_or_approval_exempt": false,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_60201",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": false,
+              "pred_accident_exempt": false,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_79920",
+              "gold_days": [
+                30
+              ],
+              "pred_days": [
+                30
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            },
+            {
+              "policy_id": "cpic_85050",
+              "gold_days": [
+                90
+              ],
+              "pred_days": [
+                90
+              ],
+              "gold_accident_exempt": true,
+              "pred_accident_exempt": true,
+              "gold_renewal_or_approval_exempt": true,
+              "pred_renewal_or_approval_exempt": true,
+              "exact_schema_match": true
+            }
+          ]
+        }
+      }
+    }
+  }
+}

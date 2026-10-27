@@ -1,0 +1,355 @@
+{
+  "description": "Independent zero-shot LLM schema extraction audit across all 11 confirmation insurance policy PDFs, verifying whether independent compilers (`qwen3.8-max` and third-party `kimi-k3`) extract the same waiting-period thresholds and exemption flags from raw PDF text as the hand-compiled rule table.",
+  "compilers": {
+    "qwen3_8_max": {
+      "compiler_model": "qwen3.8-max",
+      "total_clauses": 11,
+      "exact_schema_matches": 11,
+      "exact_schema_match_rate": 1.0,
+      "api_meta": {
+        "provider": "dashscope_compatible_v1",
+        "requested_model": "qwen3.8-max",
+        "response_model": "qwen3.8-max",
+        "completion_id": "chatcmpl-5c3069ef-986d-9b33-9826-87b7c65117c3",
+        "http_request_id": "5c3069ef-986d-9b33-9826-87b7c65117c3",
+        "http_date": "Tue, 27 Oct 2026 15:50:55 GMT",
+        "system_fingerprint": "",
+        "finish_reason": "stop",
+        "metadata_provenance": "captured_live_from_http_response"
+      },
+      "per_policy": [
+        {
+          "policy_id": "pa_h716",
+          "gold_days": [
+            30,
+            90
+          ],
+          "pred_days": [
+            30,
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_2651",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_l0001",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_1714",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": false,
+          "pred_renewal_or_approval_exempt": false,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_1072",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_596",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_107082",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_106702",
+          "gold_days": [
+            15
+          ],
+          "pred_days": [
+            15
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": false,
+          "pred_renewal_or_approval_exempt": false,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_60201",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": false,
+          "pred_accident_exempt": false,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_79920",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_85050",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        }
+      ]
+    },
+    "kimi_k3": {
+      "compiler_model": "kimi-k3",
+      "total_clauses": 11,
+      "exact_schema_matches": 11,
+      "exact_schema_match_rate": 1.0,
+      "api_meta": {
+        "provider": "dashscope_compatible_v1",
+        "requested_model": "kimi-k3",
+        "response_model": "kimi-k3",
+        "completion_id": "chatcmpl-b67c90bd-16d2-95ba-84cb-8db857c8be1f",
+        "http_request_id": "b67c90bd-16d2-95ba-84cb-8db857c8be1f",
+        "http_date": "Tue, 27 Oct 2026 15:51:03 GMT",
+        "system_fingerprint": "",
+        "finish_reason": "stop",
+        "metadata_provenance": "captured_live_from_http_response"
+      },
+      "per_policy": [
+        {
+          "policy_id": "pa_h716",
+          "gold_days": [
+            30,
+            90
+          ],
+          "pred_days": [
+            30,
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_2651",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_l0001",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_1714",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": false,
+          "pred_renewal_or_approval_exempt": false,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_1072",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "pa_596",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_107082",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_106702",
+          "gold_days": [
+            15
+          ],
+          "pred_days": [
+            15
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": false,
+          "pred_renewal_or_approval_exempt": false,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_60201",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": false,
+          "pred_accident_exempt": false,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_79920",
+          "gold_days": [
+            30
+          ],
+          "pred_days": [
+            30
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        },
+        {
+          "policy_id": "cpic_85050",
+          "gold_days": [
+            90
+          ],
+          "pred_days": [
+            90
+          ],
+          "gold_accident_exempt": true,
+          "pred_accident_exempt": true,
+          "gold_renewal_or_approval_exempt": true,
+          "pred_renewal_or_approval_exempt": true,
+          "exact_schema_match": true
+        }
+      ]
+    }
+  }
+}
