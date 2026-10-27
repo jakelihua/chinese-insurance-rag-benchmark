@@ -4,8 +4,9 @@
       "domain_type": "insurance",
       "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
       "retrieval_backend_audit": {
-        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
         "sparse_backend": "BM25 char-2",
+        "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
         "reference_queries_total": 48,
         "reference_queries_bge_cached": 48,
         "reference_queries_fallback_count": 0,
@@ -233,8 +234,9 @@
       "domain_type": "multi_threshold",
       "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
       "retrieval_backend_audit": {
-        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
         "sparse_backend": "BM25 char-2",
+        "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
         "reference_queries_total": 32,
         "reference_queries_bge_cached": 32,
         "reference_queries_fallback_count": 0,
@@ -683,8 +685,9 @@
       "domain_type": "insurance",
       "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
       "retrieval_backend_audit": {
-        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
         "sparse_backend": "BM25 char-2",
+        "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
         "reference_queries_total": 48,
         "reference_queries_bge_cached": 48,
         "reference_queries_fallback_count": 0,
@@ -912,8 +915,9 @@
       "domain_type": "multi_threshold",
       "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
       "retrieval_backend_audit": {
-        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+        "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
         "sparse_backend": "BM25 char-2",
+        "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
         "reference_queries_total": 32,
         "reference_queries_bge_cached": 32,
         "reference_queries_fallback_count": 0,

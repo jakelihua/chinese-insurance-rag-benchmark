@@ -935,5 +935,77 @@ class ConditionTests(unittest.TestCase):
             places=6,
         )
 
+    def test_round_10_review_remediations_and_thread_safety(self):
+        """Verify Round 10 review remediations:
+        1. No hardcoded prefilled strings in _LAST_API_META; API metadata derived from JSONL records.
+        2. Concurrent execution of run_untouched_holdout_generations never mutates global FROZEN_CONFIRM_POLICIES.
+        3. Failure mechanism decomposition for structured_json_schema_render and structured_json_untruncated_320
+           accurately records 80/80 json_day_matches_seed and the exact 4-category failure counts.
+        4. Exploratory 6-comparison Holm-Bonferroni table and lexical_zero_overlap_guard disclosure are present.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+        import json
+        from pathlib import Path
+        from unittest.mock import patch
+        import frozen_confirmation_and_rag_study as study
+
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(study._LAST_API_META, {})
+
+        orig_keys = set(study.FROZEN_CONFIRM_POLICIES.keys())
+        self.assertEqual(len(orig_keys), 11)
+        observed_global_key_counts = []
+
+        def fake_fc_gen(family, ins_s, crs_s, policies_map=None):
+            observed_global_key_counts.append(len(study.FROZEN_CONFIRM_POLICIES))
+            self.assertEqual(set(study.FROZEN_CONFIRM_POLICIES.keys()), orig_keys)
+            self.assertIsNotNone(policies_map)
+            for k in study.UNTOUCHED_HOLDOUT_POLICIES:
+                self.assertIn(k, policies_map)
+                self.assertNotIn(k, study.FROZEN_CONFIRM_POLICIES)
+            return [{'model_family': family, 'seed_id': 'uhold-ins-001', 'method': 'structured_json_rewrite', 'raw_response': '{}'}]
+
+        def fake_fair_gen(family, ins_s, crs_s, base_r, policies_map=None):
+            observed_global_key_counts.append(len(study.FROZEN_CONFIRM_POLICIES))
+            self.assertEqual(set(study.FROZEN_CONFIRM_POLICIES.keys()), orig_keys)
+            self.assertIsNotNone(policies_map)
+            return [{'model_family': family, 'seed_id': 'uhold-ins-001', 'method': 'structured_json_schema_render', 'raw_response': '{}'}]
+
+        with patch.object(study, 'run_frozen_confirmation_generations', side_effect=fake_fc_gen), \
+             patch.object(study, 'run_fair_structured_baseline_generations', side_effect=fake_fair_gen):
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                f1 = ex.submit(study.run_untouched_holdout_generations, 'qwen_plus', [], [])
+                f2 = ex.submit(study.run_untouched_holdout_generations, 'deepseek', [], [])
+                r1, r2 = f1.result(), f2.result()
+        self.assertEqual(len(r1), 2)
+        self.assertEqual(len(r2), 2)
+        self.assertEqual(observed_global_key_counts, [11, 11, 11, 11])
+        self.assertEqual(set(study.FROZEN_CONFIRM_POLICIES.keys()), orig_keys)
+
+        fc_sum = json.loads((root / 'data_v3' / 'frozen_confirmation_summary.json').read_text(encoding='utf-8'))
+        self.assertEqual(
+            fc_sum['provider_api_response_metadata']['deepseek']['response_model'],
+            'deepseek-flash',
+        )
+        decomp = fc_sum['fair_structured_baseline_ablation_40_seeds']['failure_mechanism_decomposition']
+        self.assertEqual(decomp['structured_json_schema_render']['json_day_matches_seed_count'], 80)
+        self.assertEqual(decomp['structured_json_schema_render']['json_day_changed_from_seed_count'], 0)
+        self.assertEqual(decomp['structured_json_schema_render']['parsed_day_matches_seed_count'], 78)
+        self.assertEqual(decomp['structured_json_schema_render']['parsed_day_none_due_to_nested_unit_string_in_json_day'], 2)
+        self.assertEqual(
+            decomp['structured_json_schema_render']['failure_category_counts'],
+            {
+                'unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen': 2,
+                'waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject': 4,
+                'abbreviated_clause_title_in_json_clause_slot': 1,
+                '5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot': 3,
+            },
+        )
+        self.assertEqual(decomp['structured_json_untruncated_320']['json_day_matches_seed_count'], 80)
+        self.assertEqual(decomp['structured_json_untruncated_320']['json_day_changed_from_seed_count'], 0)
+        self.assertIn('exploratory_6_comparisons_including_fair_structured', fc_sum['holm_bonferroni_multiple_testing_summary'])
+        rag_audit = fc_sum['downstream_rag_selection_summary']['qwen_plus']['insurance_24_seeds']['retrieval_backend_audit']
+        self.assertIn('lexical_zero_overlap_guard', rag_audit)
+
 
 if __name__=='__main__':unittest.main()

@@ -3,7 +3,8 @@
   "version_separation_summary": {
     "v3_0_frozen": "Initial pre-confirmation frozen parser & rule engine (0 contract-specific aliases on the 11 confirmation PDFs; achieves 78/80 = 97.50% on slot_guard_repair across the 40 confirmation seeds, missing only fconf-ins-003 due to unmodeled pa_h716 specific-organ 90-day benefit keywords).",
     "v3_1_posthoc_hardened": "Post-review hardened parser & evaluator incorporating: (a) parse-uncertainty gating (`detect_parse_uncertainty`) for cross-unit/calendar-date inline corrections and multi-value day disjunctions (0/3 false accepts on adversarial probes), (b) forward clause reachability (`forward_reachable_under_clause`) distinguishing `FACT_MUTATED_SAME_DECISION` from `DECISION_CHANGED`, and (c) strictly isolated `predict(question, retrieved_clause, inference_config)`.",
-    "v3_1_untouched_holdout": "Post-hardening evaluation on 24 brand-new untouched seeds (6 unseen Ping An official contract PDFs + 12 unseen multi-threshold seeds = 48 cross-model pairs) never used in any parser or prompt development."
+    "v3_1_untouched_holdout": "Internal post-hardening evaluation on 24 unseen seeds (6 unseen Ping An official contract PDFs + 12 unseen multi-threshold seeds = 48 cross-model pairs across 10 document clusters) evaluated without modifying v3.1-posthoc-hardened.",
+    "audit_field_compatibility_note": "In `frozen_confirmation_three_layer_audit.jsonl`, the field `v3_0_raw_outcome` is retained as a schema-compatibility alias holding the current verifier outcome (`r[\"outcome\"]` under `v3.1-posthoc-hardened`). On the 40-seed confirmation set, `slot_guard_repair` usable yield is identical (78/80 = 97.50%) under both `v3.0-frozen` and `v3.1-posthoc-hardened`."
   },
   "provider_api_response_metadata": {
     "qwen_plus": {
@@ -2730,6 +2731,104 @@
         "holm_adjusted_p": 0.125,
         "rank": 4
       }
+    },
+    "exploratory_6_comparisons_including_fair_structured": {
+      "mcnemar_80_pairs_format_and_slot": {
+        "slot_guard_vs_ordinary": {
+          "raw_p": 0.0,
+          "holm_adjusted_p": 0.0,
+          "rank": 1
+        },
+        "slot_guard_vs_condition_prompt": {
+          "raw_p": 0.0078125,
+          "holm_adjusted_p": 0.0390625,
+          "rank": 2
+        },
+        "slot_guard_vs_generic_self_refine_budget_matched": {
+          "raw_p": 0.0078125,
+          "holm_adjusted_p": 0.0390625,
+          "rank": 3
+        },
+        "slot_guard_vs_structured_json_schema_render": {
+          "raw_p": 0.0078125,
+          "holm_adjusted_p": 0.0390625,
+          "rank": 4
+        },
+        "slot_guard_vs_structured_json": {
+          "raw_p": 0.015625,
+          "holm_adjusted_p": 0.0390625,
+          "rank": 5
+        },
+        "slot_guard_vs_structured_json_untruncated_320": {
+          "raw_p": 0.0625,
+          "holm_adjusted_p": 0.0625,
+          "rank": 6
+        }
+      },
+      "seed_clustered_40_seeds_format_and_slot": {
+        "slot_guard_vs_ordinary": {
+          "raw_p": 0.0,
+          "holm_adjusted_p": 0.0,
+          "rank": 1
+        },
+        "slot_guard_vs_condition_prompt": {
+          "raw_p": 0.0078125,
+          "holm_adjusted_p": 0.0390625,
+          "rank": 2
+        },
+        "slot_guard_vs_generic_self_refine_budget_matched": {
+          "raw_p": 0.015625,
+          "holm_adjusted_p": 0.0625,
+          "rank": 3
+        },
+        "slot_guard_vs_structured_json": {
+          "raw_p": 0.03125,
+          "holm_adjusted_p": 0.09375,
+          "rank": 4
+        },
+        "slot_guard_vs_structured_json_schema_render": {
+          "raw_p": 0.03125,
+          "holm_adjusted_p": 0.09375,
+          "rank": 5
+        },
+        "slot_guard_vs_structured_json_untruncated_320": {
+          "raw_p": 0.0625,
+          "holm_adjusted_p": 0.09375,
+          "rank": 6
+        }
+      },
+      "clause_clustered_15_clauses_format_and_slot": {
+        "slot_guard_vs_ordinary": {
+          "raw_p": 6.104e-05,
+          "holm_adjusted_p": 0.00036624,
+          "rank": 1
+        },
+        "slot_guard_vs_generic_self_refine_budget_matched": {
+          "raw_p": 0.03125,
+          "holm_adjusted_p": 0.15625,
+          "rank": 2
+        },
+        "slot_guard_vs_structured_json_schema_render": {
+          "raw_p": 0.03125,
+          "holm_adjusted_p": 0.15625,
+          "rank": 3
+        },
+        "slot_guard_vs_condition_prompt": {
+          "raw_p": 0.0625,
+          "holm_adjusted_p": 0.1875,
+          "rank": 4
+        },
+        "slot_guard_vs_structured_json": {
+          "raw_p": 0.0625,
+          "holm_adjusted_p": 0.1875,
+          "rank": 5
+        },
+        "slot_guard_vs_structured_json_untruncated_320": {
+          "raw_p": 0.0625,
+          "holm_adjusted_p": 0.1875,
+          "rank": 6
+        }
+      }
     }
   },
   "pooled_cross_model_paired_mcnemar_80_seeds": {
@@ -3008,6 +3107,69 @@
         "right_only_wins": [],
         "exact_mcnemar_two_sided_p": 0.0625
       },
+      "vs_structured_json_untruncated_320_clustered": {
+        "primary_endpoint": "format_and_slot",
+        "seed_clustered_40_seeds": {
+          "total_clusters": 40,
+          "nonzero_clusters": 5,
+          "positive_clusters": 5,
+          "negative_clusters": 0,
+          "observed_sum_diff": 5,
+          "exact_sign_flip_p_two_sided": 0.0625,
+          "cluster_sign_test_p_two_sided": 0.0625
+        },
+        "clause_clustered_15_documents": {
+          "total_clusters": 15,
+          "nonzero_clusters": 5,
+          "positive_clusters": 5,
+          "negative_clusters": 0,
+          "observed_sum_diff": 5,
+          "exact_sign_flip_p_two_sided": 0.0625,
+          "cluster_sign_test_p_two_sided": 0.0625
+        },
+        "by_endpoint": {
+          "format_and_slot": {
+            "seed_clustered_40_seeds": {
+              "total_clusters": 40,
+              "nonzero_clusters": 5,
+              "positive_clusters": 5,
+              "negative_clusters": 0,
+              "observed_sum_diff": 5,
+              "exact_sign_flip_p_two_sided": 0.0625,
+              "cluster_sign_test_p_two_sided": 0.0625
+            },
+            "clause_clustered_15_documents": {
+              "total_clusters": 15,
+              "nonzero_clusters": 5,
+              "positive_clusters": 5,
+              "negative_clusters": 0,
+              "observed_sum_diff": 5,
+              "exact_sign_flip_p_two_sided": 0.0625,
+              "cluster_sign_test_p_two_sided": 0.0625
+            }
+          },
+          "slot_only": {
+            "seed_clustered_40_seeds": {
+              "total_clusters": 40,
+              "nonzero_clusters": 5,
+              "positive_clusters": 5,
+              "negative_clusters": 0,
+              "observed_sum_diff": 5,
+              "exact_sign_flip_p_two_sided": 0.0625,
+              "cluster_sign_test_p_two_sided": 0.0625
+            },
+            "clause_clustered_15_documents": {
+              "total_clusters": 15,
+              "nonzero_clusters": 5,
+              "positive_clusters": 5,
+              "negative_clusters": 0,
+              "observed_sum_diff": 5,
+              "exact_sign_flip_p_two_sided": 0.0625,
+              "cluster_sign_test_p_two_sided": 0.0625
+            }
+          }
+        }
+      },
       "vs_structured_json_schema_render_joint": {
         "endpoint": "format_and_slot",
         "left": "slot_guard_repair",
@@ -3091,10 +3253,187 @@
           }
         }
       }
+    },
+    "implementation_and_protocol_audit": {
+      "structured_json_rewrite": "Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); mean total tokens = 530.6.",
+      "structured_json_untruncated_320": "Independent cloud API generation raising max_new_tokens from 160 to 320 under the identical two-line prompt; eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).",
+      "structured_json_schema_render": "Post-hoc deterministic template rendering ablation (`render_question_from_extracted_json`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction errors."
+    },
+    "failure_mechanism_decomposition": {
+      "structured_json_schema_render": {
+        "n_records": 80,
+        "json_day_matches_seed_count": 80,
+        "json_day_changed_from_seed_count": 0,
+        "parsed_day_matches_seed_count": 78,
+        "parsed_day_none_due_to_nested_unit_string_in_json_day": 2,
+        "parsed_day_changed_from_seed_count": 0,
+        "rejected_count": 10,
+        "failure_category_counts": {
+          "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen": 2,
+          "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject": 4,
+          "abbreviated_clause_title_in_json_clause_slot": 1,
+          "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot": 3
+        },
+        "rejected_records": [
+          {
+            "pair_id": "qwen_plus:fconf-ins-003",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
+          },
+          {
+            "pair_id": "qwen_plus:fconf-ins-009",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "qwen_plus:fconf-cross-005",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 5,
+            "seed_day": 5,
+            "parsed_day": 5,
+            "failure_category": "abbreviated_clause_title_in_json_clause_slot"
+          },
+          {
+            "pair_id": "qwen_plus:fconf-cross-014",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 50,
+            "seed_day": 50,
+            "parsed_day": 50,
+            "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-003",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-007",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 40,
+            "seed_day": 40,
+            "parsed_day": 40,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-009",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-017",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 10,
+            "seed_day": 10,
+            "parsed_day": 10,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-cross-011",
+            "outcome": "CONDITION_MUTATED",
+            "json_day": 105,
+            "seed_day": 105,
+            "parsed_day": null,
+            "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
+          },
+          {
+            "pair_id": "deepseek:fconf-cross-014",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 50,
+            "seed_day": 50,
+            "parsed_day": 50,
+            "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
+          }
+        ]
+      },
+      "structured_json_untruncated_320": {
+        "n_records": 80,
+        "json_day_matches_seed_count": 80,
+        "json_day_changed_from_seed_count": 0,
+        "parsed_day_matches_seed_count": 80,
+        "parsed_day_none_due_to_nested_unit_string_in_json_day": 0,
+        "parsed_day_changed_from_seed_count": 0,
+        "rejected_count": 7,
+        "failure_category_counts": {
+          "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen": 2,
+          "approved_waiver_phrasing_missing_explicit_approval_marker": 1,
+          "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject": 4
+        },
+        "rejected_records": [
+          {
+            "pair_id": "qwen_plus:fconf-ins-003",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
+          },
+          {
+            "pair_id": "qwen_plus:fconf-ins-006",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 12,
+            "seed_day": 12,
+            "parsed_day": 12,
+            "failure_category": "approved_waiver_phrasing_missing_explicit_approval_marker"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-003",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-007",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 40,
+            "seed_day": 40,
+            "parsed_day": 40,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-009",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 45,
+            "seed_day": 45,
+            "parsed_day": 45,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-015",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 22,
+            "seed_day": 22,
+            "parsed_day": 22,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          },
+          {
+            "pair_id": "deepseek:fconf-ins-017",
+            "outcome": "DEGRADED_TO_CLARIFY",
+            "json_day": 10,
+            "seed_day": 10,
+            "parsed_day": 10,
+            "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
+          }
+        ]
+      }
     }
   },
   "untouched_post_hardening_holdout_24_seeds_summary": {
     "benchmark_version": "v3.1-untouched-holdout",
+    "provenance_and_scope_note": "Internal post-hardening unseen-seed extension benchmark constructed after freezing v3.1-posthoc-hardened. Comprises 12 insurance seeds from 6 official Ping An health/critical-illness PDFs (`pa_2650`, `pa_1071`, `pa_1073`, `pa_595`, `pa_597`, `pa_l0002`, cached in the local contract pool on 2026-10-26 and first extracted for Round 10) plus 12 new multi-threshold seeds (`uhold-cross-001..012`) instantiated with unseen parameter combinations on the 4 multi-threshold rule templates (total = 24 seeds, 48 cross-model pairs across 10 document clusters). Because this extension set was authored within the same repository rather than by an external third party, it is reported as an internal post-hardening generalization test rather than an external third-party blind benchmark.",
     "unseen_formal_insurance_pdfs": 6,
     "unseen_insurance_seeds": 12,
     "unseen_multi_threshold_seeds": 12,
@@ -3789,8 +4128,9 @@
         "domain_type": "insurance",
         "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
         "retrieval_backend_audit": {
-          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
           "sparse_backend": "BM25 char-2",
+          "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
           "reference_queries_total": 48,
           "reference_queries_bge_cached": 48,
           "reference_queries_fallback_count": 0,
@@ -4018,8 +4358,9 @@
         "domain_type": "multi_threshold",
         "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
         "retrieval_backend_audit": {
-          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
           "sparse_backend": "BM25 char-2",
+          "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
           "reference_queries_total": 32,
           "reference_queries_bge_cached": 32,
           "reference_queries_fallback_count": 0,
@@ -4468,8 +4809,9 @@
         "domain_type": "insurance",
         "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
         "retrieval_backend_audit": {
-          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
           "sparse_backend": "BM25 char-2",
+          "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
           "reference_queries_total": 48,
           "reference_queries_bge_cached": 48,
           "reference_queries_fallback_count": 0,
@@ -4697,8 +5039,9 @@
         "domain_type": "multi_threshold",
         "pipeline_architecture_note": "Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval (100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.",
         "retrieval_backend_audit": {
-          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)",
+          "dense_backend": "BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)",
           "sparse_backend": "BM25 char-2",
+          "lexical_zero_overlap_guard": "if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)",
           "reference_queries_total": 32,
           "reference_queries_bge_cached": 32,
           "reference_queries_fallback_count": 0,

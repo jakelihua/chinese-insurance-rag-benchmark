@@ -788,27 +788,14 @@ def evaluate_gold_diagnostic_suite(suite):
 
 
 # ---------------------------------------------------------------------------
-# 3. Cloud API Helpers (DeepSeek-V3 & DashScope Qwen-Plus — Zero Local LLM Load)
+# 3. Cloud API Helpers (DeepSeek & DashScope Qwen-Plus — Zero Local LLM Load)
 # ---------------------------------------------------------------------------
-_LAST_API_META = {
-    'qwen_plus': {
-        'requested_model': 'qwen-plus',
-        'response_model': 'qwen-plus',
-        'endpoint': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-        'system_fingerprint': None,
-    },
-    'deepseek': {
-        'requested_model': 'deepseek-chat',
-        'response_model': 'deepseek-flash',
-        'endpoint': 'https://api.deepseek.com/chat/completions',
-        'system_fingerprint': 'e72d3c7f663d3e1383b00b3884cb4501',
-    },
-}
+_LAST_API_META = {}
 
 
-def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160):
+def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160, return_meta=False):
     """Call DeepSeek official API (deepseek-chat, temperature=0.0) and return
-    (raw_text, prompt_tokens, completion_tokens, latency_ms)."""
+    (raw_text, prompt_tokens, completion_tokens, latency_ms[, api_meta])."""
     api_key = os.environ.get('DEEPSEEK_API_KEY', '').strip()
     if not api_key:
         raise RuntimeError('DEEPSEEK_API_KEY is required for live DeepSeek generation.')
@@ -838,12 +825,21 @@ def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160):
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
             usage = data.get('usage', {})
-            _LAST_API_META['deepseek'] = {
+            meta = {
                 'requested_model': 'deepseek-chat',
                 'response_model': data.get('model', 'deepseek-chat'),
                 'endpoint': 'https://api.deepseek.com/chat/completions',
                 'system_fingerprint': data.get('system_fingerprint'),
             }
+            _LAST_API_META['deepseek'] = meta
+            if return_meta:
+                return (
+                    raw,
+                    int(usage.get('prompt_tokens', 0)),
+                    int(usage.get('completion_tokens', 0)),
+                    latency_ms,
+                    meta,
+                )
             return (
                 raw,
                 int(usage.get('prompt_tokens', 0)),
@@ -856,9 +852,9 @@ def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160):
     raise RuntimeError(f'DeepSeek API failed after 5 attempts: {last_err}')
 
 
-def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='qwen-plus'):
+def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='qwen-plus', return_meta=False):
     """Call Alibaba Cloud DashScope compatible API (qwen-plus, temperature=0.0) and return
-    (raw_text, prompt_tokens, completion_tokens, latency_ms)."""
+    (raw_text, prompt_tokens, completion_tokens, latency_ms[, api_meta])."""
     api_key = os.environ.get('DASHSCOPE_API_KEY', '').strip()
     if not api_key:
         raise RuntimeError('DASHSCOPE_API_KEY is required for live Qwen-Plus cloud generation.')
@@ -888,12 +884,21 @@ def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
             usage = data.get('usage', {})
-            _LAST_API_META['qwen_plus'] = {
+            meta = {
                 'requested_model': model_name,
                 'response_model': data.get('model', model_name),
                 'endpoint': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
                 'system_fingerprint': data.get('system_fingerprint'),
             }
+            _LAST_API_META['qwen_plus'] = meta
+            if return_meta:
+                return (
+                    raw,
+                    int(usage.get('prompt_tokens', 0)),
+                    int(usage.get('completion_tokens', 0)),
+                    latency_ms,
+                    meta,
+                )
             return (
                 raw,
                 int(usage.get('prompt_tokens', 0)),
@@ -1398,8 +1403,9 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
             'by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.'
         ),
         'retrieval_backend_audit': {
-            'dense_backend': 'BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)',
+            'dense_backend': 'BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback on cache miss disabled)',
             'sparse_backend': 'BM25 char-2',
+            'lexical_zero_overlap_guard': 'if max(bm25_char2_scores) <= 0.0: return None (rejects zero-overlap out-of-domain strings before BGE cosine lookup)',
             'reference_queries_total': len(ref_query_audit),
             'reference_queries_bge_cached': sum(1 for x in ref_query_audit if x['bge_vector_cached']),
             'reference_queries_fallback_count': 0,
@@ -1668,21 +1674,31 @@ def build_clause_rule_mapping_audit(out_dir, fc_sources):
 # ---------------------------------------------------------------------------
 # 6. Multi-Family Cloud Generation & Scoring on the Frozen Confirmation Set
 # ---------------------------------------------------------------------------
-def call_generator(family, sys_prompt, user_prompt, max_new_tokens=120):
-    """Unified cloud API wrapper returning (raw_text, prompt_tokens, completion_tokens, latency_ms, truncated)."""
+def call_generator(family, sys_prompt, user_prompt, max_new_tokens=120, return_meta=False):
+    """Unified cloud API wrapper returning (raw_text, prompt_tokens, completion_tokens, latency_ms, truncated[, api_meta])."""
     if family == 'qwen_plus':
-        raw, p_tok, c_tok, lat = call_dashscope_qwen(sys_prompt, user_prompt, max_tokens=max_new_tokens, model_name='qwen-plus')
+        raw, p_tok, c_tok, lat, meta = call_dashscope_qwen(
+            sys_prompt, user_prompt, max_tokens=max_new_tokens, model_name='qwen-plus', return_meta=True
+        )
+        if return_meta:
+            return raw, p_tok, c_tok, lat, bool(c_tok >= max_new_tokens), meta
         return raw, p_tok, c_tok, lat, bool(c_tok >= max_new_tokens)
     elif family == 'deepseek':
-        raw, p_tok, c_tok, lat = call_deepseek_chat(sys_prompt, user_prompt, max_tokens=max_new_tokens)
+        raw, p_tok, c_tok, lat, meta = call_deepseek_chat(
+            sys_prompt, user_prompt, max_tokens=max_new_tokens, return_meta=True
+        )
+        if return_meta:
+            return raw, p_tok, c_tok, lat, bool(c_tok >= max_new_tokens), meta
         return raw, p_tok, c_tok, lat, bool(c_tok >= max_new_tokens)
     else:
         raise ValueError(f'Unknown family: {family}')
 
 
-def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
+def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds, policies_map=None):
     """Generate rewrites across all 40 frozen confirmation seeds (24 insurance + 16 multi-threshold)
-    using remote cloud APIs ('qwen_plus' via DashScope or 'deepseek' via DeepSeek API)."""
+    using remote cloud APIs ('qwen_plus' via DashScope or 'deepseek' via DeepSeek API) with an isolated
+    read-only `policies_map` dictionary (never mutating global state)."""
+    active_policies = dict(FROZEN_CONFIRM_POLICIES) if policies_map is None else dict(policies_map)
     # Insurance prompts (identical to frozen protocol)
     sys_ins_ord = '你是一个保险咨询用户提问改写助手。把原问题改写成简短自然的真实投保人口语化单句提问，不要带《》书名号，只输出改写后的一个问句。'
     sys_ins_cond = (
@@ -1713,7 +1729,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
         req = s['required_fields']
         seed_q = s['seed_question']
         ev = s['source_evidence']
-        pol = FROZEN_CONFIRM_POLICIES[pid]
+        pol = active_policies[pid]
         pol_title = pol['title']
         b_label = pol['benefits'][s['benefit_id']]['label'] if 'benefits' in pol else pol['benefit']
         seed_rows = []
@@ -1729,14 +1745,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
 
         # 1. ordinary_style
         u_ord = f'原问题：{seed_q}\n请改写成简短自然的口语化提问（只输出一句话）：'
-        raw_ord, p_ord, c_ord, lat_ord, tr_ord = call_generator(family, sys_ins_ord, u_ord, 96)
+        raw_ord, p_ord, c_ord, lat_ord, tr_ord, meta_ord = call_generator(family, sys_ins_ord, u_ord, 96, return_meta=True)
         q_ord = clean_cross_question(raw_ord)
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
             'method': 'ordinary_style', 'question': q_ord, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_ord,
             'prompt_tokens': p_ord, 'completion_tokens': c_ord, 'total_tokens': p_ord + c_ord, 'latency_ms': lat_ord,
-            'max_new_tokens': 96, 'truncated_at_max_tokens': tr_ord,
+            'max_new_tokens': 96, 'truncated_at_max_tokens': tr_ord, 'api_meta': meta_ord,
         })
 
         # 2. condition_prompt
@@ -1744,14 +1760,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
             f'请改写为完整保留“{pol_title}”险种名称（不加《》书名号）、所申请的“{b_label}”单项责任及所有天数和条件的自然口语化单句提问：'
         )
-        raw_cond, p_cond, c_cond, lat_cond, tr_cond = call_generator(family, sys_ins_cond, u_cond, 110)
+        raw_cond, p_cond, c_cond, lat_cond, tr_cond, meta_cond = call_generator(family, sys_ins_cond, u_cond, 110, return_meta=True)
         q_cond = clean_cross_question(raw_cond, strip_book_titles=True)
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
             'method': 'condition_prompt', 'question': q_cond, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_cond,
             'prompt_tokens': p_cond, 'completion_tokens': c_cond, 'total_tokens': p_cond + c_cond, 'latency_ms': lat_cond,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond, 'api_meta': meta_cond,
         })
 
         # 3. structured_json_rewrite
@@ -1759,14 +1775,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
             f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{pol_title}”（不加《》书名号）、所申请的“{b_label}”及全部条件的单句提问：'
         )
-        raw_json, p_json, c_json, lat_json, tr_json = call_generator(family, sys_ins_json, u_json, 160)
+        raw_json, p_json, c_json, lat_json, tr_json, meta_json = call_generator(family, sys_ins_json, u_json, 160, return_meta=True)
         q_json = strip_book_title_spoilers(extract_question_from_structured_output(raw_json))
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
             'method': 'structured_json_rewrite', 'question': q_json, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_json,
             'prompt_tokens': p_json, 'completion_tokens': c_json, 'total_tokens': p_json + c_json, 'latency_ms': lat_json,
-            'max_new_tokens': 160, 'truncated_at_max_tokens': tr_json,
+            'max_new_tokens': 160, 'truncated_at_max_tokens': tr_json, 'api_meta': meta_json,
         })
 
         # 4. generic_self_refine_all
@@ -1774,7 +1790,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n初稿改写：{q_cond}\n'
             f'请自检初稿是否遗漏“{pol_title}”险种名、单项责任“{b_label}”或任何条件/天数，直接输出修正后的单句提问（不要带《》书名号）：'
         )
-        raw_self, p_self, c_self, lat_self, tr_self = call_generator(family, sys_ins_self, u_self, 110)
+        raw_self, p_self, c_self, lat_self, tr_self, meta_self = call_generator(family, sys_ins_self, u_self, 110, return_meta=True)
         q_self = clean_cross_question(raw_self, strip_book_titles=True)
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
@@ -1782,19 +1798,19 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'llm_calls': 2, 'repaired': True, 'raw_response': raw_self,
             'prompt_tokens': p_cond + p_self, 'completion_tokens': c_cond + c_self,
             'total_tokens': p_cond + c_cond + p_self + c_self, 'latency_ms': round(lat_cond + lat_self, 1),
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self, 'api_meta': meta_self,
         })
 
         # 5. verify_only_filter (1 call + symbolic verifier filter without repair)
-        obs_cond = extract_insurance_fields_frozen(q_cond, FROZEN_CONFIRM_POLICIES)
-        out_cond, miss_cond, mut_cond = evaluate_insurance_outcome_frozen(obs_cond, s, req, FROZEN_CONFIRM_POLICIES)
+        obs_cond = extract_insurance_fields_frozen(q_cond, active_policies)
+        out_cond, miss_cond, mut_cond = evaluate_insurance_outcome_frozen(obs_cond, s, req, active_policies)
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
             'method': 'verify_only_filter', 'question': q_cond, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_cond,
             'filter_accepted': bool(out_cond == 'PRESERVED_DECISION'),
             'prompt_tokens': p_cond, 'completion_tokens': c_cond, 'total_tokens': p_cond + c_cond, 'latency_ms': lat_cond,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond, 'api_meta': meta_cond,
         })
 
         # 6. slot_guard_repair (<=2 calls)
@@ -1819,13 +1835,13 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
                 f'自动槽位检查发现问题：{"；".join(hints)}。\n'
                 f'请输出修复后的单句用户提问（必须完整包含上述所有条件，不要带《》书名号，只输出一个问句）：'
             )
-            raw_rep, p_rep, c_rep, lat_rep, tr_rep = call_generator(family, sys_ins_rep, u_rep, 110)
+            raw_rep, p_rep, c_rep, lat_rep, tr_rep, meta_rep = call_generator(family, sys_ins_rep, u_rep, 110, return_meta=True)
             q_rep = clean_cross_question(raw_rep, strip_book_titles=True)
             rep_calls = 2
             rep_flag = True
             tot_p, tot_c, tot_lat = p_cond + p_rep, c_cond + c_rep, round(lat_cond + lat_rep, 1)
         else:
-            raw_rep, tr_rep = raw_cond, tr_cond
+            raw_rep, tr_rep, meta_rep = raw_cond, tr_cond, meta_cond
             q_rep = q_cond
             rep_calls = 1
             rep_flag = False
@@ -1836,7 +1852,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'method': 'slot_guard_repair', 'question': q_rep, 'seed_question': seed_q,
             'llm_calls': rep_calls, 'repaired': rep_flag, 'raw_response': raw_rep,
             'prompt_tokens': tot_p, 'completion_tokens': tot_c, 'total_tokens': tot_p + tot_c, 'latency_ms': tot_lat,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_rep,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_rep, 'api_meta': meta_rep,
         })
         seed_rows.append({
             'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
@@ -1849,6 +1865,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'total_tokens': (p_cond + c_cond + p_self + c_self) if rep_flag else (p_cond + c_cond),
             'latency_ms': round(lat_cond + lat_self, 1) if rep_flag else lat_cond,
             'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self if rep_flag else tr_cond,
+            'api_meta': meta_self if rep_flag else meta_cond,
         })
         print(f'[{family}] Done insurance seed {idx+1}/{len(ins_seeds)}: {sid}', flush=True)
         return seed_rows
@@ -1895,14 +1912,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
 
         # 1. ordinary_style
         u_ord = f'原问题：{seed_q}\n请改写成简短自然的口语化提问（只输出一句话）：'
-        raw_ord, p_ord, c_ord, lat_ord, tr_ord = call_generator(family, sys_crs_ord, u_ord, 96)
+        raw_ord, p_ord, c_ord, lat_ord, tr_ord, meta_ord = call_generator(family, sys_crs_ord, u_ord, 96, return_meta=True)
         q_ord = clean_cross_question(raw_ord)
         seed_rows.append({
             'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
             'method': 'ordinary_style', 'question': q_ord, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_ord,
             'prompt_tokens': p_ord, 'completion_tokens': c_ord, 'total_tokens': p_ord + c_ord, 'latency_ms': lat_ord,
-            'max_new_tokens': 96, 'truncated_at_max_tokens': tr_ord,
+            'max_new_tokens': 96, 'truncated_at_max_tokens': tr_ord, 'api_meta': meta_ord,
         })
 
         # 2. condition_prompt
@@ -1910,14 +1927,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'规则原文：{c_title} {ev}\n原问题：{seed_q}\n'
             f'请改写为完整保留“{c_title}”名称（不加《》书名号）及所有天数、身份和条件的自然口语化单句提问：'
         )
-        raw_cond, p_cond, c_cond, lat_cond, tr_cond = call_generator(family, sys_crs_cond, u_cond, 110)
+        raw_cond, p_cond, c_cond, lat_cond, tr_cond, meta_cond = call_generator(family, sys_crs_cond, u_cond, 110, return_meta=True)
         q_cond = clean_cross_question(raw_cond, strip_book_titles=True)
         seed_rows.append({
             'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
             'method': 'condition_prompt', 'question': q_cond, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_cond,
             'prompt_tokens': p_cond, 'completion_tokens': c_cond, 'total_tokens': p_cond + c_cond, 'latency_ms': lat_cond,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond, 'api_meta': meta_cond,
         })
 
         # 3. structured_json_rewrite
@@ -1925,14 +1942,14 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'规则原文：{c_title} {ev}\n原问题：{seed_q}\n'
             f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{c_title}”（不加《》书名号）及全部条件的单句提问：'
         )
-        raw_json, p_json, c_json, lat_json, tr_json = call_generator(family, sys_crs_json, u_json, 160)
+        raw_json, p_json, c_json, lat_json, tr_json, meta_json = call_generator(family, sys_crs_json, u_json, 160, return_meta=True)
         q_json = strip_book_title_spoilers(extract_question_from_structured_output(raw_json))
         seed_rows.append({
             'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
             'method': 'structured_json_rewrite', 'question': q_json, 'seed_question': seed_q,
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_json,
             'prompt_tokens': p_json, 'completion_tokens': c_json, 'total_tokens': p_json + c_json, 'latency_ms': lat_json,
-            'max_new_tokens': 160, 'truncated_at_max_tokens': tr_json,
+            'max_new_tokens': 160, 'truncated_at_max_tokens': tr_json, 'api_meta': meta_json,
         })
 
         # 4. generic_self_refine_all
@@ -1940,7 +1957,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             f'规则原文：{c_title} {ev}\n原问题：{seed_q}\n初稿改写：{q_cond}\n'
             f'请自检初稿是否遗漏“{c_title}”名称或任何条件/天数，直接输出修正后的单句提问（不要带《》书名号）：'
         )
-        raw_self, p_self, c_self, lat_self, tr_self = call_generator(family, sys_crs_self, u_self, 110)
+        raw_self, p_self, c_self, lat_self, tr_self, meta_self = call_generator(family, sys_crs_self, u_self, 110, return_meta=True)
         q_self = clean_cross_question(raw_self, strip_book_titles=True)
         seed_rows.append({
             'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
@@ -1948,7 +1965,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'llm_calls': 2, 'repaired': True, 'raw_response': raw_self,
             'prompt_tokens': p_cond + p_self, 'completion_tokens': c_cond + c_self,
             'total_tokens': p_cond + c_cond + p_self + c_self, 'latency_ms': round(lat_cond + lat_self, 1),
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self, 'api_meta': meta_self,
         })
 
         # 5. verify_only_filter
@@ -1960,7 +1977,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'llm_calls': 1, 'repaired': False, 'raw_response': raw_cond,
             'filter_accepted': bool(out_cond == 'PRESERVED_DECISION'),
             'prompt_tokens': p_cond, 'completion_tokens': c_cond, 'total_tokens': p_cond + c_cond, 'latency_ms': lat_cond,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_cond, 'api_meta': meta_cond,
         })
 
         # 6. slot_guard_repair
@@ -1972,13 +1989,13 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
                 f'自动槽位检查发现问题：遗漏或写错了 {needed_desc}（注意规则名称“{c_title}”不加《》书名号，且必须保留实际天数第{s["elapsed_day"]}天与规定期限{s["threshold_days"]}天）。\n'
                 f'请输出修复后的单句用户提问（只输出一个问句）：'
             )
-            raw_rep, p_rep, c_rep, lat_rep, tr_rep = call_generator(family, sys_crs_rep, hints, 110)
+            raw_rep, p_rep, c_rep, lat_rep, tr_rep, meta_rep = call_generator(family, sys_crs_rep, hints, 110, return_meta=True)
             q_rep = clean_cross_question(raw_rep, strip_book_titles=True)
             rep_calls = 2
             rep_flag = True
             tot_p, tot_c, tot_lat = p_cond + p_rep, c_cond + c_rep, round(lat_cond + lat_rep, 1)
         else:
-            raw_rep, tr_rep = raw_cond, tr_cond
+            raw_rep, tr_rep, meta_rep = raw_cond, tr_cond, meta_cond
             q_rep = q_cond
             rep_calls = 1
             rep_flag = False
@@ -1989,7 +2006,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'method': 'slot_guard_repair', 'question': q_rep, 'seed_question': seed_q,
             'llm_calls': rep_calls, 'repaired': rep_flag, 'raw_response': raw_rep,
             'prompt_tokens': tot_p, 'completion_tokens': tot_c, 'total_tokens': tot_p + tot_c, 'latency_ms': tot_lat,
-            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_rep,
+            'max_new_tokens': 110, 'truncated_at_max_tokens': tr_rep, 'api_meta': meta_rep,
         })
         seed_rows.append({
             'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
@@ -2002,6 +2019,7 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
             'total_tokens': (p_cond + c_cond + p_self + c_self) if rep_flag else (p_cond + c_cond),
             'latency_ms': round(lat_cond + lat_self, 1) if rep_flag else lat_cond,
             'max_new_tokens': 110, 'truncated_at_max_tokens': tr_self if rep_flag else tr_cond,
+            'api_meta': meta_self if rep_flag else meta_cond,
         })
         print(f'[{family}] Done multi-threshold seed {idx+1}/{len(cross_seeds)}: {sid}', flush=True)
         return seed_rows
@@ -2760,8 +2778,10 @@ def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, exi
     """Evaluate fair structured baseline configurations on the 40 seeds:
     1. `structured_json_untruncated_320`: increases `max_new_tokens` from 160 to 320 so the two-line
        `JSON + QUESTION:` output is never cut off mid-sentence.
-    2. `structured_json_schema_render`: renders the question directly from the first-line JSON slots
-       of the single-pass structured output, avoiding any second-line token truncation."""
+    2. `structured_json_schema_render`: post-hoc deterministic template rendering ablation over the
+       first-line JSON object extracted from the 160-token `structured_json_rewrite` responses
+       (or 320-token response when no existing 160-token row is supplied), avoiding second-line free-text truncation."""
+    active_policies = dict(FROZEN_CONFIRM_POLICIES) if policies_map is None else dict(policies_map)
     sys_ins_json = (
         '你是一个结构化条件守恒改写助手。请先在第一行输出JSON提取原问题的关键槽位：'
         '{"policy": "...", "benefit": "...", "enrollment": "...", "day": ..., "cause": "...", "wait_days": ..., "waiver": "..."}，'
@@ -2782,26 +2802,26 @@ def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, exi
         pid = s['policy_id']
         seed_q = s['seed_question']
         ev = s['source_evidence']
-        pol = policies_map[pid]
+        pol = active_policies[pid]
         pol_title = pol['title']
         b_label = pol['benefits'][s['benefit_id']]['label'] if 'benefits' in pol else pol['benefit']
         u_json = (
             f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
             f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{pol_title}”（不加《》书名号）、所申请的“{b_label}”及全部条件的单句提问：'
         )
-        raw_320, p_320, c_320, lat_320, tr_320 = call_generator(family, sys_ins_json, u_json, 320)
+        raw_320, p_320, c_320, lat_320, tr_320, meta_320 = call_generator(family, sys_ins_json, u_json, 320, return_meta=True)
         q_320 = strip_book_title_spoilers(extract_question_from_structured_output(raw_320))
         ex_r = existing_json_map.get(sid)
         raw_schema = ex_r['raw_response'] if ex_r is not None else raw_320
         q_schema = render_question_from_json_schema(raw_schema, 'insurance')
-        meta = dict(_LAST_API_META.get(family, {}))
+        meta_schema = dict(ex_r.get('api_meta') or meta_320) if ex_r is not None else dict(meta_320)
         return [
             {
                 'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
                 'method': 'structured_json_untruncated_320', 'question': q_320, 'seed_question': seed_q,
                 'llm_calls': 1, 'repaired': False, 'raw_response': raw_320,
                 'prompt_tokens': p_320, 'completion_tokens': c_320, 'total_tokens': p_320 + c_320, 'latency_ms': lat_320,
-                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': meta,
+                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': dict(meta_320),
             },
             {
                 'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
@@ -2811,7 +2831,7 @@ def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, exi
                 'completion_tokens': ex_r['completion_tokens'] if ex_r else c_320,
                 'total_tokens': ex_r['total_tokens'] if ex_r else (p_320 + c_320),
                 'latency_ms': ex_r['latency_ms'] if ex_r else lat_320,
-                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta,
+                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta_schema,
             },
         ]
 
@@ -2826,19 +2846,19 @@ def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, exi
             f'规则原文：{c_title} {ev}\n原问题：{seed_q}\n'
             f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{c_title}”（不加《》书名号）及全部条件的单句提问：'
         )
-        raw_320, p_320, c_320, lat_320, tr_320 = call_generator(family, sys_crs_json, u_json, 320)
+        raw_320, p_320, c_320, lat_320, tr_320, meta_320 = call_generator(family, sys_crs_json, u_json, 320, return_meta=True)
         q_320 = strip_book_title_spoilers(extract_question_from_structured_output(raw_320))
         ex_r = existing_json_map.get(sid)
         raw_schema = ex_r['raw_response'] if ex_r is not None else raw_320
         q_schema = render_question_from_json_schema(raw_schema, 'multi_threshold')
-        meta = dict(_LAST_API_META.get(family, {}))
+        meta_schema = dict(ex_r.get('api_meta') or meta_320) if ex_r is not None else dict(meta_320)
         return [
             {
                 'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
                 'method': 'structured_json_untruncated_320', 'question': q_320, 'seed_question': seed_q,
                 'llm_calls': 1, 'repaired': False, 'raw_response': raw_320,
                 'prompt_tokens': p_320, 'completion_tokens': c_320, 'total_tokens': p_320 + c_320, 'latency_ms': lat_320,
-                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': meta,
+                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': dict(meta_320),
             },
             {
                 'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
@@ -2848,7 +2868,7 @@ def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, exi
                 'completion_tokens': ex_r['completion_tokens'] if ex_r else c_320,
                 'total_tokens': ex_r['total_tokens'] if ex_r else (p_320 + c_320),
                 'latency_ms': ex_r['latency_ms'] if ex_r else lat_320,
-                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta,
+                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta_schema,
             },
         ]
 
@@ -3006,25 +3026,21 @@ def build_untouched_holdout_sources_and_seeds(raw_fc_dir, out_dir):
     return sources, evidence, ins_seeds, cross_seeds
 
 
-def run_untouched_holdout_generations(family, u_ins_seeds, u_cross_seeds):
-    """Run live cloud generations on the 24 untouched post-hardening holdout seeds
-    (`u_ins_seeds` across 6 brand-new Ping An PDFs + `u_cross_seeds` across 4 multi-threshold rules),
-    including `structured_json_untruncated_320` and `structured_json_schema_render`."""
-    #Temporarily bind FROZEN_CONFIRM_POLICIES entries so `run_frozen_confirmation_generations` can process `u_ins_seeds`
-    orig_keys = set(FROZEN_CONFIRM_POLICIES.keys())
-    try:
-        FROZEN_CONFIRM_POLICIES.update(UNTOUCHED_HOLDOUT_POLICIES)
-        base_rows = run_frozen_confirmation_generations(family, u_ins_seeds, u_cross_seeds)
-        fair_rows = run_fair_structured_baseline_generations(
-            family, u_ins_seeds, u_cross_seeds, base_rows, policies_map=UNTOUCHED_HOLDOUT_POLICIES
-        )
-    finally:
-        for k in list(FROZEN_CONFIRM_POLICIES.keys()):
-            if k not in orig_keys:
-                del FROZEN_CONFIRM_POLICIES[k]
-    meta = dict(_LAST_API_META.get(family, {}))
-    for r in base_rows:
-        r['api_meta'] = meta
+def run_untouched_holdout_generations(family, u_ins_seeds, u_cross_seeds, policies_map=None):
+    """Run live cloud generations on the 24 post-hardening extension seeds
+    (`u_ins_seeds` across 6 unseen Ping An PDFs + `u_cross_seeds` across 4 multi-threshold rules),
+    including `structured_json_untruncated_320` and `structured_json_schema_render`.
+    Passes an isolated per-task `local_policies` dictionary without mutating global state."""
+    local_policies = dict(FROZEN_CONFIRM_POLICIES)
+    local_policies.update(UNTOUCHED_HOLDOUT_POLICIES)
+    if policies_map:
+        local_policies.update(policies_map)
+    base_rows = run_frozen_confirmation_generations(
+        family, u_ins_seeds, u_cross_seeds, policies_map=local_policies
+    )
+    fair_rows = run_fair_structured_baseline_generations(
+        family, u_ins_seeds, u_cross_seeds, base_rows, policies_map=local_policies
+    )
     return base_rows + fair_rows
 
 
@@ -3305,6 +3321,16 @@ def main():
         'slot_guard_repair',
     ]
 
+    provider_api_meta_by_family = {'qwen_plus': {}, 'deepseek': {}}
+    for r in scored_qwen + scored_deepseek + scored_fair_json + scored_uhold:
+        fam_k = r.get('model_family')
+        meta_k = r.get('api_meta') or {}
+        if fam_k in provider_api_meta_by_family and meta_k.get('response_model') and not provider_api_meta_by_family[fam_k]:
+            provider_api_meta_by_family[fam_k] = dict(meta_k)
+    for fam_k in ('qwen_plus', 'deepseek'):
+        if not provider_api_meta_by_family[fam_k] and _LAST_API_META.get(fam_k):
+            provider_api_meta_by_family[fam_k] = dict(_LAST_API_META[fam_k])
+
     family_summaries = {}
     rag_selection_results = {}
 
@@ -3374,7 +3400,7 @@ def main():
             }
 
         family_summaries[fam_name] = {
-            'provider_api_metadata': _LAST_API_META.get(fam_name, {}),
+            'provider_api_metadata': provider_api_meta_by_family.get(fam_name, {}),
             'insurance_24_seeds': ins_by_m,
             'multi_threshold_16_seeds': crs_by_m,
             'combined_40_seeds': comb_by_m,
@@ -3479,13 +3505,119 @@ def main():
                 'mean_total_tokens': round(float(np.mean([r.get('total_tokens', 0) for r in sub_m])), 1),
                 'mean_latency_ms': round(float(np.mean([r.get('latency_ms', 0.0) for r in sub_m])), 1),
             }
+        vs_320_joint = paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_untruncated_320', True)
+        vs_schema_joint = paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_schema_render', True)
+        vs_320_clust = compute_clustered_cross_model_tests(
+            fair_qwen, fair_ds, 'slot_guard_repair', 'structured_json_untruncated_320', True
+        )
+        vs_schema_clust = compute_clustered_cross_model_tests(
+            fair_qwen, fair_ds, 'slot_guard_repair', 'structured_json_schema_render', True
+        )
         fair_structured_summary['statistical_comparisons_vs_slot_guard'] = {
             'vs_structured_json_160_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_rewrite', True),
-            'vs_structured_json_untruncated_320_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_untruncated_320', True),
-            'vs_structured_json_schema_render_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_schema_render', True),
-            'vs_structured_json_schema_render_clustered': compute_clustered_cross_model_tests(
-                fair_qwen, fair_ds, 'slot_guard_repair', 'structured_json_schema_render', True
-            ),
+            'vs_structured_json_untruncated_320_joint': vs_320_joint,
+            'vs_structured_json_untruncated_320_clustered': vs_320_clust,
+            'vs_structured_json_schema_render_joint': vs_schema_joint,
+            'vs_structured_json_schema_render_clustered': vs_schema_clust,
+        }
+
+        # Programmatic failure-mechanism decomposition for structured_json_schema_render and structured_json_untruncated_320
+        all_seed_map = {**ins_seeds_map, **cross_seeds_map}
+        decomp = {}
+        for m_diag in ['structured_json_schema_render', 'structured_json_untruncated_320']:
+            rows_d = [r for r in scored_fair_json if r['method'] == m_diag]
+            json_day_eq_seed = 0
+            json_day_changed = 0
+            parsed_day_eq_seed = 0
+            parsed_day_none = 0
+            parsed_day_changed = 0
+            rejected_cases = []
+            for r in rows_d:
+                sd = all_seed_map[r['seed_id']]
+                day_key = 'policy_day' if r['domain_type'] == 'insurance' else 'elapsed_day'
+                seed_day = sd[day_key]
+                parsed_day = r['extracted'].get(day_key)
+                raw_text = r.get('raw_response', '')
+                json_day = None
+                m_j = re.search(r'\{[^\n]*\}', raw_text)
+                if m_j:
+                    try:
+                        j_obj = json.loads(m_j.group(0))
+                        m_d = re.search(r'\d+', str(j_obj.get('day', '')))
+                        if m_d:
+                            json_day = int(m_d.group(0))
+                    except Exception:
+                        pass
+                if json_day == seed_day:
+                    json_day_eq_seed += 1
+                else:
+                    json_day_changed += 1
+                if parsed_day == seed_day:
+                    parsed_day_eq_seed += 1
+                elif parsed_day is None:
+                    parsed_day_none += 1
+                else:
+                    parsed_day_changed += 1
+
+                if not (r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']):
+                    if r['seed_id'] == 'fconf-ins-003':
+                        cause_bucket = 'unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen'
+                    elif r['domain_type'] == 'insurance' and not sd['approved_waiver'] and ('意外' in r['question']):
+                        cause_bucket = 'waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject'
+                    elif r['domain_type'] == 'multi_threshold' and (
+                        r['extracted'].get('threshold_days') != sd.get('threshold_days') or parsed_day is None
+                    ):
+                        cause_bucket = '5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot'
+                    elif r['domain_type'] == 'multi_threshold' and r['extracted'].get('clause_id') is None:
+                        cause_bucket = 'abbreviated_clause_title_in_json_clause_slot'
+                    else:
+                        cause_bucket = 'approved_waiver_phrasing_missing_explicit_approval_marker'
+                    rejected_cases.append({
+                        'pair_id': f"{r['model_family']}:{r['seed_id']}",
+                        'outcome': r['outcome'],
+                        'json_day': json_day,
+                        'seed_day': seed_day,
+                        'parsed_day': parsed_day,
+                        'failure_category': cause_bucket,
+                    })
+            cat_counts = {}
+            for rc in rejected_cases:
+                cat_counts[rc['failure_category']] = cat_counts.get(rc['failure_category'], 0) + 1
+            decomp[m_diag] = {
+                'n_records': len(rows_d),
+                'json_day_matches_seed_count': json_day_eq_seed,
+                'json_day_changed_from_seed_count': json_day_changed,
+                'parsed_day_matches_seed_count': parsed_day_eq_seed,
+                'parsed_day_none_due_to_nested_unit_string_in_json_day': parsed_day_none,
+                'parsed_day_changed_from_seed_count': parsed_day_changed,
+                'rejected_count': len(rejected_cases),
+                'failure_category_counts': cat_counts,
+                'rejected_records': rejected_cases,
+            }
+        fair_structured_summary['implementation_and_protocol_audit'] = {
+            'structured_json_rewrite': 'Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); mean total tokens = 530.6.',
+            'structured_json_untruncated_320': 'Independent cloud API generation raising max_new_tokens from 160 to 320 under the identical two-line prompt; eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).',
+            'structured_json_schema_render': 'Post-hoc deterministic template rendering ablation (`render_question_from_extracted_json`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction errors.',
+        }
+        fair_structured_summary['failure_mechanism_decomposition'] = decomp
+
+        # Add exploratory 6-comparison Holm-Bonferroni adjustment including the 2 fair structured baselines
+        mcn_6 = {k: pooled_mcnemar[k]['exact_mcnemar_two_sided_p'] for k in primary_comps}
+        mcn_6['slot_guard_vs_structured_json_untruncated_320'] = vs_320_joint['exact_mcnemar_two_sided_p']
+        mcn_6['slot_guard_vs_structured_json_schema_render'] = vs_schema_joint['exact_mcnemar_two_sided_p']
+
+        seed_6 = {k: clustered_tests[k]['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided'] for k in primary_comps}
+        seed_6['slot_guard_vs_structured_json_untruncated_320'] = vs_320_clust['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided']
+        seed_6['slot_guard_vs_structured_json_schema_render'] = vs_schema_clust['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided']
+
+        clause_6 = {k: clustered_tests[k]['clause_clustered_15_documents']['exact_sign_flip_p_two_sided'] for k in primary_comps}
+        clause_6['slot_guard_vs_structured_json_untruncated_320'] = vs_320_clust['clause_clustered_15_documents']['exact_sign_flip_p_two_sided']
+        clause_6['slot_guard_vs_structured_json_schema_render'] = vs_schema_clust['clause_clustered_15_documents']['exact_sign_flip_p_two_sided']
+
+        holm_summary['exploratory_6_comparisons_including_fair_structured'] = {
+            'mcnemar_80_pairs_format_and_slot': holm_bonferroni_adjust(mcn_6),
+            'seed_clustered_40_seeds_format_and_slot': holm_bonferroni_adjust(seed_6),
+            'clause_clustered_15_clauses_format_and_slot': holm_bonferroni_adjust(clause_6),
         }
 
     # Summarize 24-Seed Untouched Post-Hardening Holdout Benchmark (`v3.1-untouched-holdout`)
@@ -3526,6 +3658,15 @@ def main():
             }
         uhold_summary = {
             'benchmark_version': 'v3.1-untouched-holdout',
+            'provenance_and_scope_note': (
+                'Internal post-hardening unseen-seed extension benchmark constructed after freezing v3.1-posthoc-hardened. '
+                'Comprises 12 insurance seeds from 6 official Ping An health/critical-illness PDFs (`pa_2650`, `pa_1071`, `pa_1073`, '
+                '`pa_595`, `pa_597`, `pa_l0002`, cached in the local contract pool on 2026-10-26 and first extracted for Round 10) '
+                'plus 12 new multi-threshold seeds (`uhold-cross-001..012`) instantiated with unseen parameter combinations on the '
+                '4 multi-threshold rule templates (total = 24 seeds, 48 cross-model pairs across 10 document clusters). '
+                'Because this extension set was authored within the same repository rather than by an external third party, '
+                'it is reported as an internal post-hardening generalization test rather than an external third-party blind benchmark.'
+            ),
             'unseen_formal_insurance_pdfs': 6,
             'unseen_insurance_seeds': 12,
             'unseen_multi_threshold_seeds': 12,
@@ -3573,11 +3714,16 @@ def main():
                 'and (c) strictly isolated `predict(question, retrieved_clause, inference_config)`.'
             ),
             'v3_1_untouched_holdout': (
-                'Post-hardening evaluation on 24 brand-new untouched seeds (6 unseen Ping An official contract PDFs + 12 unseen '
-                'multi-threshold seeds = 48 cross-model pairs) never used in any parser or prompt development.'
+                'Internal post-hardening evaluation on 24 unseen seeds (6 unseen Ping An official contract PDFs + 12 unseen '
+                'multi-threshold seeds = 48 cross-model pairs across 10 document clusters) evaluated without modifying v3.1-posthoc-hardened.'
+            ),
+            'audit_field_compatibility_note': (
+                'In `frozen_confirmation_three_layer_audit.jsonl`, the field `v3_0_raw_outcome` is retained as a schema-compatibility '
+                'alias holding the current verifier outcome (`r["outcome"]` under `v3.1-posthoc-hardened`). On the 40-seed confirmation set, '
+                '`slot_guard_repair` usable yield is identical (78/80 = 97.50%) under both `v3.0-frozen` and `v3.1-posthoc-hardened`.'
             ),
         },
-        'provider_api_response_metadata': _LAST_API_META,
+        'provider_api_response_metadata': provider_api_meta_by_family,
         'study_scope': {
             'total_official_insurance_pdfs': 26,
             'dev_calibration_insurance_pdfs': 5,
