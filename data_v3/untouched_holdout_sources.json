@@ -1,0 +1,200 @@
+[
+  {
+    "id": "pa_2650",
+    "title": "平安e生保（悦享版）医疗保险",
+    "colloquial_name": "平安e生保悦享版",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=2650&versionNo=2650-1&attachmentType=1",
+    "sha256": "9d93c137aac3520ade8438b898b6f6e1c687a007c64ca4bf719bad3d3c166d91",
+    "bytes": 1375691,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 3,
+      "normalized_start": 466,
+      "normalized_end": 796,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "5f93b07de4ca46d1cb5323c23d3daa7bd2abecbdba8ae26cb7637cda15bc3d55",
+      "bbox_pdf_points": [
+        59.63999938964844,
+        414.7114562988281,
+        546.249267578125,
+        620.4734497070312
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2999877929688,
+        841.9000244140625
+      ]
+    },
+    "evidence_text": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.13条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满后60日重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。"
+  },
+  {
+    "id": "pa_1071",
+    "title": "平安粤港澳大湾区深圳专属一年期重大疾病保险",
+    "colloquial_name": "平安大湾区深圳专属一年期重疾险",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=1071&versionNo=1071-1&attachmentType=1",
+    "sha256": "fe815af25df2605ef9a20f13711646a6ddc2d4021249ace1d39d2b96ece05428",
+    "bytes": 752005,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 2,
+      "normalized_start": 126,
+      "normalized_end": 331,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "6c48f57a0b1a43beaaaa245df325b5da44b803f4c8e400aa4bb38eacbae66bf1",
+      "bbox_pdf_points": [
+        88.80000305175781,
+        300.7200012207031,
+        556.3248291015625,
+        450.10369873046875
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2000122070312,
+        841.9199829101562
+      ]
+    },
+    "evidence_text": "等待期从本主险合同生效之日起90日内,被保险人经医院1确诊为本主险合同“6重大疾病释义”所定义的“重大疾病”,我们按本主险合同的所交保险费给付重大疾病保险金,本主险合同终止。这90日的时间称为等待期。以下两种情形,无等待期:(1)被保险人因意外伤害2发生上述情形的;(2)您按本主险合同“1.2保险期间与续保”的约定续保本主险合同。在本主险合同有效期内,除等待期期间依前款约定外,我们按照下列方式承担保险责任:"
+  },
+  {
+    "id": "pa_1073",
+    "title": "平安i药保B款特药费用医疗保险",
+    "colloquial_name": "平安i药保B款特药险",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=1073&versionNo=1073-1&attachmentType=1",
+    "sha256": "cbf26584a59f829be7e9fc83981d76f9cb87d560deb02ede700035ecbe865989",
+    "bytes": 589720,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 2,
+      "normalized_start": 187,
+      "normalized_end": 348,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "64d155988cbb8d6239f72e5b853984e5cd15cdb8ee23647cb53d31431cc031b8",
+      "bbox_pdf_points": [
+        59.52000045776367,
+        368.69830322265625,
+        537.6019287109375,
+        442.89117431640625
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2000122070312,
+        841.9199829101562
+      ]
+    },
+    "evidence_text": "1.3.1等待期自本主险合同生效之日起30日内,被保险人经医院1确诊2初次发生本主险合同所定义的恶性肿瘤3,因该恶性肿瘤而发生恶性肿瘤特种药品4费用的,无论该药品费用发生时间与本主险合同生效之日间隔是否超过30日,我们都不承担给付保险金的责任,将退还您所支付的本主险合同的保险费,本主险合同终止。这30日的时间称为等待期。"
+  },
+  {
+    "id": "pa_595",
+    "title": "平安e生保（加享版）医疗保险",
+    "colloquial_name": "平安e生保加享版",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=595&versionNo=595-1&attachmentType=1",
+    "sha256": "b72df94a33b2e4a07908f2ffda52bcf1b839b547ef2c5e229313b3fe4551ac64",
+    "bytes": 1714836,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 4,
+      "normalized_start": 0,
+      "normalized_end": 328,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "c0126932e805c010bf8576c74b6695519ad9a01e2cbd010625542b8c8bb8f16d",
+      "bbox_pdf_points": [
+        59.63999938964844,
+        57.232444763183594,
+        551.4089965820312,
+        241.27346801757812
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2999877929688,
+        841.9000244140625
+      ]
+    },
+    "evidence_text": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满后60日重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。"
+  },
+  {
+    "id": "pa_597",
+    "title": "平安e生保（颐享版）医疗保险",
+    "colloquial_name": "平安e生保颐享版",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=597&versionNo=597-1&attachmentType=1",
+    "sha256": "2d810dc3af77d5d7c1844a83d3728e16f63b785d97a14443aad8bd37c65c85c0",
+    "bytes": 1829176,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 4,
+      "normalized_start": 0,
+      "normalized_end": 328,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "c0126932e805c010bf8576c74b6695519ad9a01e2cbd010625542b8c8bb8f16d",
+      "bbox_pdf_points": [
+        60.119998931884766,
+        72.83245086669922,
+        547.0900268554688,
+        272.4734802246094
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2999877929688,
+        841.9000244140625
+      ]
+    },
+    "evidence_text": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满后60日重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。"
+  },
+  {
+    "id": "pa_l0002",
+    "title": "平安安医保e享长期医疗保险（费率可调）（互联网）",
+    "colloquial_name": "平安安医保e享长期医疗险",
+    "aliases": [],
+    "insurer": "平安",
+    "url": "https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=L0002&versionNo=L0002-1&attachmentType=1",
+    "sha256": "554884992560f5f8cafb96c9cb9f38e9851e7930704cec7f1edc80c04c966f90",
+    "bytes": 1329128,
+    "document_type": "untouched_post_hardening_holdout_formal_policy_clause",
+    "verifier_version": "v3.1-untouched-holdout",
+    "license_status": "publicly accessible; no redistribution license verified",
+    "anchor": {
+      "pdf_page_1based": 3,
+      "normalized_start": 54,
+      "normalized_end": 376,
+      "normalization": "NFKC + remove whitespace, rawdict character order",
+      "normalized_span_sha256": "36b397729b83613b626e6c9d9923501f21b50486d9e3b6e6f5fcec885b59615c",
+      "bbox_pdf_points": [
+        62.880001068115234,
+        125.22346496582031,
+        544.208251953125,
+        344.9544677734375
+      ],
+      "page_size_pdf_points": [
+        0.0,
+        0.0,
+        595.2999877929688,
+        841.9000244140625
+      ]
+    },
+    "evidence_text": "1.5等待期自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过90日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述90日的时间为等待期。以下四种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在保证续保期间内续保本产品的;3.您在不迟于上一保证续保期间届满后60日重新投保本产品且经我们审核同意的;4.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。"
+  }
+]

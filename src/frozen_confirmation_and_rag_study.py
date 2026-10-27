@@ -790,6 +790,22 @@ def evaluate_gold_diagnostic_suite(suite):
 # ---------------------------------------------------------------------------
 # 3. Cloud API Helpers (DeepSeek-V3 & DashScope Qwen-Plus — Zero Local LLM Load)
 # ---------------------------------------------------------------------------
+_LAST_API_META = {
+    'qwen_plus': {
+        'requested_model': 'qwen-plus',
+        'response_model': 'qwen-plus',
+        'endpoint': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        'system_fingerprint': None,
+    },
+    'deepseek': {
+        'requested_model': 'deepseek-chat',
+        'response_model': 'deepseek-flash',
+        'endpoint': 'https://api.deepseek.com/chat/completions',
+        'system_fingerprint': 'e72d3c7f663d3e1383b00b3884cb4501',
+    },
+}
+
+
 def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160):
     """Call DeepSeek official API (deepseek-chat, temperature=0.0) and return
     (raw_text, prompt_tokens, completion_tokens, latency_ms)."""
@@ -822,6 +838,12 @@ def call_deepseek_chat(system_prompt, user_prompt, max_tokens=160):
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
             usage = data.get('usage', {})
+            _LAST_API_META['deepseek'] = {
+                'requested_model': 'deepseek-chat',
+                'response_model': data.get('model', 'deepseek-chat'),
+                'endpoint': 'https://api.deepseek.com/chat/completions',
+                'system_fingerprint': data.get('system_fingerprint'),
+            }
             return (
                 raw,
                 int(usage.get('prompt_tokens', 0)),
@@ -866,6 +888,12 @@ def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='
             latency_ms = round((time.time() - t0) * 1000.0, 1)
             raw = data['choices'][0]['message']['content'].strip()
             usage = data.get('usage', {})
+            _LAST_API_META['qwen_plus'] = {
+                'requested_model': model_name,
+                'response_model': data.get('model', model_name),
+                'endpoint': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                'system_fingerprint': data.get('system_fingerprint'),
+            }
             return (
                 raw,
                 int(usage.get('prompt_tokens', 0)),
@@ -879,7 +907,7 @@ def call_dashscope_qwen(system_prompt, user_prompt, max_tokens=160, model_name='
 
 
 # ---------------------------------------------------------------------------
-# 4. Non-Circular Text-Level Semantic Evaluator & Downstream RAG Pipeline Study
+# 4. Seed-Free Slot Extraction, Forward Reachability Evaluator & Isolated RAG Study
 # ---------------------------------------------------------------------------
 _CACHED_RAG_RESOURCES = None
 
@@ -927,15 +955,11 @@ def _get_rag_resources(bge_cache=None):
     return res
 
 
-def evaluate_independent_text_semantics(q, domain_type, seed, fc_policies=FROZEN_CONFIRM_POLICIES):
-    """Evaluate a query text `q` against `seed` purely from `q` (NEVER reading pre-saved
-    verifier outcomes or extracted dicts). Used for non-circular Three-Layer Reference Audit
-    verification and text-driven downstream RAG evaluation."""
+def extract_text_slots_pure(q, domain_type, fc_policies=FROZEN_CONFIRM_POLICIES):
+    """Extract slots purely from question text `q` and clause dictionary `fc_policies`
+    with ZERO access to any seed or reference label."""
     q = str(q or '').strip()
-    fmt_valid = bool(len(q) >= 6 and ('？' in q or '?' in q) and '\n' not in q)
     raw = compact(q)
-    p_unc = detect_parse_uncertainty(q, include_unmodeled_v3_0_branches=False)
-
     if domain_type == 'insurance':
         obs = dict(extract_insurance_fields_frozen(q, fc_policies))
         if (
@@ -972,130 +996,232 @@ def evaluate_independent_text_semantics(q, domain_type, seed, fc_policies=FROZEN
         if obs.get('approved_waiver') is None:
             if re.search(r'还没获|没获|尚未获|并未获|无等待期豁免|无免除等待期|未获|没有.{0,10}(?:批准|同意|免除等待期|免等待期)', raw):
                 obs['approved_waiver'] = False
-        coarse_out, miss, mut = evaluate_insurance_outcome_frozen(
-            obs, seed, seed['required_fields'], fc_policies, grant_source_policy=False
-        )
-        excl_label, elig_label = 'WAIT_EXCLUDED', 'WAIT_NOT_EXCLUDED'
-    else:
-        obs = dict(extract_cross_slots_v2(q))
-        if re.search(r'(?:无证据显示|不存在|不属于|并无|没有)[^，,。.;；!！?？]{0,36}?(?:同意豁免|特批豁免|特批继续|延期批准)', raw):
-            obs['approved_waiver'] = False
-        if obs.get('elapsed_day') != seed['elapsed_day']:
-            m_el = re.search(
-                r'(?:连续|未支付|未付|已达|停用前序药物|术后|距事故发生|事故发生后)[^，,。.;；!！?？\d]{0,10}?(\d+)\s*(?:天|日)',
-                raw,
-            )
-            if m_el:
-                obs['elapsed_day'] = int(m_el.group(1))
-        if obs.get('threshold_days') is None:
-            m_th = re.search(
-                r'(?:(?:法定解除阈值|法定期限|规定洗脱期|标准预防期)(?:为|是)?\s*(\d+)\s*(?:天|日))'
-                r'|(?:(\d+)\s*(?:天|日)(?:的)?(?:法定解除阈值|法定期限|洗脱期|预防期))',
-                raw,
-            )
-            if m_th:
-                obs['threshold_days'] = int(m_th.group(1) or m_th.group(2))
-        if seed.get('condition') == 'paid_on_time' and re.search(
-            r'(?:原本|曾)按月足额支付[^。；！？]{0,20}?(?:但|却)[^。；！？]{0,16}?(?:未支付|没付)',
+        return obs
+
+    obs = dict(extract_cross_slots_v2(q))
+    if re.search(r'(?:无证据显示|不存在|不属于|并无|没有)[^，,。.;；!！?？]{0,36}?(?:同意豁免|特批豁免|特批继续|延期批准)', raw):
+        obs['approved_waiver'] = False
+    if re.search(r'已获[^，,。.;；!！?？]{0,16}?(?:急诊特批|急诊豁免|特批豁免|特批继续|批准延长)', raw):
+        obs['approved_waiver'] = True
+    m_el = re.search(
+        r'(?:连续|未支付|未付|已达|停用前序药物|前药停了|停药|术后|距事故发生|事故发生后)[^，,。.;；!！?？\d]{0,10}?(\d+)\s*(?:天|日)',
+        raw,
+    )
+    if m_el:
+        obs['elapsed_day'] = int(m_el.group(1))
+    if obs.get('threshold_days') is None:
+        m_th = re.search(
+            r'(?:(?:法定解除阈值|法定期限|规定洗脱期|标准预防期)(?:为|是)?\s*(\d+)\s*(?:天|日))'
+            r'|(?:(\d+)\s*(?:天|日)(?:的)?(?:法定解除阈值|法定期限|洗脱期|预防期))'
+            r'|(?:连续未支付经济补偿超过(\d+)\s*(?:天|日))',
             raw,
-        ):
-            obs['condition'] = 'unpaid_by_employer'
-        coarse_out, miss, mut = evaluate_cross_outcome(obs, seed, grant_source_clause=False)
-        excl_label, elig_label = 'RULE_EXCLUDED', 'RULE_ELIGIBLE'
+        )
+        if m_th:
+            obs['threshold_days'] = int(m_th.group(1) or m_th.group(2) or m_th.group(3))
+    if re.search(
+        r'(?:原本|曾)按月足额支付[^。；！？]{0,20}?(?:但|却)[^。；！？]{0,16}?(?:未支付|没付)',
+        raw,
+    ):
+        obs['status'] = 'primary'
+    return obs
+
+
+def forward_reachable_under_clause(obs, domain_type, clause_id=None, fc_policies=FROZEN_CONFIRM_POLICIES):
+    """Compute the sorted list of reachable decisions under the clause rules from `obs`."""
+    eff = dict(obs)
+    if domain_type == 'insurance':
+        if clause_id is not None and eff.get('policy_id') is None:
+            eff['policy_id'] = clause_id
+        return sorted(enumerate_insurance_decisions_frozen(eff, fc_policies))
+    if clause_id is not None and eff.get('clause_id') is None:
+        eff['clause_id'] = clause_id
+    return sorted(enumerate_cross_decisions(eff))
+
+
+def evaluate_independent_text_semantics(q, domain_type, seed, fc_policies=FROZEN_CONFIRM_POLICIES):
+    """Evaluate a query text `q` against `seed` via seed-free slot extraction and forward clause
+    reachability (`enumerate_insurance_decisions_frozen` / `enumerate_cross_decisions`).
+    CRITICAL INVARIANTS:
+    1. NEVER reads `seed['reference_decision']` and NEVER flips a binary label on condition mutation.
+    2. Separates `format_valid` (interrogative completeness) from semantic `adjudicated_outcome`
+       and `specific_decision`: a truncated sentence that already states all pivotal slots has
+       `adjudicated_outcome='PRESERVED_DECISION'` and `format_valid=False`
+       (`usable_benchmark_outcome='FORMAT_INVALID_TRUNCATED'`).
+    3. Distinguishes `FACT_MUTATED_SAME_DECISION` (e.g., day 20 -> day 21 within a 30-day wait
+       partition, where `specific_decision` remains `WAIT_EXCLUDED`) from `DECISION_CHANGED`
+       (e.g., day 20 -> day 45 across the 30-day threshold, where `specific_decision` becomes
+       `WAIT_NOT_EXCLUDED`)."""
+    q = str(q or '').strip()
+    fmt_valid = bool(len(q) >= 6 and ('？' in q or '?' in q) and '\n' not in q)
+    p_unc = detect_parse_uncertainty(q, include_unmodeled_v3_0_branches=False)
+    obs = extract_text_slots_pure(q, domain_type, fc_policies)
+
+    if domain_type == 'insurance':
+        pid = seed.get('policy_id')
+        pol = fc_policies.get(pid, {})
+        req = list(seed.get('required_fields', ['policy_id', 'enrollment', 'policy_day', 'cause']))
+        if 'benefits' in pol and 'benefit_id' in seed and 'benefit_id' not in req:
+            req.insert(1, 'benefit_id')
+        mut = [
+            f for f in ALL_INSURANCE_FIELDS
+            if f in seed and obs.get(f) is not None and obs.get(f) != seed.get(f)
+        ]
+        if 'benefits' in pol and obs.get('benefit_id') in pol['benefits'] and obs.get('plan_wait_days') is not None:
+            exp_w = pol['benefits'][obs['benefit_id']]['wait_days']
+            if obs['plan_wait_days'] != exp_w and 'plan_wait_days' not in mut:
+                mut.append('plan_wait_days')
+        miss = [f for f in req if obs.get(f) is None]
+        seed_true_dec = insurance_decision(seed, fc_policies)
+    else:
+        req = list(seed.get('required_fields', ['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']))
+        mut = [
+            f for f in ['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']
+            if obs.get(f) is not None and obs.get(f) != 'unknown' and obs.get(f) != seed.get(f)
+        ]
+        miss = [f for f in req if obs.get(f) is None or obs.get(f) == 'unknown']
+        seed_true_dec = cross_decision(seed)
+
+    reach_strict = forward_reachable_under_clause(obs, domain_type, clause_id=None, fc_policies=fc_policies)
+    clean_slots = {k: v for k, v in obs.items() if v is not None}
+
+    if p_unc['is_parse_uncertain']:
+        sem_outcome = 'CLARIFY_REQUIRED'
+        sem_decision = 'CLARIFY'
+        note = f"Unresolved temporal/polarity expression {p_unc['reasons']} requires clarification."
+    elif len(reach_strict) != 1:
+        sem_outcome = 'CLARIFY_REQUIRED'
+        sem_decision = 'CLARIFY'
+        note = f'Text omits pivotal condition(s) {miss}, leaving multiple clause outcomes reachable.'
+    else:
+        sem_decision = reach_strict[0]
+        if sem_decision != seed_true_dec:
+            sem_outcome = 'DECISION_CHANGED'
+            note = f'Text mutates pivotal condition(s) {mut}, changing reachable decision from {seed_true_dec} to {sem_decision}.'
+        elif mut:
+            sem_outcome = 'FACT_MUTATED_SAME_DECISION'
+            note = f'Text modifies seed fact(s) {mut}, but reachable decision under the clause remains {sem_decision}.'
+        else:
+            sem_outcome = 'PRESERVED_DECISION'
+            note = 'All pivotal clause conditions, rule identity, and reachable decision verified intact.'
 
     if not fmt_valid:
-        return {
-            'adjudicated_slots': {k: v for k, v in obs.items() if v is not None},
-            'missing_slots': miss,
-            'mutated_slots': mut,
-            'format_valid': False,
-            'adjudicated_outcome': 'CLARIFY_REQUIRED',
-            'specific_decision': 'CLARIFY',
-            'adjudication_note': (
-                'Question text is truncated mid-sentence before completing the interrogative clause '
-                '(missing question mark / cut off at max_new_tokens); unusable as a complete benchmark query.'
-            ),
-        }
-    if p_unc['is_parse_uncertain']:
-        return {
-            'adjudicated_slots': {k: v for k, v in obs.items() if v is not None},
-            'missing_slots': miss,
-            'mutated_slots': mut,
-            'format_valid': True,
-            'adjudicated_outcome': 'CLARIFY_REQUIRED',
-            'specific_decision': 'CLARIFY',
-            'adjudication_note': f"Unresolved temporal/polarity expression {p_unc['reasons']} requires clarification.",
-        }
-    if coarse_out == 'PRESERVED_DECISION':
-        return {
-            'adjudicated_slots': {k: v for k, v in obs.items() if v is not None},
-            'missing_slots': miss,
-            'mutated_slots': mut,
-            'format_valid': True,
-            'adjudicated_outcome': 'PRESERVED_DECISION',
-            'specific_decision': seed['reference_decision'],
-            'adjudication_note': 'All pivotal clause conditions, rule identity, and interrogative completeness verified intact.',
-        }
-    if coarse_out in ('CONDITION_MUTATED', 'COUNTERFACTUAL_FLIP'):
-        flipped_dec = elig_label if seed['reference_decision'] == excl_label else excl_label
-        return {
-            'adjudicated_slots': {k: v for k, v in obs.items() if v is not None},
-            'missing_slots': miss,
-            'mutated_slots': mut,
-            'format_valid': True,
-            'adjudicated_outcome': 'DECISION_CHANGED',
-            'specific_decision': flipped_dec,
-            'adjudication_note': f'Text mutates pivotal condition(s) {mut}, altering applicability under the target clause.',
-        }
+        note = note + ' [Format warning: question text is truncated before final question mark at max_new_tokens.]'
+
     return {
-        'adjudicated_slots': {k: v for k, v in obs.items() if v is not None},
+        'adjudicated_slots': clean_slots,
         'missing_slots': miss,
         'mutated_slots': mut,
-        'format_valid': True,
-        'adjudicated_outcome': 'CLARIFY_REQUIRED',
-        'specific_decision': 'CLARIFY',
-        'adjudication_note': f'Text omits pivotal condition(s) {miss}, leaving multiple clause outcomes reachable.',
+        'fact_preserved': bool(not miss and not mut),
+        'decision_preserved_under_clause': bool(not p_unc['is_parse_uncertain'] and len(reach_strict) == 1 and reach_strict[0] == seed_true_dec),
+        'format_valid': fmt_valid,
+        'adjudicated_outcome': sem_outcome,
+        'specific_decision': sem_decision,
+        'usable_benchmark_outcome': ('FORMAT_INVALID_TRUNCATED' if not fmt_valid else sem_outcome),
+        'usable_specific_decision': ('CLARIFY' if not fmt_valid else sem_decision),
+        'adjudication_note': note,
     }
+
+
+def predict(question, retrieved_clause, inference_config=None):
+    """Pure deployment-time inference interface:
+        predict(question, retrieved_clause, inference_config) -> decision_label
+    Strictly isolated from evaluation metadata: receives ONLY the query string `question`,
+    the retrieved clause identifier `retrieved_clause`, and deployment configuration
+    `inference_config`. NEVER receives `seed`, `reference_decision`, or expected gold clause ID."""
+    cfg = inference_config or {}
+    sys_name = cfg.get('system_name', 'S1_dense_rule_clarify')
+    domain_type = cfg.get('domain_type', 'insurance')
+    all_policies = cfg.get('policies') or {**DEV_POLICIES, **HELDOUT_POLICIES, **FROZEN_CONFIRM_POLICIES}
+
+    q_text = str(question or '').strip()
+    if not retrieved_clause:
+        return 'NO_CLAUSE_RETRIEVED'
+
+    fmt_valid = bool(len(q_text) >= 6 and ('？' in q_text or '?' in q_text) and '\n' not in q_text)
+    p_unc = detect_parse_uncertainty(q_text, include_unmodeled_v3_0_branches=False)
+    obs = extract_text_slots_pure(q_text, domain_type, all_policies)
+    id_key = 'policy_id' if domain_type == 'insurance' else 'clause_id'
+    excl_label = 'WAIT_EXCLUDED' if domain_type == 'insurance' else 'RULE_EXCLUDED'
+    elig_label = 'WAIT_NOT_EXCLUDED' if domain_type == 'insurance' else 'RULE_ELIGIBLE'
+
+    reachable = forward_reachable_under_clause(obs, domain_type, clause_id=retrieved_clause, fc_policies=all_policies)
+    explicit_id = obs.get(id_key)
+    clause_mismatch = (explicit_id != retrieved_clause)
+    is_ambiguous = (not fmt_valid) or p_unc['is_parse_uncertain'] or clause_mismatch or (len(reachable) != 1)
+
+    if sys_name in ('S1_dense_rule_clarify', 'S2_bm25_rule_clarify'):
+        if is_ambiguous:
+            return 'CLARIFY'
+        return reachable[0]
+
+    day = obs.get('policy_day' if domain_type == 'insurance' else 'elapsed_day')
+    if sys_name == 'S3_dense_aggressive_deny':
+        if is_ambiguous or day is None:
+            return excl_label
+        if domain_type == 'insurance':
+            pol_c = all_policies.get(retrieved_clause, {})
+            wait_d = obs.get('plan_wait_days') or (pol_c.get('days', [30])[0] if pol_c else 30)
+            return excl_label if day <= wait_d else elig_label
+        c_info = CROSS_CLAUSES.get(retrieved_clause, {})
+        wait_d = obs.get('threshold_days') or (c_info.get('wait_days_options', [30])[0] if c_info else 30)
+        if retrieved_clause in ('med_vte_prophylaxis', 'law_work_injury'):
+            return elig_label if day <= wait_d else excl_label
+        return elig_label if day > wait_d else excl_label
+
+    if sys_name == 'S4_dense_aggressive_approve':
+        if is_ambiguous or day is None:
+            return elig_label
+        if domain_type == 'insurance' and (obs.get('enrollment') == 'new' or obs.get('cause') == 'accident'):
+            return elig_label
+        return excl_label if day <= 30 else elig_label
+
+    # S5_dense_threshold_echo_heuristic
+    if is_ambiguous or day is None:
+        return excl_label
+    if obs.get('approved_waiver') is True:
+        return excl_label
+    if domain_type == 'multi_threshold' and obs.get('status') == 'secondary':
+        c_info = CROSS_CLAUSES.get(retrieved_clause, {})
+        wait_d = obs.get('threshold_days') or (c_info.get('wait_days_options', [30])[0] if c_info else 30)
+        return elig_label if day > wait_d else excl_label
+    return reachable[0]
 
 
 def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_type='insurance', bge_cache=None):
     """Evaluate 5 controlled Retrieval + Symbolic Rule-Decision Pipeline Systems on benchmarks
-    produced by each synthetic generation method, executing real clause retrieval (BGE-small-zh-v1.5
-    and BM25 char-2) and text-level slot extraction directly on every query string `r['question']`.
+    produced by each synthetic generation method, executing pure BGE-small-zh-v1.5 dense retrieval
+    (with zero silent BM25 fallback) and BM25 char-2 retrieval directly on every query string.
 
-    Candidate Retrieval + Rule-Decision Pipeline Systems:
+    Candidate Retrieval + Rule-Decision Pipeline Systems (all implemented via isolated `predict()`):
     - S1_dense_rule_clarify (Reference Pipeline): retrieves Top-1 clause via BGE-small-zh-v1.5 on `q`,
-      extracts slots from `q`, outputs CLARIFY if retrieval misses or pivotal slots are missing/truncated,
-      and otherwise executes the full clause rule (including renewal, accident, and waiver exemptions).
-    - S2_bm25_rule_clarify (Lexical Retrieval + Full Rule Pipeline): retrieves Top-1 clause via real
-      BM25 char-2 scoring on `q`, extracts slots from `q`, and executes the full clause rule when the
-      target clause is retrieved and all pivotal conditions are present (otherwise outputs CLARIFY).
+      extracts slots purely from `q`, outputs CLARIFY if retrieval conflicts with an explicit title or if
+      pivotal slots are missing/truncated, and otherwise executes forward reachability under the retrieved clause.
+    - S2_bm25_rule_clarify (Lexical Retrieval + Explicit Title Grounding Pipeline): retrieves Top-1 clause via
+      BM25 char-2 scoring on `q`, requires explicit clause title grounding in `q`, and executes forward
+      reachability under the retrieved clause when all pivotal conditions are present (else outputs CLARIFY).
     - S3_dense_aggressive_deny (Exemption-Blind Conservative Pipeline): retrieves Top-1 clause via
-      BGE-small-zh-v1.5 on `q`, extracts day from `q`, ignores renewal/accident/waiver exemptions,
-      and defaults to WAIT_EXCLUDED / RULE_EXCLUDED when pivotal conditions are missing.
-    - S4_dense_aggressive_approve (Short-Wait Optimistic Pipeline): retrieves Top-1 clause via
-      BGE-small-zh-v1.5 on `q`, applies a naive flat 30-day rule on the day extracted from `q`,
-      and defaults to WAIT_NOT_EXCLUDED / RULE_ELIGIBLE when pivotal conditions are missing.
+      BGE-small-zh-v1.5 on `q`, compares extracted day against the retrieved clause's threshold while ignoring
+      accident/renewal/waiver exemptions, and defaults to WAIT_EXCLUDED / RULE_EXCLUDED on ambiguity.
+    - S4_dense_aggressive_approve (Short-Wait Optimistic Heuristic Pipeline): retrieves Top-1 clause via
+      BGE-small-zh-v1.5 on `q`, approves whenever renewal (`new`) or `accident` is mentioned (ignoring waiver
+      requirements), applies a flat 30-day cutoff otherwise, and defaults to WAIT_NOT_EXCLUDED / RULE_ELIGIBLE on ambiguity.
     - S5_dense_threshold_echo_heuristic (Surface Threshold-Echo Heuristic Pipeline): retrieves Top-1
-      clause via BGE-small-zh-v1.5 on `q`, ignores waiver exemptions, is fooled by surface threshold
-      mentions on condition-mutated queries, and defaults to WAIT_EXCLUDED / RULE_EXCLUDED on ambiguity.
+      clause via BGE-small-zh-v1.5 on `q`, ignores `approved_waiver` exemptions and secondary-status
+      disqualifications when comparing day vs threshold, and defaults to WAIT_EXCLUDED / RULE_EXCLUDED on ambiguity.
     """
     res = _get_rag_resources(bge_cache=bge_cache)
     cache = res['bge_cache']
+    all_policies = res['all_20_policies']
     if domain_type == 'insurance':
         clause_ids = res['ins_ids']
         clause_docs = res['ins_docs']
-        excl_label, elig_label = 'WAIT_EXCLUDED', 'WAIT_NOT_EXCLUDED'
     else:
         clause_ids = res['cross_ids']
         clause_docs = res['cross_docs']
-        excl_label, elig_label = 'RULE_EXCLUDED', 'RULE_ELIGIBLE'
 
-    doc_embs = (
-        np.stack([cache[d] for d in clause_docs], axis=0).astype(np.float64)
-        if all(d in cache for d in clause_docs)
-        else None
-    )
+    if not all(d in cache for d in clause_docs):
+        raise KeyError(f'Missing BGE clause document embeddings in cache for domain={domain_type}.')
+    doc_embs = np.stack([cache[d] for d in clause_docs], axis=0).astype(np.float64)
     bm25_vec = base.CountVectorizer(analyzer='char', ngram_range=(2, 2))
     bm25_docs_mat = base.bm25_documents(bm25_vec.fit_transform(clause_docs))
 
@@ -1112,11 +1238,13 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
         if float(np.max(lex_scores)) <= 0.0:
             return None
         pq = '为这个句子生成表示以用于检索相关文章：' + q_text
-        if doc_embs is not None and pq in cache:
-            q_emb = cache[pq].astype(np.float64)
-            sims = np.einsum('cd,d->c', doc_embs, q_emb, optimize=True)
-            return clause_ids[int(np.argmax(sims))]
-        return clause_ids[int(np.argmax(lex_scores))]
+        if pq not in cache:
+            raise KeyError(
+                f'Strict BGE retrieval cache miss (silent BM25 fallback is disabled): {q_text!r}'
+            )
+        q_emb = cache[pq].astype(np.float64)
+        sims = np.einsum('cd,d->c', doc_embs, q_emb, optimize=True)
+        return clause_ids[int(np.argmax(sims))]
 
     def retrieve_bm25_top1(q_text):
         q_text = str(q_text or '').strip()
@@ -1135,67 +1263,55 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
         'S5_dense_threshold_echo_heuristic',
     ]
 
-    def predict_system_from_text(sys_name, q_text, seed):
-        sem = evaluate_independent_text_semantics(q_text, domain_type, seed, FROZEN_CONFIRM_POLICIES)
-        true_q_label = sem['specific_decision']
-        obs = sem['adjudicated_slots']
-        target_cid = seed.get('policy_id') if domain_type == 'insurance' else seed.get('clause_id')
-
+    def predict_system_from_text(sys_name, q_text, seed=None):
         ret_cid = retrieve_bm25_top1(q_text) if sys_name == 'S2_bm25_rule_clarify' else retrieve_bge_top1(q_text)
-        if ret_cid is None:
-            return 'NO_CLAUSE_RETRIEVED', true_q_label
-
-        if sys_name == 'S1_dense_rule_clarify':
-            if ret_cid != target_cid or sem['adjudicated_outcome'] == 'CLARIFY_REQUIRED':
-                return 'CLARIFY', true_q_label
-            return sem['specific_decision'], true_q_label
-
-        if sys_name == 'S2_bm25_rule_clarify':
-            id_key = 'policy_id' if domain_type == 'insurance' else 'clause_id'
-            if ret_cid != target_cid or obs.get(id_key) != target_cid or sem['adjudicated_outcome'] == 'CLARIFY_REQUIRED':
-                return 'CLARIFY', true_q_label
-            return sem['specific_decision'], true_q_label
-
-        day = obs.get('policy_day' if domain_type == 'insurance' else 'elapsed_day')
-        if sys_name == 'S3_dense_aggressive_deny':
-            if sem['adjudicated_outcome'] == 'CLARIFY_REQUIRED' or day is None:
-                return excl_label, true_q_label
-            if sem['adjudicated_outcome'] == 'DECISION_CHANGED':
-                return seed['reference_decision'], true_q_label
-            wait_d = (
-                obs.get('plan_wait_days') or seed['plan_wait_days']
-                if domain_type == 'insurance'
-                else (obs.get('threshold_days') or seed['threshold_days'])
-            )
-            return (excl_label if day <= wait_d else elig_label), true_q_label
-
-        if sys_name == 'S4_dense_aggressive_approve':
-            if sem['adjudicated_outcome'] == 'CLARIFY_REQUIRED' or day is None:
-                return elig_label, true_q_label
-            if domain_type == 'insurance' and (obs.get('enrollment') == 'new' or obs.get('cause') == 'accident'):
-                return elig_label, true_q_label
-            return (excl_label if day <= 30 else elig_label), true_q_label
-
-        # S5_dense_threshold_echo_heuristic
-        if sem['adjudicated_outcome'] == 'DECISION_CHANGED':
-            return seed['reference_decision'], true_q_label
-        if sem['adjudicated_outcome'] == 'CLARIFY_REQUIRED' or day is None:
-            return excl_label, true_q_label
-        if obs.get('approved_waiver') is True:
-            return excl_label, true_q_label
-        return sem['specific_decision'], true_q_label
+        pred = predict(
+            q_text,
+            ret_cid,
+            {
+                'system_name': sys_name,
+                'domain_type': domain_type,
+                'policies': all_policies,
+            },
+        )
+        if seed is None:
+            return pred, None
+        sem = evaluate_independent_text_semantics(q_text, domain_type, seed, all_policies)
+        true_q_label = sem['usable_specific_decision']
+        return pred, true_q_label
 
     # Compute ground-truth system performance across all seeds using actual rendered reference
     # question texts (each seed's complete question + its paired missing_critical question = 2 * N_seeds)
     true_system_scores = {}
     all_seeds = list(seeds_by_id.values())
+    ref_query_audit = []
+    for seed in all_seeds:
+        if domain_type == 'insurance':
+            q_det = render_frozen_insurance_question(seed, policies=all_policies, surface=False)
+            q_amb = render_frozen_insurance_question(seed, policies=all_policies, drop_field=seed['pivotal_field'], surface=False)
+            gold_cid = seed['policy_id']
+        else:
+            q_det = render_cross_question(seed, surface=False)
+            q_amb = render_cross_question(seed, drop_field=seed['pivotal_field'], surface=False)
+            gold_cid = seed['clause_id']
+        for variant_name, q_ref in [('complete', q_det), ('missing_critical', q_amb)]:
+            pq_ref = '为这个句子生成表示以用于检索相关文章：' + q_ref
+            ref_query_audit.append({
+                'seed_id': seed['seed_id'],
+                'variant': variant_name,
+                'gold_clause_id': gold_cid,
+                'bge_vector_cached': bool(pq_ref in cache),
+                'bge_top1_clause': retrieve_bge_top1(q_ref),
+                'bm25_top1_clause': retrieve_bm25_top1(q_ref),
+            })
+
     for s_name in systems:
         gt_hits = 0
         gt_total = 0
         for seed in all_seeds:
             if domain_type == 'insurance':
-                q_det = render_frozen_insurance_question(seed, surface=False)
-                q_amb = render_frozen_insurance_question(seed, drop_field=seed['pivotal_field'], surface=False)
+                q_det = render_frozen_insurance_question(seed, policies=all_policies, surface=False)
+                q_amb = render_frozen_insurance_question(seed, policies=all_policies, drop_field=seed['pivotal_field'], surface=False)
             else:
                 q_det = render_cross_question(seed, surface=False)
                 q_amb = render_cross_question(seed, drop_field=seed['pivotal_field'], surface=False)
@@ -1219,8 +1335,8 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
                 q_txt = r['question']
                 p_unc = detect_parse_uncertainty(q_txt)
                 if domain_type == 'insurance':
-                    obs_v = extract_insurance_fields_frozen(q_txt, FROZEN_CONFIRM_POLICIES)
-                    out_v, _, _ = evaluate_insurance_outcome_frozen(obs_v, seed, seed['required_fields'], FROZEN_CONFIRM_POLICIES)
+                    obs_v = extract_insurance_fields_frozen(q_txt, all_policies)
+                    out_v, _, _ = evaluate_insurance_outcome_frozen(obs_v, seed, seed['required_fields'], all_policies)
                 else:
                     obs_v = extract_cross_slots_v2(q_txt)
                     out_v, _, _ = evaluate_cross_outcome(obs_v, seed)
@@ -1237,8 +1353,8 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
         corrupted_count = 0
         for r in accepted:
             seed = seeds_by_id[r['seed_id']]
-            sem_r = evaluate_independent_text_semantics(r['question'], domain_type, seed, FROZEN_CONFIRM_POLICIES)
-            if sem_r['adjudicated_outcome'] != 'PRESERVED_DECISION':
+            sem_r = evaluate_independent_text_semantics(r['question'], domain_type, seed, all_policies)
+            if sem_r['usable_benchmark_outcome'] != 'PRESERVED_DECISION':
                 corrupted_count += 1
 
         for s_name in systems:
@@ -1246,8 +1362,9 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
             sem_hits = 0
             for r in accepted:
                 seed = seeds_by_id[r['seed_id']]
+                seed_gold_dec = insurance_decision(seed, all_policies) if domain_type == 'insurance' else cross_decision(seed)
                 pred, true_q_label = predict_system_from_text(s_name, r['question'], seed)
-                if pred == seed['reference_decision']:
+                if pred == seed_gold_dec:
                     naive_hits += 1
                 if pred == true_q_label:
                     sem_hits += 1
@@ -1276,9 +1393,19 @@ def evaluate_downstream_rag_selection(records_by_method, seeds_by_id, domain_typ
     return {
         'domain_type': domain_type,
         'pipeline_architecture_note': (
-            'Controlled retrieval + symbolic rule-decision pipelines: real BGE-small-zh-v1.5 or BM25 char-2 '
-            'clause retrieval on query text followed by deterministic symbolic rule variants (not open-ended generative LLM readers).'
+            'Controlled retrieval + symbolic rule-decision pipelines: pure BGE-small-zh-v1.5 dense retrieval '
+            '(100% vector cache coverage, zero lexical fallback) or BM25 char-2 retrieval on query text followed '
+            'by isolated `predict(question, retrieved_clause, inference_config)` symbolic rule variants.'
         ),
+        'retrieval_backend_audit': {
+            'dense_backend': 'BAAI/bge-small-zh-v1.5 (exact L2-normalized CLS cosine similarity, lexical fallback disabled)',
+            'sparse_backend': 'BM25 char-2',
+            'reference_queries_total': len(ref_query_audit),
+            'reference_queries_bge_cached': sum(1 for x in ref_query_audit if x['bge_vector_cached']),
+            'reference_queries_fallback_count': 0,
+            'bge_reference_top1_hits': sum(1 for x in ref_query_audit if x['bge_top1_clause'] == x['gold_clause_id']),
+            'bm25_reference_top1_hits': sum(1 for x in ref_query_audit if x['bm25_top1_clause'] == x['gold_clause_id']),
+        },
         'candidate_systems': systems,
         'ground_truth_system_accuracy': true_system_scores,
         'benchmarks_by_generation_method': method_eval,
@@ -1889,8 +2016,10 @@ def run_frozen_confirmation_generations(family, ins_seeds, cross_seeds):
     return rows
 
 
-def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
-    """Score all generated rows using the strictly frozen v3.0-frozen verifier."""
+def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map, policies_map=FROZEN_CONFIRM_POLICIES):
+    """Score all generated rows using the strictly frozen v3.0-frozen verifier AND record
+    both `v3_0_frozen_outcome` and `v3_1_hardened_outcome` (with post-probe parse uncertainty
+    and forward reachability distinction between `FACT_MUTATED_SAME_DECISION` and `DECISION_CHANGED`)."""
     cond_draft_map = {
         (r.get('model_family'), r['seed_id']): r
         for r in raw_rows
@@ -1907,15 +2036,18 @@ def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
         if dom == 'insurance':
             s = ins_seeds_map[sid]
             req = s['required_fields']
-            obs = extract_insurance_fields_frozen(q, FROZEN_CONFIRM_POLICIES)
-            outcome, miss, mut = evaluate_insurance_outcome_frozen(obs, s, req, FROZEN_CONFIRM_POLICIES, grant_source_policy=False)
-            outcome_g, miss_g, mut_g = evaluate_insurance_outcome_frozen(obs, s, req, FROZEN_CONFIRM_POLICIES, grant_source_policy=True)
+            obs = extract_insurance_fields_frozen(q, policies_map)
+            outcome, miss, mut = evaluate_insurance_outcome_frozen(obs, s, req, policies_map, grant_source_policy=False)
+            outcome_g, miss_g, mut_g = evaluate_insurance_outcome_frozen(obs, s, req, policies_map, grant_source_policy=True)
+            seed_true_dec = insurance_decision(s, policies_map)
         else:
             s = cross_seeds_map[sid]
             obs = extract_cross_slots_v2(q)
             outcome, miss, mut = evaluate_cross_outcome(obs, s, grant_source_clause=False)
             outcome_g, miss_g, mut_g = evaluate_cross_outcome(obs, s, grant_source_clause=True)
+            seed_true_dec = cross_decision(s)
 
+        v3_0_raw_outcome = outcome
         if p_unc['is_parse_uncertain'] and outcome == 'PRESERVED_DECISION':
             outcome = 'DEGRADED_TO_CLARIFY'
 
@@ -1928,9 +2060,9 @@ def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
                 q_c = strip_book_title_spoilers(cond_r['question'])
                 p_unc_c = detect_parse_uncertainty(q_c)
                 if dom == 'insurance':
-                    obs_c = extract_insurance_fields_frozen(q_c, FROZEN_CONFIRM_POLICIES)
-                    out_c, miss_c, mut_c = evaluate_insurance_outcome_frozen(obs_c, s, req, FROZEN_CONFIRM_POLICIES, grant_source_policy=False)
-                    out_cg, miss_cg, mut_cg = evaluate_insurance_outcome_frozen(obs_c, s, req, FROZEN_CONFIRM_POLICIES, grant_source_policy=True)
+                    obs_c = extract_insurance_fields_frozen(q_c, policies_map)
+                    out_c, miss_c, mut_c = evaluate_insurance_outcome_frozen(obs_c, s, req, policies_map, grant_source_policy=False)
+                    out_cg, miss_cg, mut_cg = evaluate_insurance_outcome_frozen(obs_c, s, req, policies_map, grant_source_policy=True)
                 else:
                     obs_c = extract_cross_slots_v2(q_c)
                     out_c, miss_c, mut_c = evaluate_cross_outcome(obs_c, s, grant_source_clause=False)
@@ -1942,12 +2074,16 @@ def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
                     outcome_g, miss_g, mut_g = out_cg, miss_cg, mut_cg
                     p_unc = p_unc_c
 
+        reach_v = forward_reachable_under_clause(obs, dom, clause_id=None, fc_policies=policies_map)
         if p_unc['is_parse_uncertain']:
             if outcome == 'PRESERVED_DECISION':
                 outcome = 'DEGRADED_TO_CLARIFY'
             fine_outcome = 'PARSE_UNCERTAIN'
         elif outcome in ('CONDITION_MUTATED', 'COUNTERFACTUAL_FLIP'):
-            fine_outcome = 'DECISION_CHANGED'
+            if len(reach_v) == 1 and reach_v[0] == seed_true_dec:
+                fine_outcome = 'FACT_MUTATED_SAME_DECISION'
+            else:
+                fine_outcome = 'DECISION_CHANGED'
         elif outcome == 'DEGRADED_TO_CLARIFY':
             fine_outcome = 'CLARIFY_REQUIRED'
         else:
@@ -1959,8 +2095,10 @@ def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
             **r,
             'question': q,
             'extracted': {k: v for k, v in obs.items() if v is not None},
+            'v3_0_raw_outcome': v3_0_raw_outcome,
             'outcome': outcome,
             'fine_outcome': fine_outcome,
+            'usable_FormatAndSlot_preserved': bool(outcome == 'PRESERVED_DECISION' and fmt_valid),
             'parse_uncertainty': p_unc,
             'missing_slots': miss,
             'mutated_slots': mut,
@@ -1976,7 +2114,8 @@ def score_frozen_confirmation_rows(raw_rows, ins_seeds_map, cross_seeds_map):
 
 
 def summarize_fc_method(records, clause_docs, clause_ids, titles, bge_tokenizer, bge_model, device, bge_cache=None):
-    """Summarize preservation, effective yield, token/latency cost, and retrieval metrics."""
+    """Summarize preservation (both slot_only and joint format_and_slot endpoints), effective yield,
+    token/latency cost, and retrieval metrics."""
     n = len(records)
     is_filter = bool(records and records[0]['method'] == 'verify_only_filter')
     accepted = [r for r in records if r['outcome'] == 'PRESERVED_DECISION'] if is_filter else list(records)
@@ -1998,6 +2137,7 @@ def summarize_fc_method(records, clause_docs, clause_ids, titles, bge_tokenizer,
     lengths = [len(r['question']) for r in records]
 
     pres_count = sum(1 for r in records if r['outcome'] == 'PRESERVED_DECISION')
+    usable_joint_count = sum(1 for r in records if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid'])
     clar_count = sum(1 for r in records if r['fine_outcome'] == 'CLARIFY_REQUIRED')
     punc_count = sum(1 for r in records if r['fine_outcome'] == 'PARSE_UNCERTAIN')
     mut_count = sum(1 for r in records if r['outcome'] in ('CONDITION_MUTATED', 'COUNTERFACTUAL_FLIP'))
@@ -2006,9 +2146,10 @@ def summarize_fc_method(records, clause_docs, clause_ids, titles, bge_tokenizer,
         'seed_count': n,
         'accepted_query_count': n_acc,
         'scenario_coverage_rate': round(n_acc / max(1, n), 4),
-        'effective_usable_yield_rate': round(pres_count / max(1, n), 4),
+        'effective_usable_yield_rate': round(usable_joint_count / max(1, n), 4),
+        'slot_only_yield_rate': round(pres_count / max(1, n), 4),
         'contamination_rate_in_accepted_pool': (
-            0.0 if is_filter else round((n - pres_count) / max(1, n), 4)
+            0.0 if is_filter else round((n - usable_joint_count) / max(1, n), 4)
         ),
         'total_llm_calls': int(sum(r['llm_calls'] for r in records)),
         'mean_llm_calls_per_seed': round(float(np.mean([r['llm_calls'] for r in records])), 3),
@@ -2020,6 +2161,7 @@ def summarize_fc_method(records, clause_docs, clause_ids, titles, bge_tokenizer,
         'strict_single_qmark': sum(1 for r in records if r['strict_single_qmark']),
         'all_slots_preserved': sum(1 for r in records if r['all_slots_preserved']),
         'preserved_decision': pres_count,
+        'format_and_slot_usable': usable_joint_count,
         'degraded_to_clarify_total': sum(1 for r in records if r['outcome'] == 'DEGRADED_TO_CLARIFY'),
         'clarify_required_genuine_ambiguity': clar_count,
         'parse_uncertain_conservative_reject': punc_count,
@@ -2131,38 +2273,106 @@ def exact_sign_flip_permutation_p(cluster_diffs):
     }
 
 
-def compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, method_a, method_b):
+def paired_mcnemar_endpoint(rows, left, right, require_format_valid=True):
+    """Compute exact two-sided McNemar test on either the joint usable endpoint
+    (`outcome == 'PRESERVED_DECISION' and format_valid`) or the slot-only endpoint
+    (`outcome == 'PRESERVED_DECISION'`)."""
+    def _is_ok(r):
+        if require_format_valid:
+            return bool(r['outcome'] == 'PRESERVED_DECISION' and r.get('format_valid', True))
+        return bool(r['outcome'] == 'PRESERVED_DECISION')
+
+    left_map = {r['seed_id']: _is_ok(r) for r in rows if r['method'] == left}
+    right_map = {r['seed_id']: _is_ok(r) for r in rows if r['method'] == right}
+    wins = [sid for sid in left_map if left_map[sid] and not right_map[sid]]
+    losses = [sid for sid in left_map if right_map[sid] and not left_map[sid]]
+    discordant = len(wins) + len(losses)
+    p_val = float(binomtest(len(wins), discordant, 0.5).pvalue) if discordant else 1.0
+    return {
+        'endpoint': 'format_and_slot' if require_format_valid else 'slot_only',
+        'left': left,
+        'right': right,
+        'n': len(left_map),
+        'left_success': int(sum(left_map.values())),
+        'right_success': int(sum(right_map.values())),
+        'left_only_wins': wins,
+        'right_only_wins': losses,
+        'exact_mcnemar_two_sided_p': round(p_val, 8),
+    }
+
+
+def compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, method_a, method_b, require_format_valid=True):
     """Compute seed-clustered (N=40) and clause-clustered (N=15) exact sign-flip permutation tests
-    for comparing method_a vs method_b across Qwen-Plus and DeepSeek-V3."""
+    for comparing method_a vs method_b across Qwen-Plus and DeepSeek, reporting both the primary
+    joint usable endpoint (`format_and_slot`) and the secondary semantic-only endpoint (`slot_only`)."""
     all_rows = scored_qwen + scored_deepseek
-    by_key = {(r['model_family'], r['seed_id'], r['method']): int(r['outcome'] == 'PRESERVED_DECISION') for r in all_rows}
     seed_ids = sorted({r['seed_id'] for r in all_rows})
     seed_to_clause = {r['seed_id']: r['clause_id'] for r in all_rows}
     clause_ids = sorted({r['clause_id'] for r in all_rows})
 
-    seed_diffs = []
-    clause_diff_map = {cid: 0 for cid in clause_ids}
-    for sid in seed_ids:
-        d_s = 0
-        for fam in ('qwen_plus', 'deepseek'):
-            d_s += by_key.get((fam, sid, method_a), 0) - by_key.get((fam, sid, method_b), 0)
-        seed_diffs.append(d_s)
-        clause_diff_map[seed_to_clause[sid]] += d_s
+    def _for_endpoint(req_fmt):
+        by_key = {
+            (r['model_family'], r['seed_id'], r['method']): int(
+                r['outcome'] == 'PRESERVED_DECISION' and (not req_fmt or r.get('format_valid', True))
+            )
+            for r in all_rows
+        }
+        seed_diffs = []
+        clause_diff_map = {cid: 0 for cid in clause_ids}
+        for sid in seed_ids:
+            d_s = 0
+            for fam in ('qwen_plus', 'deepseek'):
+                d_s += by_key.get((fam, sid, method_a), 0) - by_key.get((fam, sid, method_b), 0)
+            seed_diffs.append(d_s)
+            clause_diff_map[seed_to_clause[sid]] += d_s
+        return {
+            'seed_clustered_40_seeds': exact_sign_flip_permutation_p(seed_diffs),
+            'clause_clustered_15_documents': exact_sign_flip_permutation_p([clause_diff_map[c] for c in clause_ids]),
+        }
 
+    ep_joint = _for_endpoint(True)
+    ep_slot = _for_endpoint(False)
+    primary = ep_joint if require_format_valid else ep_slot
     return {
-        'seed_clustered_40_seeds': exact_sign_flip_permutation_p(seed_diffs),
-        'clause_clustered_15_documents': exact_sign_flip_permutation_p([clause_diff_map[c] for c in clause_ids]),
+        'primary_endpoint': 'format_and_slot' if require_format_valid else 'slot_only',
+        'seed_clustered_40_seeds': primary['seed_clustered_40_seeds'],
+        'clause_clustered_15_documents': primary['clause_clustered_15_documents'],
+        'by_endpoint': {
+            'format_and_slot': ep_joint,
+            'slot_only': ep_slot,
+        },
     }
 
 
+def holm_bonferroni_adjust(p_dict):
+    """Apply Holm-Bonferroni step-down multiple-comparison adjustment to a dict of p-values."""
+    items = sorted(p_dict.items(), key=lambda kv: kv[1])
+    m = len(items)
+    adjusted = {}
+    running_max = 0.0
+    for idx, (k, p_raw) in enumerate(items):
+        p_adj = min(1.0, p_raw * (m - idx))
+        running_max = max(running_max, p_adj)
+        adjusted[k] = {
+            'raw_p': round(float(p_raw), 8),
+            'holm_adjusted_p': round(float(running_max), 8),
+            'rank': idx + 1,
+        }
+    return adjusted
+
+
 def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map, cross_seeds_map, fc_sources_map):
-    """Build the item-level Non-Circular Three-Layer Verification & Reference Audit on the Frozen Confirmation Set.
-    CRITICAL NON-CIRCULARITY INVARIANT:
-    - `ind_outcome` is NEVER derived from `r['outcome']` (`ver_coarse`).
-    - Instead, it is determined from the standalone text-hash-verified reference file
-      `data_v3/frozen_confirmation_independent_audit_labels.json` when `sha256(r['question'])` matches,
-      or evaluated directly on `r['question']` via `evaluate_independent_text_semantics` when `r['question']`
-      is modified (e.g., in adversarial perturbation probes)."""
+    """Build the item-level Shared-Rule-Base Dual-Implementation Forward Reachability Audit on the
+    400 Frozen Confirmation generations (5 methods x 40 seeds x 2 models).
+    CRITICAL INVARIANTS:
+    1. Honest provenance: explicitly labeled `shared_rule_base_dual_implementation_consistency_check`
+       (programmatic extended-lexicon + forward-reachability check sharing the base regex parser &
+       compiled rule tables; NOT independent external human blind annotation).
+    2. `ind_outcome` (`adjudicated_outcome`) is computed via forward reachability (`extract_text_slots_pure`
+       + `forward_reachable_under_clause`) and NEVER derived from `r['outcome']` (`ver_coarse`).
+    3. Separates `format_valid` from semantic `ind_outcome`: reports BOTH
+       - `semantic_reachability_consistency` (`TP=296, FP=0, TN=86, FN=18`)
+       - `joint_format_and_semantic_usability` (`TP=290, FP=6 [Qwen 5, DeepSeek 1], TN=88, FN=16`)."""
     audit_rows = []
     target_methods = ['ordinary_style', 'condition_prompt', 'structured_json_rewrite', 'generic_self_refine_budget_matched', 'slot_guard_repair']
     all_rows = [r for r in (scored_qwen + scored_deepseek) if r['method'] in target_methods]
@@ -2174,8 +2384,17 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
         loaded = json.loads(ref_labels_path.read_text(encoding='utf-8'))
         saved_ref_labels = loaded.get('items_by_audit_id', {})
 
+    provenance_str = (
+        'shared_rule_base_dual_implementation_consistency_check '
+        '(programmatic extended-lexicon + forward-reachability consistency check sharing base rule tables; '
+        'NOT independent human blind annotation)'
+    )
+
     tp = fp = tn = fn = 0
+    sem_tp = sem_fp = sem_tn = sem_fn = 0
+    fp_by_family = {'qwen_plus': 0, 'deepseek': 0}
     by_method = {}
+    by_method_semantic = {}
     ref_items_out = {}
 
     for r in all_rows:
@@ -2198,7 +2417,7 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
                 'pdf_page_1based': src['anchor']['pdf_page_1based'],
                 'char_span_on_page': [src['anchor']['normalized_start'], src['anchor']['normalized_end']],
                 'bbox_pdf_points': src['anchor']['bbox_pdf_points'],
-                'reference_decision': s['reference_decision'],
+                'reference_decision': insurance_decision(s, FROZEN_CONFIRM_POLICIES),
             }
         else:
             s = cross_seeds_map[sid]
@@ -2206,21 +2425,29 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
             layer1 = {
                 'source_id': cid,
                 'title': CROSS_CLAUSES[cid]['title'],
-                'reference_decision': s['reference_decision'],
+                'reference_decision': cross_decision(s),
             }
 
+        sem_res = evaluate_independent_text_semantics(q, dom, s, FROZEN_CONFIRM_POLICIES)
         ref_entry = saved_ref_labels.get(audit_id)
-        if ref_entry is not None and ref_entry.get('question_sha256') == q_sha:
+        if (
+            ref_entry is not None
+            and ref_entry.get('question_sha256') == q_sha
+            and 'usable_benchmark_outcome' in ref_entry
+        ):
             ind_outcome = ref_entry['adjudicated_outcome']
+            ind_usable_outcome = ref_entry['usable_benchmark_outcome']
             ind_note = ref_entry['adjudication_note']
             ind_slots = ref_entry.get('adjudicated_slots', {})
             ind_fmt = ref_entry.get('format_valid', True)
+            ind_spec_dec = ref_entry.get('specific_decision', sem_res['specific_decision'])
         else:
-            sem_res = evaluate_independent_text_semantics(q, dom, s, FROZEN_CONFIRM_POLICIES)
             ind_outcome = sem_res['adjudicated_outcome']
+            ind_usable_outcome = sem_res['usable_benchmark_outcome']
             ind_note = sem_res['adjudication_note']
             ind_slots = sem_res['adjudicated_slots']
             ind_fmt = sem_res['format_valid']
+            ind_spec_dec = sem_res['specific_decision']
 
         ref_items_out[audit_id] = {
             'audit_id': audit_id,
@@ -2233,18 +2460,38 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
             'format_valid': ind_fmt,
             'adjudicated_slots': ind_slots,
             'adjudicated_outcome': ind_outcome,
+            'specific_decision': ind_spec_dec,
+            'usable_benchmark_outcome': ind_usable_outcome,
             'adjudication_note': ind_note,
         }
 
-        gold_pos = (ind_outcome == 'PRESERVED_DECISION')
         ver_pos = (ver_coarse == 'PRESERVED_DECISION')
-        if gold_pos and ver_pos:
+        sem_pos = (ind_outcome == 'PRESERVED_DECISION')
+        joint_pos = (ind_outcome == 'PRESERVED_DECISION' and ind_fmt)
+
+        # 1. Semantic-only consistency (ignoring format truncation)
+        if sem_pos and ver_pos:
+            sem_tp += 1
+            sem_status = 'true_accept_semantic'
+        elif not sem_pos and ver_pos:
+            sem_fp += 1
+            sem_status = 'false_accept_semantic'
+        elif not sem_pos and not ver_pos:
+            sem_tn += 1
+            sem_status = 'true_reject_semantic'
+        else:
+            sem_fn += 1
+            sem_status = 'false_reject_lexical_or_negation_boundary'
+
+        # 2. Joint format-valid + semantic usability
+        if joint_pos and ver_pos:
             tp += 1
             status = 'true_accept'
-        elif not gold_pos and ver_pos:
+        elif not joint_pos and ver_pos:
             fp += 1
-            status = 'false_accept_truncated_or_unverified'
-        elif not gold_pos and not ver_pos:
+            fp_by_family[r['model_family']] = fp_by_family.get(r['model_family'], 0) + 1
+            status = 'false_accept_format_truncated_only' if sem_pos else 'false_accept_semantic'
+        elif not joint_pos and not ver_pos:
             tn += 1
             status = 'true_reject'
         else:
@@ -2263,6 +2510,17 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
         else:
             by_method[m_name]['fn'] += 1
 
+        by_method_semantic.setdefault(m_name, {'n': 0, 'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0})
+        by_method_semantic[m_name]['n'] += 1
+        if sem_status == 'true_accept_semantic':
+            by_method_semantic[m_name]['tp'] += 1
+        elif sem_status == 'false_accept_semantic':
+            by_method_semantic[m_name]['fp'] += 1
+        elif sem_status == 'true_reject_semantic':
+            by_method_semantic[m_name]['tn'] += 1
+        else:
+            by_method_semantic[m_name]['fn'] += 1
+
         audit_rows.append({
             'audit_id': audit_id,
             'model_family': r['model_family'],
@@ -2280,13 +2538,16 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
             'layer3_verifier_coarse_outcome': ver_coarse,
             'layer3_verifier_fine_outcome': ver_fine,
             'layer3_independent_adjudicated_outcome': ind_outcome,
+            'layer3_independent_specific_decision': ind_spec_dec,
+            'layer3_usable_benchmark_outcome': ind_usable_outcome,
+            'verifier_vs_semantic_only_status': sem_status,
             'verifier_vs_independent_status': status,
-            'audit_provenance': 'author_inspected_clause_grounded_reference_audit (NOT external blinded multi-rater human annotation)',
+            'audit_provenance': provenance_str,
             'audit_explanation': ind_note,
         })
 
     summary = {
-        'audit_provenance': 'author_inspected_clause_grounded_reference_audit (NOT external blinded multi-rater human annotation)',
+        'audit_provenance': provenance_str,
         'total_audited_generations': len(audit_rows),
         'true_accept_tp': tp,
         'false_accept_fp': fp,
@@ -2296,18 +2557,475 @@ def build_three_layer_audit_records(scored_qwen, scored_deepseek, ins_seeds_map,
         'false_reject_rate': round(fn / max(1, tp + fn), 4),
         'precision_on_accepted': round(tp / max(1, tp + fp), 4),
         'recall_on_preserved': round(tp / max(1, tp + fn), 4),
+        'false_accept_fp_by_model_family': fp_by_family,
+        'semantic_reachability_consistency': {
+            'description': 'Compares v3.0-frozen verifier acceptance against semantic slot/reachability preservation (ignoring format truncation).',
+            'tp': sem_tp,
+            'fp': sem_fp,
+            'tn': sem_tn,
+            'fn': sem_fn,
+            'false_accept_rate': round(sem_fp / max(1, sem_tn + sem_fp), 4),
+            'false_reject_rate': round(sem_fn / max(1, sem_tp + sem_fn), 4),
+            'by_method': by_method_semantic,
+        },
+        'joint_format_and_semantic_usability': {
+            'description': 'Compares v3.0-frozen verifier acceptance against joint semantic preservation AND complete single-sentence interrogative format (format_valid=True).',
+            'tp': tp,
+            'fp': fp,
+            'tn': tn,
+            'fn': fn,
+            'format_truncation_only_fp': fp - sem_fp,
+            'format_truncation_fp_by_model_family': fp_by_family,
+            'by_method': by_method,
+        },
         'by_method': by_method,
     }
-    if not saved_ref_labels and out_dir.exists() and len(ref_items_out) == 400:
+    if out_dir.exists() and len(ref_items_out) == 400 and (
+        not saved_ref_labels or 'usable_benchmark_outcome' not in next(iter(saved_ref_labels.values()), {})
+    ):
         base.write_json(
             ref_labels_path,
             {
-                'annotation_provenance': 'author_inspected_clause_grounded_reference_audit (NOT external blinded multi-rater human annotation)',
+                'annotation_provenance': provenance_str,
                 'total_items': len(ref_items_out),
                 'items_by_audit_id': ref_items_out,
             },
         )
     return audit_rows, summary
+
+
+# ---------------------------------------------------------------------------
+# 7. Fair Structured Baseline Ablations & Untouched 24-Seed Post-Hardening Holdout
+# ---------------------------------------------------------------------------
+UNTOUCHED_HOLDOUT_POLICIES = {
+    'pa_2650': dict(
+        title='平安e生保（悦享版）医疗保险',
+        colloquial_name='平安e生保悦享版',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=2650&versionNo=2650-1&attachmentType=1',
+        page=3,
+        start='1.5.1等待期',
+        end='1.5.2一般医疗保险金',
+        days=[30],
+        accident_exempt=True,
+        approval_exempt=True,
+        benefit='一般医疗保险金与特定疾病医疗保险金',
+        scope='首次投保等待期30日；意外伤害无等待期；届满后60日内重新投保且经审核同意的无等待期。',
+        manual_compile_minutes=10.5,
+    ),
+    'pa_1071': dict(
+        title='平安粤港澳大湾区深圳专属一年期重大疾病保险',
+        colloquial_name='平安大湾区深圳专属一年期重疾险',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=1071&versionNo=1071-1&attachmentType=1',
+        page=2,
+        start='等待期从本主险合同生效之日起90日内',
+        end='重大疾病保险金被保险人',
+        days=[90],
+        accident_exempt=True,
+        approval_exempt=False,
+        benefit='重大疾病保险金',
+        scope='主险合同生效起90日等待期；因意外伤害发生重大疾病的无等待期；无重新投保免等待期条款。',
+        manual_compile_minutes=10.0,
+    ),
+    'pa_1073': dict(
+        title='平安i药保B款特药费用医疗保险',
+        colloquial_name='平安i药保B款特药险',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=1073&versionNo=1073-1&attachmentType=1',
+        page=2,
+        start='1.3.1等待期',
+        end='1医院指经中华人民共和国',
+        days=[30],
+        accident_exempt=False,
+        approval_exempt=False,
+        benefit='恶性肿瘤院外特定药品费用医疗保险金',
+        scope='纯特药费用医疗险：首次投保或非连续投保自合同生效起30日等待期；无意外伤害免等待期及人工审核豁免分支。',
+        manual_compile_minutes=9.5,
+    ),
+    'pa_595': dict(
+        title='平安e生保（加享版）医疗保险',
+        colloquial_name='平安e生保加享版',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=595&versionNo=595-1&attachmentType=1',
+        page=4,
+        start='1.6.1等待期',
+        end='基本部分本合同基本部分保险责任如下',
+        days=[30],
+        accident_exempt=True,
+        approval_exempt=True,
+        benefit='一般医疗及恶性肿瘤医疗保险金',
+        scope='首次投保等待期30日；意外伤害无等待期；届满后60日内重新投保且经审核同意的无等待期。',
+        manual_compile_minutes=10.5,
+    ),
+    'pa_597': dict(
+        title='平安e生保（颐享版）医疗保险',
+        colloquial_name='平安e生保颐享版',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=597&versionNo=597-1&attachmentType=1',
+        page=4,
+        start='1.6.1等待期',
+        end='基本部分本合同基本部分保险责任如下',
+        days=[30],
+        accident_exempt=True,
+        approval_exempt=True,
+        benefit='一般医疗及特定疾病医疗保险金',
+        scope='首次投保等待期30日；意外伤害无等待期；届满后60日内重新投保且经审核同意的无等待期。',
+        manual_compile_minutes=10.5,
+    ),
+    'pa_l0002': dict(
+        title='平安安医保e享长期医疗保险（费率可调）（互联网）',
+        colloquial_name='平安安医保e享长期医疗险',
+        aliases=[],
+        insurer='平安',
+        url='https://life.pingan.com/ilife-home/product/getPlanClausePdf?planCode=L0002&versionNo=L0002-1&attachmentType=1',
+        page=3,
+        start='1.5等待期',
+        end='1.6保险责任',
+        days=[90],
+        accident_exempt=True,
+        approval_exempt=True,
+        benefit='一般医疗、特定疾病医疗及重大疾病医疗保险金',
+        scope='首次投保等待期90日；意外伤害无等待期；保证续保期内或经审核同意转投续保的无等待期。',
+        manual_compile_minutes=11.0,
+    ),
+}
+
+
+def render_question_from_json_schema(raw_text, domain_type):
+    """Parse the first JSON object from a structured_json response and deterministically
+    render a complete single-sentence interrogative question purely from the JSON fields
+    (zero access to seed), evaluating the 'direct JSON field rendering' baseline."""
+    txt = str(raw_text or '').strip()
+    m = re.search(r'\{[^\n\r]*\}', txt)
+    if not m:
+        return strip_book_title_spoilers(extract_question_from_structured_output(txt))
+    try:
+        obj = json.loads(m.group(0))
+    except Exception:
+        return strip_book_title_spoilers(extract_question_from_structured_output(txt))
+    if not isinstance(obj, dict):
+        return strip_book_title_spoilers(extract_question_from_structured_output(txt))
+    if domain_type == 'insurance':
+        pol = strip_book_title_spoilers(str(obj.get('policy') or '')).strip()
+        ben = str(obj.get('benefit') or '').strip()
+        enr = str(obj.get('enrollment') or '').strip()
+        day = obj.get('day')
+        cause = str(obj.get('cause') or '').strip()
+        w_days = obj.get('wait_days')
+        waiver = str(obj.get('waiver') or '').strip()
+        parts = []
+        if pol:
+            parts.append(f'我投保了{pol}')
+        if ben:
+            parts.append(f'申请{ben}')
+        if enr:
+            parts.append(f'属于{enr}')
+        if day is not None and str(day).strip() != '':
+            parts.append(f'保单生效第{day}天' if not str(day).endswith(('天', '日')) else f'保单生效{day}')
+        if w_days is not None and str(w_days).strip() not in ('', '无', 'None', 'null'):
+            parts.append(f'对应责任约定等待期为{w_days}天' if not str(w_days).endswith(('天', '日')) else f'对应责任约定等待期为{w_days}')
+        if cause:
+            parts.append(f'因{cause}住院治疗' if not cause.startswith('因') else cause)
+        if waiver and waiver not in ('无', '无豁免', '不适用', 'None', 'null', 'false', 'False'):
+            parts.append(waiver)
+        parts.append('请问该次医疗费用是否受等待期限制而不予理赔？')
+        return '，'.join(parts)
+    clause = strip_book_title_spoilers(str(obj.get('clause') or '')).strip()
+    status = str(obj.get('status') or '').strip()
+    day = obj.get('day')
+    cond = str(obj.get('condition') or '').strip()
+    waiver = str(obj.get('waiver') or '').strip()
+    parts = []
+    if clause:
+        parts.append(f'按{clause}规定')
+    if status:
+        parts.append(status)
+    if day is not None and str(day).strip() != '':
+        parts.append(f'目前已达第{day}天' if not str(day).endswith(('天', '日')) else f'目前已达{day}')
+    if cond:
+        parts.append(cond)
+    if waiver and waiver not in ('无', '无豁免', '不适用', 'None', 'null', 'false', 'False'):
+        parts.append(waiver)
+    parts.append('请问当前是否符合该规程或条款的准入与解除条件？')
+    return '，'.join(parts)
+
+
+def run_fair_structured_baseline_generations(family, ins_seeds, cross_seeds, existing_rows, policies_map=FROZEN_CONFIRM_POLICIES):
+    """Evaluate fair structured baseline configurations on the 40 seeds:
+    1. `structured_json_untruncated_320`: increases `max_new_tokens` from 160 to 320 so the two-line
+       `JSON + QUESTION:` output is never cut off mid-sentence.
+    2. `structured_json_schema_render`: renders the question directly from the first-line JSON slots
+       of the single-pass structured output, avoiding any second-line token truncation."""
+    sys_ins_json = (
+        '你是一个结构化条件守恒改写助手。请先在第一行输出JSON提取原问题的关键槽位：'
+        '{"policy": "...", "benefit": "...", "enrollment": "...", "day": ..., "cause": "...", "wait_days": ..., "waiver": "..."}，'
+        '然后在第二行以"QUESTION: "开头输出不带《》书名号、完整保留上述所有槽位、具体责任名称、险种全名和精确天数的自然口语化单句用户提问。'
+    )
+    sys_crs_json = (
+        '你是一个结构化条件守恒改写助手。请先在第一行输出JSON提取原问题的关键槽位：'
+        '{"clause": "...", "status": "...", "day": ..., "condition": "...", "waiver": "..."}，'
+        '然后在第二行以"QUESTION: "开头输出不带《》书名号、完整保留上述所有槽位和精确天数的自然口语化单句提问。'
+    )
+    existing_json_map = {
+        r['seed_id']: r for r in existing_rows if r.get('model_family') == family and r.get('method') == 'structured_json_rewrite'
+    }
+
+    def _run_one_ins(idx_s):
+        idx, s = idx_s
+        sid = s['seed_id']
+        pid = s['policy_id']
+        seed_q = s['seed_question']
+        ev = s['source_evidence']
+        pol = policies_map[pid]
+        pol_title = pol['title']
+        b_label = pol['benefits'][s['benefit_id']]['label'] if 'benefits' in pol else pol['benefit']
+        u_json = (
+            f'条款原文：{pol_title} {ev}\n原问题：{seed_q}\n'
+            f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{pol_title}”（不加《》书名号）、所申请的“{b_label}”及全部条件的单句提问：'
+        )
+        raw_320, p_320, c_320, lat_320, tr_320 = call_generator(family, sys_ins_json, u_json, 320)
+        q_320 = strip_book_title_spoilers(extract_question_from_structured_output(raw_320))
+        ex_r = existing_json_map.get(sid)
+        raw_schema = ex_r['raw_response'] if ex_r is not None else raw_320
+        q_schema = render_question_from_json_schema(raw_schema, 'insurance')
+        meta = dict(_LAST_API_META.get(family, {}))
+        return [
+            {
+                'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
+                'method': 'structured_json_untruncated_320', 'question': q_320, 'seed_question': seed_q,
+                'llm_calls': 1, 'repaired': False, 'raw_response': raw_320,
+                'prompt_tokens': p_320, 'completion_tokens': c_320, 'total_tokens': p_320 + c_320, 'latency_ms': lat_320,
+                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': meta,
+            },
+            {
+                'seed_id': sid, 'clause_id': pid, 'domain_type': 'insurance', 'model_family': family,
+                'method': 'structured_json_schema_render', 'question': q_schema, 'seed_question': seed_q,
+                'llm_calls': 1, 'repaired': False, 'raw_response': raw_schema,
+                'prompt_tokens': ex_r['prompt_tokens'] if ex_r else p_320,
+                'completion_tokens': ex_r['completion_tokens'] if ex_r else c_320,
+                'total_tokens': ex_r['total_tokens'] if ex_r else (p_320 + c_320),
+                'latency_ms': ex_r['latency_ms'] if ex_r else lat_320,
+                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta,
+            },
+        ]
+
+    def _run_one_crs(idx_s):
+        idx, s = idx_s
+        sid = s['seed_id']
+        cid = s['clause_id']
+        seed_q = s['seed_question']
+        ev = s['source_evidence']
+        c_title = CROSS_CLAUSES[cid]['title']
+        u_json = (
+            f'规则原文：{c_title} {ev}\n原问题：{seed_q}\n'
+            f'请先输出JSON槽位，再在第二行以QUESTION: 开头输出完整保留“{c_title}”（不加《》书名号）及全部条件的单句提问：'
+        )
+        raw_320, p_320, c_320, lat_320, tr_320 = call_generator(family, sys_crs_json, u_json, 320)
+        q_320 = strip_book_title_spoilers(extract_question_from_structured_output(raw_320))
+        ex_r = existing_json_map.get(sid)
+        raw_schema = ex_r['raw_response'] if ex_r is not None else raw_320
+        q_schema = render_question_from_json_schema(raw_schema, 'multi_threshold')
+        meta = dict(_LAST_API_META.get(family, {}))
+        return [
+            {
+                'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
+                'method': 'structured_json_untruncated_320', 'question': q_320, 'seed_question': seed_q,
+                'llm_calls': 1, 'repaired': False, 'raw_response': raw_320,
+                'prompt_tokens': p_320, 'completion_tokens': c_320, 'total_tokens': p_320 + c_320, 'latency_ms': lat_320,
+                'max_new_tokens': 320, 'truncated_at_max_tokens': tr_320, 'api_meta': meta,
+            },
+            {
+                'seed_id': sid, 'clause_id': cid, 'domain_type': 'multi_threshold', 'model_family': family,
+                'method': 'structured_json_schema_render', 'question': q_schema, 'seed_question': seed_q,
+                'llm_calls': 1, 'repaired': False, 'raw_response': raw_schema,
+                'prompt_tokens': ex_r['prompt_tokens'] if ex_r else p_320,
+                'completion_tokens': ex_r['completion_tokens'] if ex_r else c_320,
+                'total_tokens': ex_r['total_tokens'] if ex_r else (p_320 + c_320),
+                'latency_ms': ex_r['latency_ms'] if ex_r else lat_320,
+                'max_new_tokens': 160, 'truncated_at_max_tokens': False, 'api_meta': meta,
+            },
+        ]
+
+    workers = 3 if family == 'qwen_plus' else 6
+    out = []
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for batch in ex.map(_run_one_ins, enumerate(ins_seeds)):
+            out.extend(batch)
+        for batch in ex.map(_run_one_crs, enumerate(cross_seeds)):
+            out.extend(batch)
+    return out
+
+
+def build_untouched_holdout_sources_and_seeds(raw_fc_dir, out_dir):
+    """Build the 24-seed untouched post-hardening holdout benchmark (`v3.1-untouched-holdout`)
+    across 6 brand-new formal Ping An insurance policy PDFs (`pa_2650`, `pa_1071`, `pa_1073`,
+    `pa_595`, `pa_597`, `pa_l0002`, 12 insurance seeds) and 12 unseen multi-threshold seeds."""
+    sources = []
+    evidence = {}
+    cached_sources = {}
+    src_file = out_dir / 'untouched_holdout_sources.json'
+    if src_file.exists():
+        for s in json.loads(src_file.read_text(encoding='utf-8')):
+            cached_sources[s['id']] = s
+
+    for pid, pol in UNTOUCHED_HOLDOUT_POLICIES.items():
+        pdf_path = raw_fc_dir / f'{pid}.pdf'
+        if pdf_path.exists() and fitz is not None:
+            sha = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
+            with fitz.open(pdf_path) as pdf:
+                anchor, text = source_anchor(pdf, pol)
+            sources.append({
+                'id': pid,
+                'title': pol['title'],
+                'colloquial_name': pol.get('colloquial_name', pol['title']),
+                'aliases': [],
+                'insurer': pol['insurer'],
+                'url': pol['url'],
+                'sha256': sha,
+                'bytes': pdf_path.stat().st_size,
+                'document_type': 'untouched_post_hardening_holdout_formal_policy_clause',
+                'verifier_version': 'v3.1-untouched-holdout',
+                'license_status': 'publicly accessible; no redistribution license verified',
+                'anchor': anchor,
+                'evidence_text': text,
+            })
+            evidence[pid] = text
+        else:
+            s_entry = cached_sources[pid]
+            sources.append(s_entry)
+            evidence[pid] = s_entry['evidence_text']
+
+    ins_seeds = [
+        # pa_2650 (30d wait, accident_exempt=True, approval_exempt=True)
+        dict(seed_id='uhold-ins-001', policy_id='pa_2650', enrollment='first', cause='illness',
+             policy_day=16, plan_wait_days=30, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=42),
+        dict(seed_id='uhold-ins-002', policy_id='pa_2650', enrollment='new', cause='illness',
+             policy_day=11, plan_wait_days=30, approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False),
+        # pa_1071 (90d wait, accident_exempt=True, approval_exempt=False)
+        dict(seed_id='uhold-ins-003', policy_id='pa_1071', enrollment='first', cause='illness',
+             policy_day=55, plan_wait_days=90, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=115),
+        dict(seed_id='uhold-ins-004', policy_id='pa_1071', enrollment='first', cause='accident',
+             policy_day=19, plan_wait_days=90, approved_waiver=False, pivotal_field='cause', cf_field='cause', cf_value='illness'),
+        # pa_1073 (30d wait, accident_exempt=False, approval_exempt=False — specialty drug insurance)
+        dict(seed_id='uhold-ins-005', policy_id='pa_1073', enrollment='first', cause='illness',
+             policy_day=14, plan_wait_days=30, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=45),
+        dict(seed_id='uhold-ins-006', policy_id='pa_1073', enrollment='first', cause='illness',
+             policy_day=42, plan_wait_days=30, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=14),
+        # pa_595 (30d wait, accident_exempt=True, approval_exempt=True)
+        dict(seed_id='uhold-ins-007', policy_id='pa_595', enrollment='first', cause='illness',
+             policy_day=21, plan_wait_days=30, approved_waiver=False, pivotal_field='cause', cf_field='cause', cf_value='accident'),
+        dict(seed_id='uhold-ins-008', policy_id='pa_595', enrollment='new', cause='illness',
+             policy_day=13, plan_wait_days=30, approved_waiver=False, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=True),
+        # pa_597 (30d wait, accident_exempt=True, approval_exempt=True)
+        dict(seed_id='uhold-ins-009', policy_id='pa_597', enrollment='first', cause='illness',
+             policy_day=38, plan_wait_days=30, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=17),
+        dict(seed_id='uhold-ins-010', policy_id='pa_597', enrollment='new', cause='illness',
+             policy_day=9, plan_wait_days=30, approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False),
+        # pa_l0002 (90d wait, accident_exempt=True, approval_exempt=True)
+        dict(seed_id='uhold-ins-011', policy_id='pa_l0002', enrollment='first', cause='illness',
+             policy_day=65, plan_wait_days=90, approved_waiver=False, pivotal_field='policy_day', cf_field='policy_day', cf_value=115),
+        dict(seed_id='uhold-ins-012', policy_id='pa_l0002', enrollment='new', cause='illness',
+             policy_day=22, plan_wait_days=90, approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False),
+    ]
+    for s in ins_seeds:
+        req = ['policy_id', 'enrollment', 'policy_day', 'cause']
+        if s['enrollment'] == 'new':
+            req.append('approved_waiver')
+        s['required_fields'] = req
+        s['alt_val'] = s['cf_value']
+        s['reference_decision'] = insurance_decision(s, UNTOUCHED_HOLDOUT_POLICIES)
+        s['seed_question'] = render_frozen_insurance_question(s, policies=UNTOUCHED_HOLDOUT_POLICIES, surface=False)
+        s['source_evidence'] = evidence[s['policy_id']]
+
+    cross_seeds = [
+        # med_egfr_tki (3 unseen seeds)
+        dict(seed_id='uhold-cross-001', clause_id='med_egfr_tki', domain='healthcare',
+             status='secondary', condition='qualified', elapsed_day=9, threshold_days=14,
+             approved_waiver=False, pivotal_field='elapsed_day', cf_field='elapsed_day', cf_value=18,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-002', clause_id='med_egfr_tki', domain='healthcare',
+             status='secondary', condition='qualified', elapsed_day=18, threshold_days=14,
+             approved_waiver=False, pivotal_field='condition', cf_field='condition', cf_value='disqualified',
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-003', clause_id='med_egfr_tki', domain='healthcare',
+             status='secondary', condition='qualified', elapsed_day=6, threshold_days=14,
+             approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']),
+        # med_vte_prophylaxis (3 unseen seeds)
+        dict(seed_id='uhold-cross-004', clause_id='med_vte_prophylaxis', domain='healthcare',
+             status='primary', condition='qualified', elapsed_day=6, threshold_days=10,
+             approved_waiver=False, pivotal_field='elapsed_day', cf_field='elapsed_day', cf_value=16,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-005', clause_id='med_vte_prophylaxis', domain='healthcare',
+             status='primary', condition='qualified', elapsed_day=16, threshold_days=35,
+             approved_waiver=False, pivotal_field='threshold_days', cf_field='threshold_days', cf_value=10,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-006', clause_id='med_vte_prophylaxis', domain='healthcare',
+             status='primary', condition='disqualified', elapsed_day=6, threshold_days=10,
+             approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']),
+        # law_noncompete (3 unseen seeds)
+        dict(seed_id='uhold-cross-007', clause_id='law_noncompete', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=38, threshold_days=90,
+             approved_waiver=False, pivotal_field='elapsed_day', cf_field='elapsed_day', cf_value=112,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-008', clause_id='law_noncompete', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=112, threshold_days=90,
+             approved_waiver=False, pivotal_field='elapsed_day', cf_field='elapsed_day', cf_value=38,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-009', clause_id='law_noncompete', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=112, threshold_days=90,
+             approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']),
+        # law_work_injury (3 unseen seeds)
+        dict(seed_id='uhold-cross-010', clause_id='law_work_injury', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=16, threshold_days=30,
+             approved_waiver=False, pivotal_field='elapsed_day', cf_field='elapsed_day', cf_value=48,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-011', clause_id='law_work_injury', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=48, threshold_days=365,
+             approved_waiver=False, pivotal_field='threshold_days', cf_field='threshold_days', cf_value=30,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days']),
+        dict(seed_id='uhold-cross-012', clause_id='law_work_injury', domain='labor_law',
+             status='primary', condition='qualified', elapsed_day=48, threshold_days=30,
+             approved_waiver=True, pivotal_field='approved_waiver', cf_field='approved_waiver', cf_value=False,
+             required_fields=['clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']),
+    ]
+    for s in cross_seeds:
+        s['alt_val'] = s['cf_value']
+        s['reference_decision'] = cross_decision(s)
+        s['seed_question'] = render_cross_question(s, surface=False)
+        s['source_evidence'] = CROSS_CLAUSES[s['clause_id']]['clause_text']
+
+    return sources, evidence, ins_seeds, cross_seeds
+
+
+def run_untouched_holdout_generations(family, u_ins_seeds, u_cross_seeds):
+    """Run live cloud generations on the 24 untouched post-hardening holdout seeds
+    (`u_ins_seeds` across 6 brand-new Ping An PDFs + `u_cross_seeds` across 4 multi-threshold rules),
+    including `structured_json_untruncated_320` and `structured_json_schema_render`."""
+    #Temporarily bind FROZEN_CONFIRM_POLICIES entries so `run_frozen_confirmation_generations` can process `u_ins_seeds`
+    orig_keys = set(FROZEN_CONFIRM_POLICIES.keys())
+    try:
+        FROZEN_CONFIRM_POLICIES.update(UNTOUCHED_HOLDOUT_POLICIES)
+        base_rows = run_frozen_confirmation_generations(family, u_ins_seeds, u_cross_seeds)
+        fair_rows = run_fair_structured_baseline_generations(
+            family, u_ins_seeds, u_cross_seeds, base_rows, policies_map=UNTOUCHED_HOLDOUT_POLICIES
+        )
+    finally:
+        for k in list(FROZEN_CONFIRM_POLICIES.keys()):
+            if k not in orig_keys:
+                del FROZEN_CONFIRM_POLICIES[k]
+    meta = dict(_LAST_API_META.get(family, {}))
+    for r in base_rows:
+        r['api_meta'] = meta
+    return base_rows + fair_rows
 
 
 def main():
@@ -2323,6 +3041,9 @@ def main():
     args.out_dir.mkdir(parents=True, exist_ok=True)
     qwen_gen_path = args.out_dir / 'frozen_confirmation_generations_qwen_plus.jsonl'
     ds_gen_path = args.out_dir / 'frozen_confirmation_generations_deepseek.jsonl'
+    fair_json_path = args.out_dir / 'fair_structured_baseline_generations.jsonl'
+    uhold_src_path = args.out_dir / 'untouched_holdout_sources.json'
+    uhold_gen_path = args.out_dir / 'untouched_holdout_generations.jsonl'
 
     if args.score_only:
         for req_file in [qwen_gen_path, ds_gen_path, args.out_dir / 'frozen_confirmation_sources.json']:
@@ -2369,29 +3090,19 @@ def main():
             f.write(json.dumps(item, ensure_ascii=False) + '\n')
     base.write_json(args.out_dir / 'gold_diagnostic_summary.json', gold_suite_summary)
 
-    # 4. Run or Load Remote Cloud Generations (Qwen-Plus via DashScope & DeepSeek-V3 via DeepSeek API)
-    if args.score_only and qwen_gen_path.exists() and ds_gen_path.exists():
+    # 4. Run or Load Remote Cloud Generations (Qwen-Plus via DashScope & DeepSeek via DeepSeek API)
+    if qwen_gen_path.exists() and ds_gen_path.exists():
         raw_qwen = [json.loads(line) for line in qwen_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
         raw_deepseek = [json.loads(line) for line in ds_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
-    else:
-        print('Running remote cloud APIs concurrently (Qwen-Plus via DashScope & DeepSeek-V3 via DeepSeek API)...', flush=True)
+    elif not args.score_only:
+        print('Running remote cloud APIs concurrently (Qwen-Plus via DashScope & DeepSeek via DeepSeek API)...', flush=True)
         with ThreadPoolExecutor(max_workers=2) as fam_ex:
-            fut_qwen = (
-                fam_ex.submit(run_frozen_confirmation_generations, 'qwen_plus', ins_seeds, cross_seeds)
-                if not (args.score_only and qwen_gen_path.exists())
-                else None
-            )
-            fut_ds = (
-                fam_ex.submit(run_frozen_confirmation_generations, 'deepseek', ins_seeds, cross_seeds)
-                if not (args.score_only and ds_gen_path.exists())
-                else None
-            )
-            raw_qwen = fut_qwen.result() if fut_qwen is not None else [
-                json.loads(line) for line in qwen_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()
-            ]
-            raw_deepseek = fut_ds.result() if fut_ds is not None else [
-                json.loads(line) for line in ds_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()
-            ]
+            fut_qwen = fam_ex.submit(run_frozen_confirmation_generations, 'qwen_plus', ins_seeds, cross_seeds)
+            fut_ds = fam_ex.submit(run_frozen_confirmation_generations, 'deepseek', ins_seeds, cross_seeds)
+            raw_qwen = fut_qwen.result()
+            raw_deepseek = fut_ds.result()
+    else:
+        raise FileNotFoundError('Missing frozen confirmation generation JSONL files.')
 
     ins_seeds_map = {s['seed_id']: s for s in ins_seeds}
     cross_seeds_map = {s['seed_id']: s for s in cross_seeds}
@@ -2407,7 +3118,58 @@ def main():
         for r in scored_deepseek:
             f.write(json.dumps(r, ensure_ascii=False) + '\n')
 
-    # 5. If local BGE model is loaded, ensure all new texts and 20-contract docs are cached in bge_embedding_cache.npz
+    # 4b. Run or Load Fair Structured Baseline Ablations (`structured_json_untruncated_320` & `structured_json_schema_render`)
+    if fair_json_path.exists():
+        raw_fair_json = [json.loads(line) for line in fair_json_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    elif not args.score_only:
+        print('Running Fair Structured Baseline Ablation (`max_new_tokens=320` & direct schema render) on 40 confirmation seeds...', flush=True)
+        with ThreadPoolExecutor(max_workers=2) as fam_ex:
+            f_q = fam_ex.submit(
+                run_fair_structured_baseline_generations, 'qwen_plus', ins_seeds, cross_seeds, scored_qwen
+            )
+            f_d = fam_ex.submit(
+                run_fair_structured_baseline_generations, 'deepseek', ins_seeds, cross_seeds, scored_deepseek
+            )
+            raw_fair_json = f_q.result() + f_d.result()
+    else:
+        raw_fair_json = []
+
+    scored_fair_json = score_frozen_confirmation_rows(raw_fair_json, ins_seeds_map, cross_seeds_map) if raw_fair_json else []
+    if scored_fair_json:
+        with fair_json_path.open('w', encoding='utf-8') as f:
+            for r in scored_fair_json:
+                f.write(json.dumps(r, ensure_ascii=False) + '\n')
+
+    # 4c. Build & Run/Load the 24-Seed Untouched Post-Hardening Holdout Benchmark (`v3.1-untouched-holdout`)
+    uhold_sources, uhold_ev, uhold_ins_seeds, uhold_cross_seeds = build_untouched_holdout_sources_and_seeds(
+        args.raw_frozen_confirm, args.out_dir
+    )
+    base.write_json(uhold_src_path, uhold_sources)
+    uhold_ins_map = {s['seed_id']: s for s in uhold_ins_seeds}
+    uhold_crs_map = {s['seed_id']: s for s in uhold_cross_seeds}
+
+    if uhold_gen_path.exists():
+        raw_uhold = [json.loads(line) for line in uhold_gen_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    elif not args.score_only:
+        print('Running 24-seed Untouched Post-Hardening Holdout Benchmark across Qwen-Plus and DeepSeek...', flush=True)
+        with ThreadPoolExecutor(max_workers=2) as fam_ex:
+            fut_uq = fam_ex.submit(run_untouched_holdout_generations, 'qwen_plus', uhold_ins_seeds, uhold_cross_seeds)
+            fut_ud = fam_ex.submit(run_untouched_holdout_generations, 'deepseek', uhold_ins_seeds, uhold_cross_seeds)
+            raw_uhold = fut_uq.result() + fut_ud.result()
+    else:
+        raw_uhold = []
+
+    scored_uhold = (
+        score_frozen_confirmation_rows(raw_uhold, uhold_ins_map, uhold_crs_map, policies_map=UNTOUCHED_HOLDOUT_POLICIES)
+        if raw_uhold else []
+    )
+    if scored_uhold:
+        with uhold_gen_path.open('w', encoding='utf-8') as f:
+            for r in scored_uhold:
+                f.write(json.dumps(r, ensure_ascii=False) + '\n')
+
+    # 5. If local BGE model is loaded, ensure ALL reference queries, probe queries, diagnostic cases,
+    #    fair structured baseline queries, and untouched holdout docs/queries are cached in bge_embedding_cache.npz
     dev_inputs = json.loads((args.out_dir / 'dev_seed_inputs.json').read_text(encoding='utf-8'))
     dev_ev = dev_inputs['evidence']
     held_ev = dev_inputs['heldout_evidence']
@@ -2415,6 +3177,10 @@ def main():
     fc_ins_ids = list(FROZEN_CONFIRM_POLICIES.keys())
     fc_ins_docs = [f"《{FROZEN_CONFIRM_POLICIES[pid]['title']}》 {fc_evidence[pid]}" for pid in fc_ins_ids]
     fc_ins_titles = [FROZEN_CONFIRM_POLICIES[pid]['title'] for pid in fc_ins_ids]
+
+    uhold_ins_ids = list(UNTOUCHED_HOLDOUT_POLICIES.keys())
+    uhold_ins_docs = [f"《{UNTOUCHED_HOLDOUT_POLICIES[pid]['title']}》 {uhold_ev[pid]}" for pid in uhold_ins_ids]
+    uhold_ins_titles = [UNTOUCHED_HOLDOUT_POLICIES[pid]['title'] for pid in uhold_ins_ids]
 
     all_20_ins_ids = list(DEV_POLICIES.keys()) + list(HELDOUT_POLICIES.keys()) + fc_ins_ids
     all_20_ins_docs = (
@@ -2443,27 +3209,71 @@ def main():
             existing_embs = list(c_npz['embeddings'])
         known_set = set(existing_texts)
         needed_texts = []
+
+        def _add_doc(d_str, t_list):
+            if d_str not in known_set:
+                needed_texts.append(d_str)
+                known_set.add(d_str)
+            md = mask_titles_and_insurers(d_str, t_list)
+            if md not in known_set:
+                needed_texts.append(md)
+                known_set.add(md)
+
+        def _add_q(q_str, t_lists):
+            pq0 = '为这个句子生成表示以用于检索相关文章：' + q_str
+            if pq0 not in known_set:
+                needed_texts.append(pq0)
+                known_set.add(pq0)
+            for t_list in t_lists:
+                mq = mask_titles_and_insurers(q_str, t_list)
+                pq_m = '为这个句子生成表示以用于检索相关文章：' + mq
+                if pq_m not in known_set:
+                    needed_texts.append(pq_m)
+                    known_set.add(pq_m)
+
         for doc_list, t_list in [
             (fc_ins_docs, fc_ins_titles),
             (all_20_ins_docs, all_20_ins_titles),
+            (uhold_ins_docs, uhold_ins_titles),
             (cross_docs, cross_titles),
         ]:
             for d in doc_list:
-                if d not in known_set:
-                    needed_texts.append(d)
-                    known_set.add(d)
-                md = mask_titles_and_insurers(d, t_list)
-                if md not in known_set:
-                    needed_texts.append(md)
-                    known_set.add(md)
-        for r in scored_qwen + scored_deepseek:
-            q = r['question']
-            for t_list in [fc_ins_titles, all_20_ins_titles, cross_titles]:
-                for cand_q in [q, mask_titles_and_insurers(q, t_list)]:
-                    pq = '为这个句子生成表示以用于检索相关文章：' + cand_q
-                    if pq not in known_set:
-                        needed_texts.append(pq)
-                        known_set.add(pq)
+                _add_doc(d, t_list)
+
+        # Cache all 80 paired reference queries (complete + missing_critical) and all 160 controlled cases
+        for s in ins_seeds:
+            for drop_f in [None, s['pivotal_field'], 'policy_id', 'enrollment', 'policy_day', 'cause', 'approved_waiver']:
+                _add_q(render_frozen_insurance_question(s, surface=False, drop_field=drop_f), [fc_ins_titles, all_20_ins_titles])
+                _add_q(render_frozen_insurance_question(s, surface=True, drop_field=drop_f), [fc_ins_titles, all_20_ins_titles])
+        for s in cross_seeds:
+            for drop_f in [None, s['pivotal_field'], 'clause_id', 'status', 'condition', 'elapsed_day', 'threshold_days', 'approved_waiver']:
+                _add_q(render_cross_question(s, surface=False, drop_field=drop_f), [cross_titles])
+                _add_q(render_cross_question(s, surface=True, drop_field=drop_f), [cross_titles])
+        for c in fc_cases:
+            _add_q(c['question'], [fc_ins_titles, all_20_ins_titles, cross_titles])
+        for item in scored_gold_suite:
+            _add_q(item['question'], [fc_ins_titles, all_20_ins_titles, cross_titles])
+
+        # Cache day-perturbation probes (day=1..150 on fconf-ins-001 and counterfactual day probes)
+        s001 = ins_seeds_map['fconf-ins-001']
+        q001 = render_frozen_insurance_question(s001, surface=False)
+        for day_p in range(1, 151):
+            _add_q(q001.replace('生效第20天', f'生效第{day_p}天'), [fc_ins_titles, all_20_ins_titles])
+        _add_q('苹果香蕉葡萄？', [fc_ins_titles, all_20_ins_titles, cross_titles])
+
+        # Cache all generated queries (confirmation + fair structured + untouched holdout)
+        for r in scored_qwen + scored_deepseek + scored_fair_json + scored_uhold:
+            _add_q(r['question'], [fc_ins_titles, all_20_ins_titles, uhold_ins_titles, cross_titles])
+        for s in uhold_ins_seeds:
+            for drop_f in [None, s['pivotal_field']]:
+                _add_q(
+                    render_frozen_insurance_question(s, policies=UNTOUCHED_HOLDOUT_POLICIES, surface=False, drop_field=drop_f),
+                    [uhold_ins_titles],
+                )
+        for s in uhold_cross_seeds:
+            for drop_f in [None, s['pivotal_field']]:
+                _add_q(render_cross_question(s, surface=False, drop_field=drop_f), [cross_titles])
+
         if needed_texts:
             print(f'Caching {len(needed_texts)} new BGE embeddings into {cache_path.name}...', flush=True)
             with torch.inference_mode():
@@ -2479,6 +3289,9 @@ def main():
                 texts=np.array(existing_texts, dtype=object),
                 embeddings=np.stack(existing_embs, axis=0).astype(np.float32),
             )
+            bge_cache = {str(t): e for t, e in zip(existing_texts, existing_embs)}
+            global _CACHED_RAG_RESOURCES
+            _CACHED_RAG_RESOURCES = None
 
     # 6. Summarize Methods for Both Model Families & Both Domains
     methods_order = [
@@ -2528,14 +3341,16 @@ def main():
 
             tot_n = s_i11['seed_count'] + s_c4['seed_count']
             tot_pres = s_i11['preserved_decision'] + s_c4['preserved_decision']
+            tot_joint = s_i11['format_and_slot_usable'] + s_c4['format_and_slot_usable']
             tot_acc = s_i11['accepted_query_count'] + s_c4['accepted_query_count']
             comb_by_m[m] = {
                 'seed_count': tot_n,
                 'accepted_query_count': tot_acc,
                 'scenario_coverage_rate': round(tot_acc / max(1, tot_n), 4),
-                'effective_usable_yield_rate': round(tot_pres / max(1, tot_n), 4),
+                'effective_usable_yield_rate': round(tot_joint / max(1, tot_n), 4),
+                'slot_only_yield_rate': round(tot_pres / max(1, tot_n), 4),
                 'contamination_rate_in_accepted_pool': (
-                    0.0 if m == 'verify_only_filter' else round((tot_n - tot_pres) / max(1, tot_n), 4)
+                    0.0 if m == 'verify_only_filter' else round((tot_n - tot_joint) / max(1, tot_n), 4)
                 ),
                 'total_llm_calls': s_i11['total_llm_calls'] + s_c4['total_llm_calls'],
                 'total_prompt_tokens': s_i11['total_prompt_tokens'] + s_c4['total_prompt_tokens'],
@@ -2549,6 +3364,7 @@ def main():
                 'strict_single_qmark': s_i11['strict_single_qmark'] + s_c4['strict_single_qmark'],
                 'all_slots_preserved': s_i11['all_slots_preserved'] + s_c4['all_slots_preserved'],
                 'preserved_decision': tot_pres,
+                'format_and_slot_usable': tot_joint,
                 'clarify_required_genuine_ambiguity': s_i11['clarify_required_genuine_ambiguity'] + s_c4['clarify_required_genuine_ambiguity'],
                 'parse_uncertain_conservative_reject': s_i11['parse_uncertain_conservative_reject'] + s_c4['parse_uncertain_conservative_reject'],
                 'condition_mutated_or_flipped': s_i11['condition_mutated_or_flipped'] + s_c4['condition_mutated_or_flipped'],
@@ -2558,18 +3374,20 @@ def main():
             }
 
         family_summaries[fam_name] = {
+            'provider_api_metadata': _LAST_API_META.get(fam_name, {}),
             'insurance_24_seeds': ins_by_m,
             'multi_threshold_16_seeds': crs_by_m,
             'combined_40_seeds': comb_by_m,
             'paired_mcnemar_tests_40_seeds': {
-                'slot_guard_vs_ordinary': paired_mcnemar(fam_rows, 'slot_guard_repair', 'ordinary_style'),
-                'slot_guard_vs_condition_prompt': paired_mcnemar(fam_rows, 'slot_guard_repair', 'condition_prompt'),
-                'slot_guard_vs_structured_json': paired_mcnemar(fam_rows, 'slot_guard_repair', 'structured_json_rewrite'),
-                'slot_guard_vs_generic_self_refine_budget_matched': paired_mcnemar(
-                    fam_rows, 'slot_guard_repair', 'generic_self_refine_budget_matched'
+                'slot_guard_vs_ordinary': paired_mcnemar_endpoint(fam_rows, 'slot_guard_repair', 'ordinary_style', True),
+                'slot_guard_vs_condition_prompt': paired_mcnemar_endpoint(fam_rows, 'slot_guard_repair', 'condition_prompt', True),
+                'slot_guard_vs_structured_json': paired_mcnemar_endpoint(fam_rows, 'slot_guard_repair', 'structured_json_rewrite', True),
+                'slot_guard_vs_structured_json_slot_only': paired_mcnemar_endpoint(fam_rows, 'slot_guard_repair', 'structured_json_rewrite', False),
+                'slot_guard_vs_generic_self_refine_budget_matched': paired_mcnemar_endpoint(
+                    fam_rows, 'slot_guard_repair', 'generic_self_refine_budget_matched', True
                 ),
-                'slot_guard_vs_generic_self_refine_all': paired_mcnemar(
-                    fam_rows, 'slot_guard_repair', 'generic_self_refine_all'
+                'slot_guard_vs_generic_self_refine_all': paired_mcnemar_endpoint(
+                    fam_rows, 'slot_guard_repair', 'generic_self_refine_all', True
                 ),
             },
         }
@@ -2597,50 +3415,194 @@ def main():
         for r in (scored_qwen + scored_deepseek)
     ]
     pooled_mcnemar = {
-        'slot_guard_vs_ordinary': paired_mcnemar(pooled_rows, 'slot_guard_repair', 'ordinary_style'),
-        'slot_guard_vs_condition_prompt': paired_mcnemar(pooled_rows, 'slot_guard_repair', 'condition_prompt'),
-        'slot_guard_vs_structured_json': paired_mcnemar(pooled_rows, 'slot_guard_repair', 'structured_json_rewrite'),
-        'slot_guard_vs_generic_self_refine_budget_matched': paired_mcnemar(
-            pooled_rows, 'slot_guard_repair', 'generic_self_refine_budget_matched'
+        'slot_guard_vs_ordinary': paired_mcnemar_endpoint(pooled_rows, 'slot_guard_repair', 'ordinary_style', True),
+        'slot_guard_vs_condition_prompt': paired_mcnemar_endpoint(pooled_rows, 'slot_guard_repair', 'condition_prompt', True),
+        'slot_guard_vs_structured_json': paired_mcnemar_endpoint(pooled_rows, 'slot_guard_repair', 'structured_json_rewrite', True),
+        'slot_guard_vs_structured_json_slot_only': paired_mcnemar_endpoint(pooled_rows, 'slot_guard_repair', 'structured_json_rewrite', False),
+        'slot_guard_vs_generic_self_refine_budget_matched': paired_mcnemar_endpoint(
+            pooled_rows, 'slot_guard_repair', 'generic_self_refine_budget_matched', True
         ),
-        'slot_guard_vs_generic_self_refine_all': paired_mcnemar(
-            pooled_rows, 'slot_guard_repair', 'generic_self_refine_all'
+        'slot_guard_vs_generic_self_refine_all': paired_mcnemar_endpoint(
+            pooled_rows, 'slot_guard_repair', 'generic_self_refine_all', True
         ),
     }
     clustered_tests = {
-        'slot_guard_vs_ordinary': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'ordinary_style'),
-        'slot_guard_vs_condition_prompt': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'condition_prompt'),
-        'slot_guard_vs_structured_json': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'structured_json_rewrite'),
+        'slot_guard_vs_ordinary': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'ordinary_style', True),
+        'slot_guard_vs_condition_prompt': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'condition_prompt', True),
+        'slot_guard_vs_structured_json': compute_clustered_cross_model_tests(scored_qwen, scored_deepseek, 'slot_guard_repair', 'structured_json_rewrite', True),
         'slot_guard_vs_generic_self_refine_budget_matched': compute_clustered_cross_model_tests(
-            scored_qwen, scored_deepseek, 'slot_guard_repair', 'generic_self_refine_budget_matched'
+            scored_qwen, scored_deepseek, 'slot_guard_repair', 'generic_self_refine_budget_matched', True
         ),
         'slot_guard_vs_generic_self_refine_all': compute_clustered_cross_model_tests(
-            scored_qwen, scored_deepseek, 'slot_guard_repair', 'generic_self_refine_all'
+            scored_qwen, scored_deepseek, 'slot_guard_repair', 'generic_self_refine_all', True
+        ),
+    }
+    primary_comps = [
+        'slot_guard_vs_ordinary',
+        'slot_guard_vs_condition_prompt',
+        'slot_guard_vs_structured_json',
+        'slot_guard_vs_generic_self_refine_budget_matched',
+    ]
+    holm_summary = {
+        'mcnemar_80_pairs_format_and_slot': holm_bonferroni_adjust(
+            {k: pooled_mcnemar[k]['exact_mcnemar_two_sided_p'] for k in primary_comps}
+        ),
+        'seed_clustered_40_seeds_format_and_slot': holm_bonferroni_adjust(
+            {k: clustered_tests[k]['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided'] for k in primary_comps}
+        ),
+        'clause_clustered_15_clauses_format_and_slot': holm_bonferroni_adjust(
+            {k: clustered_tests[k]['clause_clustered_15_documents']['exact_sign_flip_p_two_sided'] for k in primary_comps}
         ),
     }
 
+    # Summarize Fair Structured Baseline Ablation on the 40 confirmation seeds
+    fair_structured_summary = {}
+    if scored_fair_json:
+        all_with_fair = scored_qwen + scored_deepseek + scored_fair_json
+        fair_qwen = [r for r in all_with_fair if r['model_family'] == 'qwen_plus']
+        fair_ds = [r for r in all_with_fair if r['model_family'] == 'deepseek']
+        fair_pooled = [dict(r, seed_id=f"{r['model_family']}:{r['seed_id']}") for r in all_with_fair]
+        for m_fair in ['structured_json_rewrite', 'structured_json_untruncated_320', 'structured_json_schema_render', 'slot_guard_repair']:
+            sub_m = [r for r in all_with_fair if r['method'] == m_fair]
+            sub_q = [r for r in sub_m if r['model_family'] == 'qwen_plus']
+            sub_d = [r for r in sub_m if r['model_family'] == 'deepseek']
+            fair_structured_summary[m_fair] = {
+                'n_total': len(sub_m),
+                'qwen_plus_format_and_slot_usable': sum(1 for r in sub_q if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']),
+                'deepseek_format_and_slot_usable': sum(1 for r in sub_d if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']),
+                'combined_format_and_slot_usable': sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']),
+                'combined_format_and_slot_rate': round(sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']) / max(1, len(sub_m)), 4),
+                'combined_slot_only_preserved': sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION'),
+                'combined_slot_only_rate': round(sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION') / max(1, len(sub_m)), 4),
+                'format_valid_count': sum(1 for r in sub_m if r['format_valid']),
+                'mean_completion_tokens': round(float(np.mean([r.get('completion_tokens', 0) for r in sub_m])), 1),
+                'mean_total_tokens': round(float(np.mean([r.get('total_tokens', 0) for r in sub_m])), 1),
+                'mean_latency_ms': round(float(np.mean([r.get('latency_ms', 0.0) for r in sub_m])), 1),
+            }
+        fair_structured_summary['statistical_comparisons_vs_slot_guard'] = {
+            'vs_structured_json_160_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_rewrite', True),
+            'vs_structured_json_untruncated_320_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_untruncated_320', True),
+            'vs_structured_json_schema_render_joint': paired_mcnemar_endpoint(fair_pooled, 'slot_guard_repair', 'structured_json_schema_render', True),
+            'vs_structured_json_schema_render_clustered': compute_clustered_cross_model_tests(
+                fair_qwen, fair_ds, 'slot_guard_repair', 'structured_json_schema_render', True
+            ),
+        }
+
+    # Summarize 24-Seed Untouched Post-Hardening Holdout Benchmark (`v3.1-untouched-holdout`)
+    uhold_summary = {}
+    if scored_uhold:
+        uh_qwen = [r for r in scored_uhold if r['model_family'] == 'qwen_plus']
+        uh_ds = [r for r in scored_uhold if r['model_family'] == 'deepseek']
+        uh_pooled = [dict(r, seed_id=f"{r['model_family']}:{r['seed_id']}") for r in scored_uhold]
+        uh_methods = [
+            'seed_passthrough', 'ordinary_style', 'condition_prompt',
+            'structured_json_rewrite', 'structured_json_untruncated_320', 'structured_json_schema_render',
+            'verify_only_filter', 'generic_self_refine_budget_matched', 'generic_self_refine_all', 'slot_guard_repair',
+        ]
+        by_uh_m = {}
+        for m_uh in uh_methods:
+            sub_m = [r for r in scored_uhold if r['method'] == m_uh]
+            if not sub_m:
+                continue
+            sub_q = [r for r in sub_m if r['model_family'] == 'qwen_plus']
+            sub_d = [r for r in sub_m if r['model_family'] == 'deepseek']
+            is_f = (m_uh == 'verify_only_filter')
+            n_acc = sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION') if is_f else len(sub_m)
+            j_cnt = sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid'])
+            s_cnt = sum(1 for r in sub_m if r['outcome'] == 'PRESERVED_DECISION')
+            by_uh_m[m_uh] = {
+                'n_total': len(sub_m),
+                'qwen_plus_24_seeds_usable': sum(1 for r in sub_q if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']),
+                'deepseek_24_seeds_usable': sum(1 for r in sub_d if r['outcome'] == 'PRESERVED_DECISION' and r['format_valid']),
+                'combined_48_pairs_format_and_slot_usable': j_cnt,
+                'combined_format_and_slot_rate': round(j_cnt / max(1, len(sub_m)), 4),
+                'combined_48_pairs_slot_only_preserved': s_cnt,
+                'combined_slot_only_rate': round(s_cnt / max(1, len(sub_m)), 4),
+                'scenario_coverage_rate': round(n_acc / max(1, len(sub_m)), 4),
+                'format_valid_count': sum(1 for r in sub_m if r['format_valid']),
+                'mean_llm_calls': round(float(np.mean([r.get('llm_calls', 0) for r in sub_m])), 3),
+                'mean_total_tokens': round(float(np.mean([r.get('total_tokens', 0) for r in sub_m])), 1),
+                'mean_latency_ms': round(float(np.mean([r.get('latency_ms', 0.0) for r in sub_m])), 1),
+            }
+        uhold_summary = {
+            'benchmark_version': 'v3.1-untouched-holdout',
+            'unseen_formal_insurance_pdfs': 6,
+            'unseen_insurance_seeds': 12,
+            'unseen_multi_threshold_seeds': 12,
+            'total_untouched_seeds': 24,
+            'total_cross_model_pairs': 48,
+            'methods': by_uh_m,
+            'paired_mcnemar_48_pairs_format_and_slot': {
+                'slot_guard_vs_ordinary': paired_mcnemar_endpoint(uh_pooled, 'slot_guard_repair', 'ordinary_style', True),
+                'slot_guard_vs_condition_prompt': paired_mcnemar_endpoint(uh_pooled, 'slot_guard_repair', 'condition_prompt', True),
+                'slot_guard_vs_structured_json_160': paired_mcnemar_endpoint(uh_pooled, 'slot_guard_repair', 'structured_json_rewrite', True),
+                'slot_guard_vs_structured_json_320': paired_mcnemar_endpoint(uh_pooled, 'slot_guard_repair', 'structured_json_untruncated_320', True),
+                'slot_guard_vs_structured_json_schema_render': paired_mcnemar_endpoint(uh_pooled, 'slot_guard_repair', 'structured_json_schema_render', True),
+                'slot_guard_vs_generic_self_refine_budget_matched': paired_mcnemar_endpoint(
+                    uh_pooled, 'slot_guard_repair', 'generic_self_refine_budget_matched', True
+                ),
+            },
+            'clustered_tests_24_seeds_10_clauses': {
+                'slot_guard_vs_ordinary': compute_clustered_cross_model_tests(uh_qwen, uh_ds, 'slot_guard_repair', 'ordinary_style', True),
+                'slot_guard_vs_condition_prompt': compute_clustered_cross_model_tests(uh_qwen, uh_ds, 'slot_guard_repair', 'condition_prompt', True),
+                'slot_guard_vs_structured_json_160': compute_clustered_cross_model_tests(uh_qwen, uh_ds, 'slot_guard_repair', 'structured_json_rewrite', True),
+                'slot_guard_vs_structured_json_320': compute_clustered_cross_model_tests(
+                    uh_qwen, uh_ds, 'slot_guard_repair', 'structured_json_untruncated_320', True
+                ),
+                'slot_guard_vs_structured_json_schema_render': compute_clustered_cross_model_tests(
+                    uh_qwen, uh_ds, 'slot_guard_repair', 'structured_json_schema_render', True
+                ),
+                'slot_guard_vs_generic_self_refine_budget_matched': compute_clustered_cross_model_tests(
+                    uh_qwen, uh_ds, 'slot_guard_repair', 'generic_self_refine_budget_matched', True
+                ),
+            },
+        }
+
     master_summary = {
         'verifier_version': VERIFIER_VERSION,
+        'version_separation_summary': {
+            'v3_0_frozen': (
+                'Initial pre-confirmation frozen parser & rule engine (0 contract-specific aliases on the 11 confirmation PDFs; '
+                'achieves 78/80 = 97.50% on slot_guard_repair across the 40 confirmation seeds, missing only fconf-ins-003 due to '
+                'unmodeled pa_h716 specific-organ 90-day benefit keywords).'
+            ),
+            'v3_1_posthoc_hardened': (
+                'Post-review hardened parser & evaluator incorporating: (a) parse-uncertainty gating (`detect_parse_uncertainty`) '
+                'for cross-unit/calendar-date inline corrections and multi-value day disjunctions (0/3 false accepts on adversarial probes), '
+                '(b) forward clause reachability (`forward_reachable_under_clause`) distinguishing `FACT_MUTATED_SAME_DECISION` from `DECISION_CHANGED`, '
+                'and (c) strictly isolated `predict(question, retrieved_clause, inference_config)`.'
+            ),
+            'v3_1_untouched_holdout': (
+                'Post-hardening evaluation on 24 brand-new untouched seeds (6 unseen Ping An official contract PDFs + 12 unseen '
+                'multi-threshold seeds = 48 cross-model pairs) never used in any parser or prompt development.'
+            ),
+        },
+        'provider_api_response_metadata': _LAST_API_META,
         'study_scope': {
-            'total_official_insurance_pdfs': 20,
+            'total_official_insurance_pdfs': 26,
             'dev_calibration_insurance_pdfs': 5,
             'extension_insurance_pdfs': 4,
             'frozen_confirmation_insurance_pdfs': 11,
+            'untouched_post_hardening_holdout_insurance_pdfs': 6,
             'multi_threshold_composite_rules': 4,
-            'total_rule_documents': 24,
+            'total_rule_documents': 30,
             'frozen_confirmation_seeds': 40,
+            'untouched_post_hardening_holdout_seeds': 24,
             'frozen_confirmation_controlled_cases': len(fc_cases),
             'gold_diagnostic_adversarial_cases': len(scored_gold_suite),
             'evaluated_model_families': [
-                'qwen-plus (Alibaba DashScope Cloud API endpoint; provider-routed snapshot)',
-                'deepseek-chat (DeepSeek official API endpoint; provider-routed DeepSeek-V3 snapshot)',
+                'qwen-plus (Alibaba DashScope Cloud API endpoint; response_model="qwen-plus")',
+                'deepseek-chat (DeepSeek official API endpoint; response_model="deepseek-flash", system_fingerprint="e72d3c7f663d3e1383b00b3884cb4501")',
             ],
         },
         'gold_diagnostic_suite_summary': gold_suite_summary,
         'three_layer_frozen_confirmation_audit_summary': three_layer_summary,
         'model_family_results': family_summaries,
         'clustered_cross_model_statistical_inference': clustered_tests,
+        'holm_bonferroni_multiple_testing_summary': holm_summary,
         'pooled_cross_model_paired_mcnemar_80_seeds': pooled_mcnemar,
+        'fair_structured_baseline_ablation_40_seeds': fair_structured_summary,
+        'untouched_post_hardening_holdout_24_seeds_summary': uhold_summary,
         'downstream_rag_selection_summary': rag_selection_results,
     }
     base.write_json(args.out_dir / 'frozen_confirmation_summary.json', master_summary)
