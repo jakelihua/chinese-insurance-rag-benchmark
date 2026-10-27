@@ -27,7 +27,7 @@
 \title{\textbf{Do Synthetic Queries Preserve Insurance Eligibility Decisions?}}
 
 \author{
-  \textbf{Shunchi Wang}\thanks{Correspondence to: \texttt{jakelihua@gmail.com}. Code, group-disjoint splits, policy clause tables, and evaluation logs are available at \url{https://github.com/jakelihua/chinese-insurance-rag-benchmark}.} \\
+  \textbf{Shunchi Wang}\thanks{Correspondence to: \texttt{jakelihua@gmail.com}. ORCID: \url{https://orcid.org/0009-0009-8629-2078}. Code, group-disjoint splits, policy clause tables, and evaluation logs are available at \url{https://github.com/jakelihua/chinese-insurance-rag-benchmark}.} \\
   Independent Researcher
 }
 
@@ -37,7 +37,7 @@
 \maketitle
 
 \begin{abstract}
-Synthetic queries are widely used to evaluate retrieval-augmented generation (RAG) systems before real user logs exist, yet in rule-governed insurance domains a rewrite can retrieve the right clause while dropping or altering a condition that determines coverage. Across 26 official Chinese insurance policies and a multi-threshold rule testbed evaluated with Qwen and DeepSeek models without fine-tuning, we compile waiting-period rules into a reachability verifier that separates full slot retention from decision determinacy and uses a text-only gate to distinguish parser grammar limits from question ambiguity. On the 40-seed confirmation set ($N = 80$ pairs) and a 24-seed post-hardening extension set ($N = 48$ pairs), parser-guided slot repair reaches $78/80$ ($97.5\%$) and $48/48$ ($100.0\%$) joint usability, outperforming single-pass constrained prompting and equal-budget self-refinement (both $70/80$, McNemar $p = 0.0078125$) and showing a positive trend over 320-token JSON rewriting ($73/80$, $p = 0.0625$). Filtering or repairing unverified rewrites also prevents downstream pipeline ranking reversal (Kendall's tau from $-0.8367$ to $1.0000$). Our verifier relies on hand-compiled clause schemas and a shared-rule-base consistency check rather than automated rule extraction or external human annotation.
+Synthetic queries are widely used to evaluate retrieval-augmented generation (RAG) systems before real user logs exist, yet in rule-governed insurance domains a rewrite can retrieve the right clause while dropping or altering a condition that determines coverage. Across 26 official Chinese insurance policies and a multi-threshold rule testbed evaluated with Qwen and DeepSeek models without fine-tuning, we compile waiting-period rules into a reachability verifier that separates full slot retention from decision determinacy and uses a text-only gate to distinguish parser grammar limits from question ambiguity. On the 40-seed confirmation set ($N = 80$ pairs), parser-guided slot repair reaches $78/80$ ($97.5\%$) joint usability, outperforming single-pass constrained prompting and equal-budget self-refinement (both $70/80$, McNemar $p = 0.0078125$) and showing a positive trend over 320-token JSON rewriting ($73/80$, $p = 0.0625$); on a 24-seed post-hardening extension set ($N = 48$ pairs), it reaches $48/48$ ($100.0\%$). Filtering or repairing unverified rewrites also prevents downstream pipeline ranking reversal (Kendall's tau from $-0.8367$ to $1.0000$). Our verifier relies on hand-compiled clause schemas and a shared-rule-base programmatic consistency check, and evaluation does not yet include automated legal rule extraction or independent human semantic annotation.
 \end{abstract}
 
 \section{Introduction}
