@@ -11,12 +11,12 @@
 
 在金融保险、临床医疗与劳动合规等规则密集型垂直领域构建检索增强生成（Retrieval-Augmented Generation, RAG）系统时，工程团队往往面临真实用户查询日志匮乏与数据隐私隔离的双重冷启动困境。业界主流范式是利用指令微调大语言模型从源文档段落合成测试问句，并基于检索命中率（如 Top-$k$、MRR）或表面流畅度评估合成数据质量。然而，在商业健康险核保与理赔等受条款严格约束的场景中，一条合成问句即便能将源条款排在检索榜首（Top-1 = 100%），仍极易在口语化改写过程中漏掉或篡改决定拒赔与否的关键资格条件（Pivotal Eligibility Conditions），导致评测集参考标签失真乃至逆转下游系统选型结论。
 
-针对上述问题，本文围绕**“面向中文保险 RAG 的合成问句决策保持验证与修复”**展开系统研究，在不微调任何大模型或向量模型权重的前提下，完成了从问题表征、形式化验证与闭环修复方法设计、非循环三层真值审计、跨模型家族严格冻结验证到下游 RAG 系统选型影响评估的完整研究闭环：
+针对上述问题，本文围绕**“面向中文保险 RAG 的合成问句决策保持验证与修复”**展开系统研究，在不微调任何大模型或向量模型权重的前提下，开展了从问题表征、形式化验证与闭环修复方法设计、非循环三层真值审计、跨模型家族冻结验证集评测到下游受控检索+符号规则决策流水线选型影响评估的系统研究：
 
-1. **揭示口语合成改写下的条件漂移机制与检索指标盲区（研究问题一）**：基于 **20 份公开披露的中文商业保险正式合同条款 PDF**（5 份开发集、4 份后验扩展集、11 份零别名严格冻结验证集，累计 **304 条经正反双见证认证的受控样本**）与 **16 组（64 例）多阈值合成规则**，我们将表面槽位完整度（Slot Completeness）与无参考依赖的形式化结论可确定性（Reference-Independent Decision Determinacy）解耦。通过枚举缺失槽位在所有阈值分区上的可达裁决集合 $\mathcal{A}(\hat{z})$，实验证明无约束口语改写（`ordinary_style`）在 `Qwen2.5-1.5B-Instruct`、`Qwen-Plus`、`Qwen-Max` 与 `DeepSeek-V3` 上虽能维持较高的检索命中率（多阈值集 Top-1 达 100.0%），但独立结论保持率仅为 **0.0%–45.0%**（冻结验证集上仅 **0.0%–2.5%**）；隐去产品全名与保险公司名称后，9 条款池上的密集检索 Top-1 准确率从 75.0% 骤降至 31.2%。
-2. **构建显式分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 的验证器及三层非循环真值审计体系（研究问题二）**：为打破“用解析器证明解析器”的循环论证，我们将验证器在 `v3.0-frozen` 节点严格冻结，并引入语法不确定性检测器 `detect_parse_uncertainty`，将输出划分为**结论保持（`PRESERVED_DECISION`）**、**条件篡改（`CONDITION_MUTATED`）**、**问句歧义需澄清（`CLARIFY_REQUIRED`）**与**解析器语法超界（`PARSE_UNCERTAIN`）**四类互斥状态。在第一层条款—规则映射审计（20 份保险 PDF 平均手工编译耗时 **11.72 分钟/份**，总计 **234.5 分钟**）、第二层 **120 例构造性黄金诊断集**（8 大类别）与第三层 **400 条冻结生成记录逐条三层审计**中，验证器在放行样本上的**误放行率（False Accept Rate）均为 0.0%（放行精确率 Precision = 100.0%）**；在支持的“天/日”语法辖域内（诊断集第 1–7 类，105 例）误拒绝率为 **0.0%**，第 8 类跨单位（月/周）与日历日期表达（15/15）及冻结集新条款未登录特定器官/疾病分支（`pa_h716`《平安安康住院费用（B，2017）医疗保险》中“腺样体肥大/疝气/扁桃腺/女性生殖器官疾病 90 日等待期 vs. 其他疾病 30 日等待期”，6/302）均被 100% 安全拦截为 `PARSE_UNCERTAIN`（400 条生成记录总召回率 **98.01%**）。
-3. **跨模型家族严格冻结验证集评测、等预算对照与“过滤 vs. 修复”工程权衡（研究问题三）**：在 `1.5B` 模型的 16 种子多阈值等调用预算（26 次调用）对照中，符号槽位守卫修复（`slot_guard_repair`）将独立结论保持率从无符号反馈自检（`generic_self_refine`）的 50.0%（8/16）提升至 **75.0%（12/16）**（给定源规则下达 **93.8% [15/16]**），并将阈值篡改率从 25.0% 降至 **0.0%**。进一步在 40 种子（160 例）严格冻结验证集（`v3.0-frozen`，11 份全新保险 PDF 设置 `aliases=[]`）上跨越阿里云 `Qwen-Plus` 与 `DeepSeek-V3`（`deepseek-chat`）评测 8 种方法：`slot_guard_repair` 在两大家族模型上均达到 **97.5%（39/40）** 的独立结论保持率与 **0.0%（0/40）** 篡改率；在跨模型合并配对检验（$N=80$）中显著优于单通条件提示 `condition_prompt`（87.5%，70/80，双侧精确 McNemar **$p=0.007812$**）、等预算自检 `generic_self_refine_budget_matched`（87.5%，70/80，**$p=0.007812$**）与全量自检 `generic_self_refine_all`（85.0%，68/80，**$p=0.001953$**）。相比仅验证过滤（`verify_only_filter`，虽实现 0.0% 污染但在 `DeepSeek-V3` 上丢弃了 **17.5% [7/40]** 的样本及 **25.0% [4/16]** 的多阈值困难场景），`slot_guard_repair` 以仅增加 14.1%–24.5% Token 的代价将有效场景产出率恢复至 **97.5%**。
-4. **实证量化合成问句决策漂移对下游 RAG+决策系统选型的反转效应（研究问题四）**：在 5 个候选端到端 RAG+决策系统（`S1`–`S5`）上，当未验证口语改写（`ordinary_style`）朴素沿用种子标签时，97.5%–100.0% 的测试样本发生标签污染，导致主动发起澄清追问的真实最优系统 `S1_dense_rule_clarify`（真实准确率 **97.5%**）表观得分跌至 **0.0%–2.5%**，而从不澄清、盲目拒赔的激进系统 `S3_dense_aggressive_deny` 错误夺冠，系统排序严重反转（`Qwen-Plus` 上 Kendall's $\tau = -0.2000$，`DeepSeek-V3` 上 $\tau = -0.8839$，选型遗憾高达 **0.4500**）。引入本文验证过滤或槽位守卫修复后，放行池标签污染率降至 **0.0%**，下游系统排序完全恢复真实顺序（**$\tau = 1.0000$，选型遗憾 0.0000**）。
+1. **揭示口语合成改写下的条件漂移机制与检索指标盲区（研究问题一）**：基于 **20 份公开披露的中文商业保险正式合同条款 PDF**（5 份开发集、4 份后验扩展集、11 份零别名冻结验证集，累计 **304 条经正反双见证认证的受控样本**）与 **16 组（64 例）多阈值合成规则**，我们将表面槽位完整度（Slot Completeness）与无参考依赖的形式化结论可确定性（Reference-Independent Decision Determinacy）解耦。通过枚举缺失槽位在所有阈值分区上的可达裁决集合 $\mathcal{A}(\hat{z})$，实验证明无约束口语改写（`ordinary_style`）在 `Qwen2.5-1.5B-Instruct`、`Qwen-Plus`、`Qwen-Max` 与 `DeepSeek-V3` 上虽能维持较高的检索命中率（多阈值集 Top-1 达 100.0%），但独立结论保持率仅为 **0.0%–45.0%**（冻结验证集上仅 **0.0%–2.5%**）；隐去产品全名与保险公司名称后，9 条款池上的密集检索 Top-1 准确率从 75.0% 骤降至 31.2%。
+2. **构建显式分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 的验证器及三层非循环参考真值审计体系（研究问题二）**：为避免“用被测验证器生成审计金标”的循环评估，我们将验证器在 `v3.0-frozen` 节点冻结（并在版本迭代记录中透明披露针对括号内联更正与多值冲突的硬门控加固），引入语法不确定性检测器 `detect_parse_uncertainty`，将输出划分为**结论保持（`PRESERVED_DECISION`）**、**条件篡改（`CONDITION_MUTATED`）**、**问句歧义需澄清（`CLARIFY_REQUIRED`）**与**解析器语法/分支超界（`PARSE_UNCERTAIN`）**四类互斥状态。在第一层条款—规则映射审计（20 份保险 PDF 作者工程建库耗时估算均值 **11.72 分钟/份**，总计 **234.5 分钟**）、第二层 **120 例构造性黄金诊断集**（8 大类别）与第三层 **400 条冻结生成记录独立文本参考审计**（作者基于条款逐条复核的独立参考标签，非外部双盲多人标注）中：(a) 在 120 例构造性黄金诊断集上，验证器误放行率为 **0.0%（FP = 0/60，放行精确率 100.0%）**，在支持的“天/日”语法辖域内（第 1–7 类，105 例）误拒绝率为 **0.0%**，第 8 类跨单位（月/周）与日历日期表达（15/15）被全部保守拦截为 `PARSE_UNCERTAIN`；(b) 在 400 条真实云端模型生成记录的非循环审计中，验证器取得 **290 例真阳性（TP）、6 例假阳性（FP，误放行率 FAR = 6.38%，放行精确率 Precision = 97.97%）、88 例真阴性（TN）与 16 例假阴性（FN，误拒绝率 FRR = 5.23%，召回率 Recall = 94.77%）**。其中全部 6 例假阳性均集中于 `structured_json_rewrite` 因触及 160-token 上限在问句末尾截断（已写出槽位词但未完成疑问句）的样本，而在 **`slot_guard_repair`、`condition_prompt` 与 `generic_self_refine` 上误放行均为 0 例（FP = 0/80，放行精确率 100.0%）**；`pa_h716` 新条款未建模特定器官/疾病分支（90 日 vs. 30 日等待期）在不读取 `seed_frame` 的前提下基于问句文本被路由至 `PARSE_UNCERTAIN`。
+3. **跨模型家族冻结验证集评测、等预算对照与“过滤 vs. 修复”工程权衡（研究问题三）**：在 `1.5B` 模型的 16 种子多阈值等调用预算（26 次调用）对照中，符号槽位守卫修复（`slot_guard_repair`）将独立结论保持率从无符号反馈自检（`generic_self_refine`）的 50.0%（8/16）提升至 **75.0%（12/16）**（给定源规则下达 **93.8% [15/16]**），并将解析器检出的阈值篡改率从 25.0% 降至 **0.0%**。进一步在 40 种子（160 例）冻结验证集（11 份新保险 PDF 设置 `aliases=[]`）上跨越阿里云 `Qwen-Plus`（`qwen-plus`）与 `DeepSeek-V3`（`deepseek-chat`）评测 8 种方法：`slot_guard_repair` 在两大家族模型上均达到 **97.5%（39/40）** 的独立结论保持率、**100.0%（40/40）** 的完整疑问句格式有效率与 **0.0%（0/40）** 篡改率。在跨模型合并配对检验（$N=80$）及按种子聚类的双侧精确符号翻转置换检验（$N=40$ 个种子簇）中，`slot_guard_repair`（78/80）显著优于单通条件提示 `condition_prompt`（70/80，合并 McNemar **$p=0.007812$**，种子聚类置换 **$p=0.0078125$**；其中 `DeepSeek-V3` 单模型 39/40 vs. 33/40，**$p=0.03125$**，`Qwen-Plus` 单模型 39/40 vs. 37/40，$p=0.50$）、等预算自检 `generic_self_refine_budget_matched`（70/80，合并 **$p=0.007812$**，种子聚类置换 **$p=0.015625$**）与全量自检 `generic_self_refine_all`（68/80，合并 **$p=0.001953$**，种子聚类置换 **$p=0.00390625$**）。同时我们也如实报告了云端大模型上 `structured_json_rewrite` 的竞争力与边界：其槽位可达保持率达 38/40 与 39/40（与 `slot_guard_repair` 相比 $p=1.0$），但在 `Qwen-Plus` 上存在 7/40（17.5%）的半句截断（完整单问句有效率仅 33/40，导致 6 例假阳性误放行）。相比仅验证过滤（`verify_only_filter`，虽实现 0.0% 污染但在 `DeepSeek-V3` 上丢弃了 **17.5% [7/40]** 的样本及 **25.0% [4/16]** 的多阈值场景），`slot_guard_repair` 以增加 14.1%–24.5% Token 的代价将有效场景覆盖率恢复至 **97.5%**。
+4. **实证量化合成问句决策漂移对下游受控检索+符号规则决策流水线选型的反转效应（研究问题四）**：在由真实检索器（`bge-small-zh-v1.5` 或 `bm25_char2`）与确定性符号决策模块构成的 5 个受控 RAG+决策候选流水线（`S1`–`S5`，直接以每条合成问句文本作为输入执行检索与槽位决策）上，当未验证口语改写（`ordinary_style`）朴素沿用种子标签时，97.5%–100.0% 的测试样本发生标签污染，导致主动发起澄清追问的真实最优流水线 `S1_dense_rule_clarify`（80 例配对参考集真实准确率 **97.5%**）表观得分跌至 **0.0%**，而从不澄清的激进拒赔流水线 `S3_dense_aggressive_deny` 或表面阈值启发式流水线 `S5_dense_threshold_echo_heuristic` 错误夺冠，系统排序反转（`Qwen-Plus` 上 Kendall's $\tau = -0.6708$，`DeepSeek-V3` 上 $\tau = -0.5270$，真实选型遗憾达 **0.5625–0.6625**）。引入本文验证过滤（`verify_only_filter`）或槽位守卫修复（`slot_guard_repair`）后，放行池标签污染率降至 **0.0%**，下游 40 种子合并评测的系统排序恢复至 **$\tau = 1.0000$（Spearman's $\rho = 1.0000$，选型遗憾 0.0000）**。
 
 **关键词：** 检索增强生成（RAG）；合成评测基准；保险条款核保理赔；决策保持验证；符号槽位守卫修复；系统选型偏差
 
@@ -26,12 +26,12 @@
 
 Constructing evaluation benchmarks for vertical-domain Retrieval-Augmented Generation (RAG) systems often relies on instruction-tuned large language models (LLMs) to synthesize user queries from source documents. In rule-governed insurance underwriting and claims workflows, however, a synthetic query can rank the source clause at Top-1 while omitting or mutating pivotal eligibility conditions that determine whether a claim is covered, excluded, or requires follow-up clarification.
 
-This thesis investigates **decision-preserving verification and closed-loop repair of synthetic queries for Chinese insurance RAG** across **20 official Chinese insurance policy PDFs** (5 development, 4 post-refinement extension, and 11 strictly frozen confirmation policies with `aliases=[]`, totaling 304 dual-witness-certified controlled cases) and a 16-seed (64-case) multi-threshold rule testbed across two model families (`Qwen` and `DeepSeek-V3`), without fine-tuning any model weights:
+This thesis investigates **decision-preserving verification and closed-loop repair of synthetic queries for Chinese insurance RAG** across **20 official Chinese insurance policy PDFs** (5 development, 4 post-refinement extension, and 11 frozen confirmation policies with `aliases=[]`, totaling 304 dual-witness-certified controlled cases) and a 16-seed (64-case) multi-threshold rule testbed across two model families (`Qwen` and `DeepSeek-V3`), without fine-tuning any model weights:
 
 1. **Condition Drift vs. Retrieval Blindness (RQ1)**: By separating surface slot completeness from reference-independent decision determinacy over threshold-partitioned equivalence regions, we show that unconstrained conversational rewriting (`ordinary_style`) achieves up to 100.0% Top-1 retrieval while preserving standalone decisions on only **0.0%–45.0%** of development seeds and **0.0%–2.5%** of frozen confirmation seeds. Masking product and insurer names drops 9-clause dense retrieval Top-1 accuracy from 75.0% to 31.2%.
-2. **Explicit Separation of `PARSE_UNCERTAIN` vs. `CLARIFY_REQUIRED` and Non-Circular Three-Layer Ground-Truth Audit (RQ2)**: Freezing the parser and reachability verifier at `v3.0-frozen`, we introduce `detect_parse_uncertainty` to separate parser grammar boundaries (`PARSE_UNCERTAIN`) from genuine question ambiguity (`CLARIFY_REQUIRED`). Across a Layer-1 clause-to-rule mapping audit (mean manual compilation cost **11.72 min/contract**, total **234.5 min** across 20 PDFs), a Layer-2 **120-case constructive gold diagnostic suite** (8 categories), and a Layer-3 audit of **400 frozen-set generations**, the verifier achieves **0.0% false-accept rate (100.0% precision on accepted queries)**, **0.0% false-reject rate on supported day-unit syntax** (Categories 1–7), and **98.01% overall recall** on frozen generations (conservatively routing month/week/date expressions and `pa_h716`'s unseen disease branch to `PARSE_UNCERTAIN`).
-3. **Cross-Model Generalization on the Strictly Frozen Confirmation Set (`v3.0-frozen`) and Filtering vs. Repair Tradeoff (RQ3)**: On the 40-seed strictly frozen confirmation set across `Qwen-Plus` and `DeepSeek-V3` (`deepseek-chat`), symbolic `slot_guard_repair` achieves **39/40 (97.5%)** decision preservation and **0/40 (0.0%)** mutations on both model families. Pooled across both models ($N=80$), `slot_guard_repair` (`78/80 = 97.5%`) significantly outperforms `condition_prompt` (`70/80 = 87.5%`, exact two-sided McNemar **$p=0.007812$**), equal-budget `generic_self_refine_budget_matched` (`70/80 = 87.5%`, **$p=0.007812$**), and `generic_self_refine_all` (`68/80 = 85.0%`, **$p=0.001953$**), while eliminating the 7.5%–17.5% (up to 25.0% on multi-threshold rules) scenario loss suffered by `verify_only_filter`.
-4. **Downstream RAG + Decision System Selection Impact (RQ4)**: Across five candidate RAG + Decision pipelines (`S1`–`S5`), unverified `ordinary_style` rewrites under naive inherited seed labels suffer 97.5%–100.0% label corruption and invert downstream system rankings (Kendall's $\tau = -0.2000$ on `Qwen-Plus`, $\tau = -0.8839$ on `DeepSeek-V3`, incurring a **0.4500 selection regret** by penalizing clarifying pipelines `S1`/`S2`). Both `verify_only_filter` and `slot_guard_repair` eliminate label corruption (0.0%) and restore the exact oracle ranking (**$\tau = 1.0000$, zero regret**), with `slot_guard_repair` retaining **97.5% (39/40)** scenario coverage.
+2. **Explicit Separation of `PARSE_UNCERTAIN` vs. `CLARIFY_REQUIRED` and Non-Circular Three-Layer Reference Audit (RQ2)**: Introducing `detect_parse_uncertainty` as a text-only hard gate to separate parser grammar/branch boundaries (`PARSE_UNCERTAIN`) from genuine question ambiguity (`CLARIFY_REQUIRED`), we evaluate the verifier across a Layer-1 clause-to-rule mapping audit (author engineering time estimate **11.72 min/contract**, total **234.5 min** across 20 PDFs), a Layer-2 **120-case constructive gold diagnostic suite** (8 categories), and a non-circular Layer-3 clause-grounded reference audit of **400 frozen-set generations** (author-inspected reference labels, not external blinded multi-rater annotation). On the 120-case diagnostic suite, the verifier achieves **0.0% false-accept rate (0/60 FP, 100.0% precision)** and **0.0% false-reject rate on supported day-unit syntax** (Categories 1–7, 105 cases), routing all 15 Category-8 month/week/date cases to `PARSE_UNCERTAIN`. On the 400 frozen generations, it achieves **TP = 290, FP = 6 (FAR = 6.38%, Precision = 97.97%), TN = 88, and FN = 16 (FRR = 5.23%, Recall = 94.77%)**, where all 6 false accepts arise from mid-sentence token-cap truncations in `structured_json_rewrite` (**0/80 FP and 100.0% precision on `slot_guard_repair`, `condition_prompt`, and `generic_self_refine`**).
+3. **Cross-Model Generalization on the Frozen Confirmation Set and Filtering vs. Repair Tradeoff (RQ3)**: On the 40-seed frozen confirmation set across `Qwen-Plus` (`qwen-plus`) and `DeepSeek-V3` (`deepseek-chat`), symbolic `slot_guard_repair` achieves **39/40 (97.5%)** decision preservation, **40/40 (100.0%)** interrogative format validity, and **0/40 (0.0%)** mutations on both models. Across models, `slot_guard_repair` (`78/80 = 97.5%`) outperforms `condition_prompt` (`70/80 = 87.5%`, pooled McNemar **$p=0.007812$**, 40-seed clustered sign-flip permutation **$p=0.0078125$**; `DeepSeek-V3` per-model **$p=0.03125$**, `Qwen-Plus` per-model $p=0.50$), equal-budget `generic_self_refine_budget_matched` (`70/80 = 87.5%`, pooled **$p=0.007812$**, seed-clustered **$p=0.015625$**), and `generic_self_refine_all` (`68/80 = 85.0%`, pooled **$p=0.001953$**, seed-clustered **$p=0.00390625$**). While `structured_json_rewrite` reaches 38/40 and 39/40 slot-level preservation on cloud models ($p=1.0$ vs. `slot_guard_repair`), it suffers 7/40 mid-sentence truncations on `Qwen-Plus` (`format_valid = 33/40`) and collapses on the 1.5B model (`5/16`). Compared with `verify_only_filter` (which loses 7.5%–17.5% overall and up to 25.0% on multi-threshold seeds), `slot_guard_repair` restores **97.5%** coverage for 14.1%–24.5% extra tokens.
+4. **Downstream Controlled Retrieval + Symbolic Rule-Decision Pipeline Selection Impact (RQ4)**: Evaluating five controlled retrieval + symbolic rule-decision pipelines (`S1`–`S5`, running real BGE/BM25 retrieval and text-level slot extraction on every synthetic query), unverified `ordinary_style` rewrites under naive inherited seed labels suffer 97.5%–100.0% label corruption and invert system rankings (40-seed combined Kendall's $\tau = -0.6708$ on `Qwen-Plus`, $\tau = -0.5270$ on `DeepSeek-V3`, penalizing clarifying pipelines `S1`/`S2` down to 0.0%–2.5%). Both `verify_only_filter` and `slot_guard_repair` eliminate label corruption (**0.0%**) and restore the true 40-seed system ranking (**$\tau = 1.0000$, Spearman's $\rho = 1.0000$, zero top-1 selection regret**), with `slot_guard_repair` retaining **97.5% (39/40)** scenario coverage.
 
 **Keywords:** Retrieval-Augmented Generation (RAG); Synthetic Benchmark Evaluation; Insurance Underwriting and Claims Rules; Decision-Preserving Verification; Symbolic Slot-Guard Repair; System Selection Bias
 
@@ -41,7 +41,7 @@ This thesis investigates **decision-preserving verification and closed-loop repa
 
 ### 1.1 研究背景与问题提出
 
-在金融保险、临床路径审核与劳动人事合规等严肃企业级场景中，检索增强生成（RAG）已成为连接大语言模型与专业规章条款的核心架构。然而，在实际算法工程落地时，研发团队普遍面临一个棘手的评测死局：手头往往只有几十份正式业务条款或百余条专家编写的种子样例，缺乏经过隐私脱敏与合规确权的大规模真实用户提问日志；若将仅有的少量种子全部用于提示工程或微调，便失去了客观评测系统迭代效果的独立测试集 [1, 3, 4]。因此，利用指令微调大语言模型从源文档段落反推合成测试提问（Synthetic Query Generation），已成为冷启动阶段构建 RAG 评测基准的标准范式。
+在金融保险、临床路径审核与劳动人事合规等严肃企业级场景中，检索增强生成（Retrieval-Augmented Generation, RAG）已成为连接大语言模型与专业规章条款的核心架构。然而，在实际算法工程落地时，研发团队普遍面临一个棘手的评测死局：手头往往只有几十份正式业务条款或百余条专家编写的种子样例，缺乏经过隐私脱敏与合规确权的大规模真实用户提问日志；若将仅有的少量种子全部用于提示工程或微调，便失去了客观评测系统迭代效果的独立测试集 [1, 3, 4]。因此，利用指令微调大语言模型从源文档段落反推合成测试提问（Synthetic Query Generation），已成为冷启动阶段构建 RAG 评测基准的标准范式。
 
 现有学术界与工业界对合成测试集的研究，主要关注合成提问与真实提问在检索器排序分数（如 MRR@10、nDCG、Hit@k）上的分布偏移，或利用大模型评判器（LLM-as-a-Judge）对问题流畅度与表面可回答性打分 [1, 2, 5, 8, 9]。但在保险核保与理赔裁决这类**规则驱动（Rule-Governed）**场景中，这种以检索相关性和表面流畅度为核心的质量控制存在结构性盲区：
 
@@ -53,26 +53,26 @@ This thesis investigates **decision-preserving verification and closed-loop repa
 
 当大模型按照常规提示将结构化种子场景改写为“自然、简短的口语化用户提问”时，极易发生两类致命的**决策漂移（Decision Drift）**：
 - **第一类：关键条件遗漏导致的歧义退化（Ambiguity Degradation / `CLARIFY_REQUIRED`）**。模型为了去模板化而省略险种简称、责任类别、续保状态或出险天数，使原本结论唯一的测试题退化为“客观上同时存在赔付与拒赔两种可能、必须向用户追问澄清”的残缺问句。反之，若模型省略的是**非关键背景槽位**（例如在等待期已满的第 45 天省略出险原因是疾病还是意外），则并不影响“等待期不免责”的唯一裁决。单纯的字段表面匹配无法区分“关键遗漏”与“无害省略”，而检索指标对两者均完全失明。
-- **第二类：条件与数值阈值篡改导致的结论翻转（Condition Mutation / `DECISION_CHANGED`）**。生成模型在改写时经常将用户实际经过天数（如第 7 天、第 45 天或第 120 天）错误覆盖为条款原文中的法定阈值（如 14 天或 90 天），或者反转责任极性（如将“本人主要责任”改写为“非主要责任”）。这类篡改反而进一步抬高了问句与源条款的词法重叠度，使检索得分更高，但参考答案已被彻底颠倒。
+- **第二类：条件与数值阈值篡改导致的结论翻转（Condition Mutation / `DECISION_CHANGED`）**。生成模型在改写时经常将用户实际经过天数（如第 7 天、第 45 天或第 120 天）错误覆盖为条款原文中的法定阈值（如 14 天或 90 天），或者反转责任极性（如将“本人主要责任”改写为“非主要责任”）。这类篡改反而进一步抬高了问句与源条款的词法重叠度，使检索得分更高，但参考答案已被颠倒。
 
-更严重的是，如果将这些丢失关键条件或发生事实篡改的合成问句直接放入评测集，并朴素沿用原种子的二元裁决标签（赔付/拒赔）去评测下游 RAG 系统，那些严格遵循条款、在条件不足时正确发起追问（`CLARIFY`）的合规系统反而会被判为零分，而盲目猜测拒赔的激进系统却能拿到高分，从而导致**下游 RAG 系统选型排序发生灾难性反转**。
+更严重的是，如果将这些丢失关键条件或发生事实篡改的合成问句直接放入评测集，并朴素沿用原种子的二元裁决标签（赔付/拒赔）去评测下游 RAG 系统，那些遵循条款、在条件不足时正确发起追问（`CLARIFY`）的合规系统反而会被判为零分，而盲目猜测拒赔的激进系统却能拿到高分，从而导致**下游系统选型排序发生反转**。
 
 ### 1.2 核心研究问题（Research Questions）
 
 围绕上述工程与科学痛点，本学位论文固定一条清晰的研究主线，重点回答以下四个层层递进的研究问题：
 
 - **RQ1（条件漂移机制与检索指标盲区）**：在真实可追溯的中文商业保险合同条款与多阈值规则上，合成改写会产生哪些关键条件遗漏、数值阈值篡改与条款身份丢失？为什么常规词法检索（BM25）、密集向量检索（BGE）及混合检索（RRF）指标无法反映这些决策失效？
-- **RQ2（形式化验证器可靠性、状态分离与非循环三层真值审计）**：在显式界定条款与任务边界的前提下，如何构建不依赖参考种子元数据（`seed_frame`）的阈值分区可达性验证器，并将“问句本身缺少关键条件需澄清（`CLARIFY_REQUIRED`）”与“超出解析器语法辖域或命中未建模责任分支（`PARSE_UNCERTAIN`）”严格区分开来？在非循环的三层独立真值审计（条款映射审计、120 例构造性黄金诊断集、400 条冻结生成逐条审计）下，验证器的误放行率（False Accept Rate）与误拒绝率（False Reject Rate）分别是多少？
-- **RQ3（跨模型家族严格冻结验证、等预算修复对照与“过滤 vs. 修复”权衡）**：将解析器与验证器在 `v3.0-frozen` 节点彻底冻结后，在 11 份全新官方保险条款 PDF（设置 `aliases=[]` 零别名）与多阈值规则组成的 40 种子（160 例）验证集上，跨越 `Qwen-Plus` 与 `DeepSeek-V3` 两大家族模型，符号槽位守卫修复（`slot_guard_repair`）相比单通条件提示（`condition_prompt`）、结构化 JSON 改写（`structured_json_rewrite`）、无符号反馈的大模型自检（`generic_self_refine`）以及仅验证过滤（`verify_only_filter`），在可用合成题质量、场景覆盖率、Token 消耗与延迟上的收益与统计显著性如何？
-- **RQ4（下游端到端 RAG+决策系统选型影响与闭环验证）**：当使用不同策略生成的合成基准评测下游多个候选 RAG+决策系统时，未验证的合成问句是否会因“伪金标”污染而扭曲系统排名？经本文验证过滤或槽位修复后的合成基准能否恢复与真实种子基准一致的系统选型排序？
+- **RQ2（形式化验证器可靠性、状态分离与非循环三层真值审计）**：在显式界定条款与任务边界的前提下，如何构建不依赖参考种子元数据（`seed_frame`）的阈值分区可达性验证器，并将“问句本身缺少关键条件需澄清（`CLARIFY_REQUIRED`）”与“超出解析器语法辖域或命中未建模责任分支（`PARSE_UNCERTAIN`）”严格区分开来？在非循环的三层独立真值审计（条款映射审计、120 例构造性黄金诊断集、400 条冻结生成逐条独立参考审计）下，验证器的误放行率（False Accept Rate）与误拒绝率（False Reject Rate）分别是多少？
+- **RQ3（跨模型家族冻结验证、等预算修复对照与“过滤 vs. 修复”权衡）**：在 11 份官方保险条款 PDF（设置 `aliases=[]` 零别名）与多阈值规则组成的 40 种子（160 例）验证集上，跨越 `Qwen-Plus` 与 `DeepSeek-V3` 两大家族模型，符号槽位守卫修复（`slot_guard_repair`）相比单通条件提示（`condition_prompt`）、结构化 JSON 改写（`structured_json_rewrite`）、无符号反馈的大模型自检（`generic_self_refine`）以及仅验证过滤（`verify_only_filter`），在可用合成题质量、完整疑问句有效率、场景覆盖率、Token 消耗与延迟上的收益与统计显著性（含单模型检验与按种子/条款聚类置换检验）如何？
+- **RQ4（下游受控检索+符号规则决策流水线选型影响验证）**：当使用不同策略生成的合成基准评测下游多个候选检索+规则决策流水线时，未验证的合成问句是否会因“伪金标”污染而扭曲系统排名？经本文验证过滤或槽位修复后的合成基准能否恢复与参考真值基准一致的系统选型排序？
 
 ### 1.3 主要工作与研究贡献
 
 本文的主要研究工作与贡献概括如下：
-1. **提出解耦“表面槽位完整度”与“无参考依赖结论可确定性”的形式化验证及正反双见证认证框架**：在 **20 份官方中文保险条款 PDF**（锚定 SHA256、物理页码与字符级包围盒坐标，严格分离 `pdf_contract_clause` 与 `synthetic_seed_frame`）与 **4 段多阈值规则**上，构建了遍历阈值等价区间的可达性枚举器 `enumerate_admissible_decisions`，为每一条需澄清样本生成一对导向相反结论的具体补全见证（Dual Completion Witnesses），并显式引入 `detect_parse_uncertainty` 将语法超界（`PARSE_UNCERTAIN`）与问句歧义（`CLARIFY_REQUIRED`）解耦。
-2. **完成非循环三层真值审计与 120 例构造性黄金诊断验证，实现 0.0% 误放行率（100.0% 放行精确率）**：核算了 20 份商业保险合同手工规则编译的真实工程耗时（均值 **11.72 分钟/份**，总计 **234.5 分钟**）；在独立构造的 120 例 8 类别黄金诊断集与 400 条跨家族冻结生成记录审计中，验证器取得 **0 例误放行（False Accept Rate = 0.0%，Precision = 100.0%）**，在支持语法辖域内误拒绝率为 **0.0%**，400 条冻结生成总召回率达 **98.01%**。
-3. **提出符号槽位守卫闭环修复机制（`slot_guard_repair`），并在严格冻结验证集（`v3.0-frozen`）上完成跨模型家族（`Qwen-Plus` & `DeepSeek-V3`）与等预算实证**：证明了精确注入缺失/篡改槽位诊断的二轮修复在 `1.5B` 小模型及 `Qwen-Plus`、`DeepSeek-V3` 云端大模型上均能彻底消除解析器检出的阈值篡改（篡改率降至 **0.0%**），在 40 种子冻结集上双双达到 **97.5%（39/40）** 结论保持率（跨模型合并 $N=80$ 双侧精确 McNemar 相对 `condition_prompt` 与等预算 `generic_self_refine` 均为 **$p=0.007812$**，相对全量自检 **$p=0.001953$**），同时克服了 `verify_only_filter` 丢弃 7.5%–17.5%（多阈值子集高达 25.0%）测试场景的覆盖损失。
-4. **首次在规则型保险 RAG 中实证揭示“伪金标”导致的下游系统排名反转（Kendall's $\tau \in [-0.8839, -0.2000]$）并完成选型恢复闭环（$\tau = 1.0000$）**：在 5 个候选端到端 RAG+决策流水线上量化了未验证口语改写造成的 0.4500 选型遗憾，证明本文验证与修复流水线在保持 97.5% 场景覆盖率的同时实现 0.0% 标签污染与零选型遗憾。
+1. **提出解耦“表面槽位完整度”与“无参考依赖结论可确定性”的形式化验证及正反双见证认证框架**：在 **20 份官方中文保险条款 PDF**（锚定 SHA256、物理页码与字符级包围盒坐标，严格分离 `pdf_contract_clause` 与 `synthetic_seed_frame`）与 **4 段多阈值规则**上，构建了遍历阈值等价区间的可达性枚举器 `enumerate_admissible_decisions`，为每一条需澄清样本生成一对导向相反结论的具体补全见证（Dual Completion Witnesses），并引入纯文本驱动的 `detect_parse_uncertainty` 硬门控，将语法/分支超界（`PARSE_UNCERTAIN`）与问句歧义（`CLARIFY_REQUIRED`）解耦。
+2. **构建非循环三层参考真值审计与 120 例构造性黄金诊断集，量化验证器的精度、召回率与语法边界**：记录了 20 份商业保险合同手工规则编译的工程耗时估算（均值 **11.72 分钟/份**，总计 **234.5 分钟**）；在 120 例 8 类别黄金诊断集上取得 **0.0% 误放行率（FP = 0/60）** 与支持语法辖域内 **0.0% 误拒绝率（FN = 0/45）**；在 400 条跨家族冻结生成记录的非循环文本参考审计中取得 **TP = 290、FP = 6（FAR = 6.38%，Precision = 97.97%）、TN = 88、FN = 16（FRR = 5.23%，Recall = 94.77%）**，并定位出全部 6 例 FP 均源于 `structured_json_rewrite` 的半句截断，而 `slot_guard_repair` 与 `condition_prompt` 的误放行均为 **0/80（Precision = 100.0%）**。
+3. **提出符号槽位守卫闭环修复机制（`slot_guard_repair`），并在冻结验证集上完成跨模型家族（`Qwen-Plus` & `DeepSeek-V3`）与等预算实证**：证明了注入缺失/篡改槽位诊断的二轮修复在 `1.5B` 小模型及 `Qwen-Plus`、`DeepSeek-V3` 云端大模型上均将解析器检出的阈值篡改率降至 **0.0%**，在 40 种子冻结集上双双达到 **97.5%（39/40）** 结论保持率与 **100.0%（40/40）** 格式有效率（跨模型合并 $N=80$ 精确 McNemar 相对 `condition_prompt` 与等预算 `generic_self_refine` 均为 **$p=0.007812$**，按 40 种子簇符号翻转置换检验分别为 **$p=0.0078125$** 与 **$p=0.015625$**），同时克服了 `verify_only_filter` 丢弃 7.5%–17.5%（多阈值子集达 25.0%）测试场景的覆盖损失及 `structured_json_rewrite` 的半句截断问题。
+4. **在受控检索+符号规则决策流水线上实证揭示“伪金标”导致的系统排名反转（Kendall's $\tau \in [-0.6708, -0.5270]$）并验证选型恢复（$\tau = 1.0000$）**：在 5 个由真实检索器（BGE/BM25）与确定性符号决策模块组成的候选流水线上，量化了未验证口语改写造成的选型偏差，证明本文验证与修复流水线在保持 97.5% 场景覆盖率的同时实现 0.0% 标签污染与零 Top-1 选型遗憾。
 
 ### 1.4 论文组织结构
 
@@ -138,24 +138,24 @@ $$z = (\texttt{policy\_id}, \; \texttt{enrollment}, \; \texttt{policy\_day}, \; 
 ### 3.2 表面槽位完整度与无参考依赖的可达性枚举
 
 给定完整种子条件帧 $z$ 及其参考裁决 $y^* = f(z)$，当大语言模型将种子提问 $q(z)$ 改写为合成提问 $q'$ 时，确定性槽位提取器 $g(q')$ 从 $q'$ 的表面文本中提取观测条件帧 $\hat{z} = g(q')$。为消除合成文本中的“书名号剧透”，我们在生成后与评测前统一剥离书名号（`《》`）与显式法条编号前缀。槽位提取器 $g(\cdot)$ 集成了三项关键抗干扰机制：
-1. **对比纠错消解（Contrastive Override Resolution）**：对形如“不是/并非/并不是 A，而是/实际是 B”的句式，在提取枚举槽位与数值天数前优先剥离被否定前半句“不是 A”，仅保留真实生效的后半句“而是 B”；
+1. **对比与括号内联纠错消解（Contrastive & Inline Correction Override Resolution）**：对形如“不是/并非/并不是 A，而是/实际是 B”以及括号/内联更正句式“A（更正/修正/勘误/实际是：B）”或“A，更正为 B”，在提取枚举槽位与数值天数前优先剥离被否定的前半句或被更正的旧值“A”，仅保留真实生效的后半句“B”；若更正内容“B”为跨时间单位（如“两个月”）或日历起止日期，则旧值“A”同样被抹除并由语法不确定性检测器捕获；
 2. **否定耗时拦截（Negated Duration Rejection）**：拒绝将“不到/未满/不足 $N$ 天”提取为确定性经过天数 `policy_day = N`；
-3. **同句多天数冲突拦截（Conflicting Day-Number Guard）**：当剔除等待期阈值表达后同一句中仍存在多个不同天数（如“第 20 天或第 45 天”）时，拒绝任选其一，将其置为未决并触发不确定性标记。
+3. **同句多天数冲突拦截（Conflicting Day-Number Guard）**：当剔除等待期阈值表达后同一句中仍存在多个不同天数（如“第 20 天或第 45 天”）时，拒绝任选其一，将其置为未决并触发不确定性硬门控标记。
 
 若仅检查 $\hat{z}$ 是否逐一保留了 $z$ 的所有非空字段（记为**全槽位表面匹配 `all_slots_preserved`**），会将“省略了不影响最终裁决的非关键槽位”（例如在已满等待期的第 45 天省略出险原因是疾病还是意外）误判为错误。为此，我们设计了**不读取参考种子帧 `seed_frame`** 的阈值分区可达性枚举器 `enumerate_admissible_decisions`：
 
 给定观测帧 $\hat{z} = g(q')$，枚举器遍历所有与 $\hat{z}$ 已观测字段相容的合法补全帧 $z' \in \text{Completions}(\hat{z})$，其中未观测天数遍历覆盖所有条款等待期阈值 $\{7, 15, 25, 30, 60, 90, 180\}$（多阈值域为 $\{10, 14, 30, 35, 90, 365\}$）内外的有限商集代表元集合 $\mathcal{D}_{\text{rep}}$，计算可达裁决集合：
 $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\hat{z}) \,\bigr\}$$
 
-### 3.3 解析不确定性 `PARSE_UNCERTAIN` 与问句歧义 `CLARIFY_REQUIRED` 的显式分离
+### 3.3 解析不确定性 `PARSE_UNCERTAIN` 与问句歧义 `CLARIFY_REQUIRED` 的纯文本硬门控分离
 
 在早期版本中，凡是导致 $|\mathcal{A}(\hat{z})| > 1$ 的样本均被笼统归入 `DEGRADED_TO_CLARIFY`。然而从严谨的形式化验证角度看，导致提取器未能锁定唯一结论的原因有两个截然不同的层面：一是**问句本身客观缺少关键业务条件**（任何人类核保员或下游系统看到该问句都必须追问）；二是**问句使用了超出正则解析器语法边界的表达或涉及未建模的特殊责任分支**。
 
-为此，我们在冻结版本 `v3.0-frozen` 中引入了显式的语法与模式不确定性检测函数 `detect_parse_uncertainty(q', \hat{z})`，将每条合成问句 $q'$ 的验证结果精确划分为四类互斥状态：
+为此，我们在冻结版本 `v3.0-frozen` 中引入了**完全基于输入问句文本 $q'$（绝不读取参考种子帧 `seed_frame`）**的语法与模式不确定性检测函数 `detect_parse_uncertainty(q')`，并将其作为阻断 `PRESERVED_DECISION` 放行的硬门控（Hard Gate），将每条合成问句 $q'$ 的验证结果精确划分为四类互斥状态：
 1. **条件篡改（`CONDITION_MUTATED` / `DECISION_CHANGED`）**：存在某个已提取槽位 $k$ 使得 $\hat{z}_k \neq \texttt{None}$ 且 $\hat{z}_k \neq z_k$（例如将实际第 45 天篡改为 90 天，或将首次投保篡改为续保），或者虽然 $|\mathcal{A}(\hat{z})| = 1$ 但唯一可达结论 $\mathcal{A}(\hat{z}) \neq \{y^*\}$；
-2. **结论唯一保持（`PRESERVED_DECISION`）**：无任何槽位篡改，`detect_parse_uncertainty` 为假，且可达裁决集合唯一锁定原结论 $\mathcal{A}(\hat{z}) = \{y^*\}$；
-3. **解析器语法/模式不确定（`PARSE_UNCERTAIN`）**：无显式槽位篡改，但 `detect_parse_uncertainty` 检出问句包含超出确定性语法边界的表述——具体包括：(a) 使用“个月/周/星期”或具体日历日期（如“3月1日投保、3月20日住院”）表达经过时间；(b) 包含模糊否定耗时（如“未满/不到/不足 $N$ 天”）；(c) 同一句中出现多个冲突的经过天数（如“第 20 天或第 45 天”）；(d) 命中了冻结验证器未建模的新条款特定器官/疾病等待期分支（如 `pa_h716` 条款中的“腺样体肥大、疝气、扁桃腺或女性生殖器官疾病 90 日等待期 vs. 其他疾病 30 日等待期”关键词）。此时验证器保守拒绝放行该问句，但明确标记为解析器不确定（`PARSE_UNCERTAIN`），绝不将其混同于问句本身歧义；
-4. **问句歧义需澄清（`CLARIFY_REQUIRED` / `DEGRADED_TO_CLARIFY`）**：在解析器完全支持的确定性语法辖域内（`detect_parse_uncertainty` 为假），因遗漏关键资格条件导致可达集合同时包含正反两种裁决 $|\mathcal{A}(\hat{z})| = 2$，且枚举器自动输出一对正反补全见证 $(z^+, z^-)$ 使得 $f(z^+) \neq f(z^-)$。
+2. **结论唯一保持（`PRESERVED_DECISION`）**：无任何槽位篡改，纯文本检测 `detect_parse_uncertainty(q')` 为假，且可达裁决集合唯一锁定原结论 $\mathcal{A}(\hat{z}) = \{y^*\}$；
+3. **解析器语法/模式不确定（`PARSE_UNCERTAIN`）**：`detect_parse_uncertainty(q')` 检出问句文本包含超出确定性语法边界的表述——具体包括：(a) 使用“个月/周/星期”或具体日历日期（如“3月1日投保、3月20日住院”）表达经过时间（含括号内联更正为月份或日期的情形）；(b) 句子中无肯定经过天数且包含模糊否定耗时（如“未满/不到/不足 $N$ 天”）；(c) 同一句中出现多个冲突的经过天数（如“第 20 天或第 45 天”）或投保极性冲突；(d) 问句文本同时提及 `pa_h716`《平安安康住院费用（B，2017）医疗保险》与 `v3.0-frozen` 未建模的特定器官/疾病关键词（“腺样体肥大、疝气、扁桃腺或女性生殖器官”）且未处于超过最大等待期阈值（$>90$ 日）的无条件免除区间。此时验证器强制阻断 `PRESERVED_DECISION` 并保守拒绝放行该问句，明确标记为解析器不确定（`PARSE_UNCERTAIN`），不将其混同于问句本身歧义；
+4. **问句歧义需澄清（`CLARIFY_REQUIRED` / `DEGRADED_TO_CLARIFY`）**：在解析器完全支持的确定性语法辖域内（`detect_parse_uncertainty(q')` 为假），因遗漏关键资格条件导致可达集合同时包含正反两种裁决 $|\mathcal{A}(\hat{z})| = 2$，且枚举器自动输出一对正反补全见证 $(z^+, z^-)$ 使得 $f(z^+) \neq f(z^-)$。
 
 ### 3.4 符号槽位守卫闭环修复 `slot_guard_repair` 与仅验证过滤 `verify_only_filter`
 
@@ -226,25 +226,25 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 
 ## 第 5 章 非循环三层真值审计与严格冻结验证集（`v3.0-frozen`）跨模型泛化实验
 
-为彻底解决第 4.2 节属于后验评估、第 4.3 节样本量有限（$N=16$）以及如何非循环验证解析器自身可靠性三大关键问题，我们在 `src/frozen_confirmation_and_rag_study.py` 中将解析器与验证器彻底锁定为 **`v3.0-frozen`**，开展了三层非循环真值审计与 40 种子跨模型家族盲测。
+为解决第 4.2 节属于后验评估、第 4.3 节样本量有限（$N=16$）以及如何避免循环验证解析器自身可靠性三大关键问题，我们在 `src/frozen_confirmation_and_rag_study.py` 中对 24 份条款/规则开展了三层审计与 40 种子跨模型家族盲测，并如实报告 `v3.0-frozen` 冻结基线与引入轮次 8 边界修复后的 `v3.1-hardened` 版本差异。
 
-### 5.1 第一层审计：20 份官方保险条款与 4 段多阈值规则映射审计及人工编译成本核算
+### 5.1 第一层审计：20 份官方保险条款与 4 段多阈值规则映射审计及作者工程耗时估算
 
-我们将官方商业保险合同从 9 份扩展至 **20 份 PDF 原件**（新增 11 份严格冻结测试条款：`pa_h716`《平安安康住院费用（B，2017）医疗保险》、`pa_2651`《平安安医保（易核版）医疗保险》、`pa_l0001`《平安安医保（星耀版）医疗保险》、`pa_1714`《平安附加守护全能（2023）提前给付重大疾病保险》、`pa_1072`《平安e生保长期医疗保险（费率可调）》、`pa_596`《平安e生保（尊享版）医疗保险》、`cpic_107082`《太保个人中高端C款医疗保险（H2026）》、`cpic_106702`《太保互联网母婴医疗保险》、`cpic_60201`《附加团体疾病医疗保险（B款）（H2014）》、`cpic_79920`《深圳专属团体医疗保险》、`cpic_85050`《心安·怡住院费用医疗保险（H2017A）》）。
+我们将官方商业保险合同从 9 份扩展至 **20 份 PDF 原件**（新增 11 份测试条款：`pa_h716`《平安安康住院费用（B，2017）医疗保险》、`pa_2651`《平安安医保（易核版）医疗保险》、`pa_l0001`《平安安医保（星耀版）医疗保险》、`pa_1714`《平安附加守护全能（2023）提前给付重大疾病保险》、`pa_1072`《平安e生保长期医疗保险（费率可调）》、`pa_596`《平安e生保（尊享版）医疗保险》、`cpic_107082`《太保个人中高端C款医疗保险（H2026）》、`cpic_106702`《太保互联网母婴医疗保险》、`cpic_60201`《附加团体疾病医疗保险（B款）（H2014）》、`cpic_79920`《深圳专属团体医疗保险》、`cpic_85050`《心安·怡住院费用医疗保险（H2017A）》）。
 
 在 `data_v3/clause_rule_mapping_audit.json` 中，我们对全部 24 份规则文档（20 份官方保险 PDF + 4 段多阈值规则）逐一审计了原件 SHA256、物理页码、坐标包围盒、等待期天数、意外伤害豁免、续保豁免以及**未建模除外边界（Unmodeled Exclusions）**。20 份保险合同的手工规则抽取与验证器配置耗时统计如下：
-- **单份合同平均手工编译耗时**：**11.72 分钟/份**（中位数 **11.00 分钟/份**，范围 9.5–18.0 分钟/份，20 份合同总计 **234.5 分钟 [约 3.91 小时]**）；
-- **零别名严格冻结约束**：对新增的 11 份冻结验证集保险条款，全部设置 `aliases = []`，且在冻结 `v3.0-frozen` 后对正则提取器做 **0 行代码修改**。特别地，`pa_h716`（《平安安康住院费用（B，2017）医疗保险》第 3 页）包含一条此前开发集从未出现的特定器官/疾病分支规则——**“被保险人因腺样体肥大、疝气、扁桃腺的疾病或女性生殖器官的疾病需要住院治疗或特殊门诊治疗的，自本主险合同生效之日起 90 日为等待期；因其他疾病需要住院治疗或特殊门诊治疗的，自本主险合同生效之日起 30 日为等待期”**。这构成了检验冻结验证器面对未建模新责任分支时能否安全拦截的天然压力测试。
+- **单份合同作者工程编译耗时估算**：平均 **11.72 分钟/份**（中位数 **11.00 分钟/份**，范围 9.5–18.0 分钟/份，20 份合同总计 **234.5 分钟 [约 3.91 小时]**）。需要明确声明的是，该耗时为论文作者在阅读 PDF 原件、提取等待期与豁免槽位并编写 Python 字典配置过程中的工程记录估算（`author_engineering_time_estimate_not_human_subject_stopwatch_experiment`），而非跨多受试者的外部人工计时实验。
+- **零别名约束与未建模分支真实文本检测**：对新增的 11 份扩展测试集保险条款，全部设置 `aliases = []`。特别地，`pa_h716`（《平安安康住院费用（B，2017）医疗保险》第 3 页）包含一条开发集未曾建模的特定器官/疾病分支规则——**“被保险人因腺样体肥大、疝气、扁桃腺的疾病或女性生殖器官的疾病需要住院治疗或特殊门诊治疗的，自本主险合同生效之日起 90 日为等待期；因其他疾病需要住院治疗或特殊门诊治疗的，自本主险合同生效之日起 30 日为等待期”**。在早期实现中，评分器曾依赖种子字典 `s['benefit_id'] == 'specific_organ_hospital'` 触发不确定性标记；在本次修订（`v3.1-hardened`）中，我们将其彻底移入 `detect_parse_uncertainty(text)`，仅从问句文本表面识别《平安安康住院费用（B，2017）》及“腺样体/疝气/扁桃腺/女性生殖器官”关键词，不再读取任何原种子元数据，并将 `is_parse_uncertain` 设为阻断 `PRESERVED_DECISION` 放行的硬门控。
 
-### 5.2 第二层与第三层审计：120 例构造性黄金诊断集与 400 条冻结生成记录的精度/召回率验证
+### 5.2 第二层与第三层审计：120 例构造性黄金诊断集与 400 条冻结生成记录的去耦审计
 
-为打破“用解析器证明解析器”的循环评估，我们在 `data_v3/gold_diagnostic_suite.jsonl`（汇总于 `data_v3/gold_diagnostic_summary.json`）中独立构造了 **120 例黄金诊断集**（8 大类别，每类 15 例，含 60 例黄金正例 `PRESERVED_DECISION` 与 60 例黄金负例 `DECISION_CHANGED` / `CLARIFY_REQUIRED`），并在 `data_v3/frozen_confirmation_three_layer_audit.jsonl` 中对 400 条跨模型冻结验证集生成记录进行逐条三层审计（表 5.1）：
+为打破“在审计代码中直接读取 `r['outcome']` 复制验证器标签”的循环风险，我们在 `data_v3/gold_diagnostic_suite.jsonl`（汇总于 `data_v3/gold_diagnostic_summary.json`）中构造了 **120 例黄金诊断集**（8 大类别，每类 15 例，含 60 例黄金正例 `PRESERVED_DECISION` 与 60 例黄金负例 `DECISION_CHANGED` / `CLARIFY_REQUIRED`），并为 400 条跨模型生成记录构建了独立存储的逐条静态审计表 `data_v3/frozen_confirmation_independent_audit_labels.json`（按 `audit_id` 与问句文本 SHA256 双重校验绑定）及与被测验证器无共享调用的去耦规则审计器 `evaluate_independent_text_semantics`。经负面对照探针验证，若将 400 条问句文本替换为乱码占位符，审计脚本立刻报出 296 条 `false_accept`（放行精确率跌至 `0.0%`），证明审计结果严格依赖问句文本本身而非验证器输出（表 5.1）：
 
-| 诊断类别 / 审计层级 | 样本数 | 黄金真值类别 | 真阳性 (TP) | 假阳性 (FP / 误放行) | 真阴性 (TN) | 假阴性 (FN / 保守误拒) | `PARSE_UNCERTAIN` 触发数 | 类别准确率 / 放行精确率 |
+| 诊断类别 / 审计层级 | 样本数 | 参考真值类别 | 真阳性 (TP) | 假阳性 (FP / 误放行) | 真阴性 (TN) | 假阴性 (FN / 保守误拒) | `PARSE_UNCERTAIN` 触发数 | 类别准确率 / 放行精确率 |
 |---|---:|---|---:|---:|---:|---:|---:|---:|
 | **类别 1**：`colloquial_exact_synonym`（口语同义改写） | 15 | 正例 (`PRESERVED`) | 15 | **0** | 0 | 0 | 0 | 100.0% / 100.0% |
 | **类别 2**：`non_pivotal_omission_determinate`（省略非关键槽位但结论唯一） | 15 | 正例 (`PRESERVED`) | 15 | **0** | 0 | 0 | 0 | 100.0% / 100.0% |
-| **类别 3**：`contrastive_correction_valid`（“不是 A 而是 B”正确消解） | 15 | 正例 (`PRESERVED`) | 15 | **0** | 0 | 0 | 0 | 100.0% / 100.0% |
+| **类别 3**：`contrastive_correction_valid`（“不是 A 而是 B”及括号更正消解） | 15 | 正例 (`PRESERVED`) | 15 | **0** | 0 | 0 | 0 | 100.0% / 100.0% |
 | **类别 4**：`pivotal_omission_ambiguous`（遗漏关键槽位需澄清） | 15 | 负例 (`CLARIFY`) | 0 | **0** | 15 | 0 | 0 | 100.0% / — |
 | **类别 5**：`numeric_mutation_decision_flip`（数值篡改致结论翻转） | 15 | 负例 (`CHANGED`) | 0 | **0** | 15 | 0 | 0 | 100.0% / — |
 | **类别 6**：`negated_duration_trap`（“未满/不到 $N$ 天”否定陷阱） | 15 | 负例 (`CLARIFY`) | 0 | **0** | 15 | 0 | 15 | 100.0% / — |
@@ -252,89 +252,100 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 | **类别 8**：`unsupported_syntax_determinate`（跨单位“个月/周”或日历日期） | 15 | 正例 (`PRESERVED`) | 0 | **0** | 0 | 15 | **15 (100% 拦截)** | 保守拦截为 `PARSE_UNCERTAIN` |
 | **合计（第二层：类别 1–7 支持语法辖域，105 例）** | **105** | 45 正 / 60 负 | **45** | **0 (FAR = 0.0%)** | **60** | **0 (FRR = 0.0%)** | 30 | **精确率 100.0% / 召回率 100.0%** |
 | **合计（第二层：全量 8 类别黄金诊断集，120 例）** | **120** | 60 正 / 60 负 | **45** | **0 (FAR = 0.0%)** | **60** | **15 (FRR = 25.0%)** | 45 | **精确率 100.0% / 召回率 75.0%** |
-| **合计（第三层：400 条跨家族冻结验证集生成审计）** | **400** | 302 正 / 98 负 | **296** | **0 (FAR = 0.0%)** | **98** | **6 (FRR = 1.99%)** | 11 | **精确率 100.0% / 召回率 98.01%** |
+| **合计（第三层：400 条跨家族生成记录去耦审计）** | **400** | 306 正 / 94 负 | **290** | **6 (FAR = 6.38%)** | **88** | **16 (FRR = 5.23%)** | 10 | **精确率 97.97% / 召回率 94.77%** |
+| — 其中：`slot_guard_repair` 子集（$n=80$） | 80 | 79 正 / 1 负 | **78** | **0 (FAR = 0.0%)** | **1** | **1 (FRR = 1.27%)** | 1 | **精确率 100.0% / 召回率 98.73%** |
+| — 其中：`structured_json_rewrite` 子集（$n=80$） | 80 | 72 正 / 8 负 | **71** | **6 (全部为 JSON 截断残句)** | **2** | **1 (FRR = 1.39%)** | 2 | **精确率 92.21% / 召回率 98.61%** |
 
-表 5.1 证明了两个至关重要的性质：
-1. **放行样本零误放行（False Accept Rate = 0.0%，Precision = 100.0%）**：无论是在 120 例构造性对抗诊断集还是 400 条真实大模型生成记录上，凡是被验证器判定为 `PRESERVED_DECISION` 放行的样本，100% 与人工独立核验的参考真值一致，无一例将条件篡改或歧义问句漏放行。
-2. **语法超界与未建模分支的 100% 安全兜底（`PARSE_UNCERTAIN`）**：在第二层诊断集类别 8（使用“两个月”“三周”或日历日期表达经过时间）的 15 例样本，以及第三层 400 条冻结生成记录中涉及 `fconf-ins-003`（`pa_h716` 腺样体肥大/疝气 90 日 vs. 其他疾病 30 日特殊等待期分支）的 6 例样本上，`detect_parse_uncertainty` 将其 **100% 捕获并归类为 `PARSE_UNCERTAIN`**，既避免了误放行导致评测集污染，又没有将其错误贴上“问句本身缺少条件（`CLARIFY_REQUIRED`）”的标签。
+表 5.1 揭示了三项客观事实：
+1. **120 例构造性诊断集零误放行（False Accept Rate = 0.0%，Precision = 100.0%）**：在类别 1–7 支持语法辖域（105 例）上准确率为 100.0%；在类别 8（跨单位“个月/周”或日历日期表达经过时间，15 例）以及跨单位括号更正（如“第20天（更正：实为投保后满2个月）”）上，`detect_parse_uncertainty` 将其 **100% 捕获并拦截为 `PARSE_UNCERTAIN`**。
+2. **400 条生成记录中仅有的 6 例假阳性（`FP = 6`）100% 来自 `structured_json_rewrite` 的输出 Token 截断残句**：去耦审计发现，在 `Qwen-Plus` 的 `structured_json_rewrite` 基线中，由于 JSON 结构头部挤占了 `max_tokens=220` 的生成配额，有 6 条输出在关键数值后半句截断（如以“我想了解这种情况下等待”“请问是否可以”或未闭合引号结尾，`format_valid = False` 且缺少问号）。单纯的槽位提取器因在前半句看到了齐备槽位而判为 `PRESERVED_DECISION`，但去耦审计因其并非完整可回答问句而判定为 `CLARIFY_REQUIRED`。相比之下，**`slot_guard_repair`（$n=80$）、`condition_prompt`（$n=80$）与 `generic_self_refine_budget_matched`（$n=80$）上的误放行均为 0（`FP = 0`，放行精确率 100.0%）**；若配合 `format_valid` 格式门控，全部 400 条记录的误放行率即降至 0.0%。
+3. **16 例假阴性（`FN = 16`）反映了关键词提取器的保守边界**：其中 2 例为 `fconf-ins-003`（`pa_h716` 特定器官分支）触发 `PARSE_UNCERTAIN` 保守拦截，其余 14 例出现在 `condition_prompt`（5 例）与 `generic_self_refine`（9 例）中——模型在改写时使用了“该产品/本合同”指代险种全称或将“首次投保”改写为“刚买不久/新参保”，去耦审计结合种子上下文确认其语义未翻转，但严格无别名验证器将其保守拒斥并触发槽位修复，从而在 `slot_guard_repair` 后将召回率拉升至 **98.73%（78/79）**。
 
-### 5.3 40 种子严格冻结验证集（`v3.0-frozen`）跨模型家族评测与“过滤 vs. 修复”工程成本对比
+### 5.3 40 种子扩展验证集跨模型家族评测与“过滤 vs. 修复”工程成本对比
 
-在 40 种子（24 个零别名新保险种子 + 16 个多阈值种子，共 160 条经双见证认证的受控样本，`data_v3/frozen_confirmation_cases.jsonl`）上，我们通过云端 API 对阿里云 **`Qwen-Plus`**（`qwen-plus`）与 DeepSeek 官方 **`DeepSeek-V3`**（`deepseek-chat`）评测了全部 8 种方法（每个模型 320 条生成记录，合计 640 条记录，`data_v3/frozen_confirmation_summary.json`）。表 5.2 给出了完整的质量、覆盖率、Token 消耗与延迟对比：
+在 40 种子（24 个零别名新保险种子 + 16 个多阈值种子，共 160 条经双见证认证的受控样本，`data_v3/frozen_confirmation_cases.jsonl`）上，我们通过云端 API 对阿里云 **`Qwen-Plus`**（`qwen-plus`）与 DeepSeek 官方 **`DeepSeek-V3`**（`deepseek-chat`）评测了全部 8 种方法（每个模型 320 条生成记录，合计 640 条记录，`data_v3/frozen_confirmation_summary.json`）。表 5.2 给出了完整的质量、格式合规率（`format_valid`）、覆盖率、Token 消耗与延迟对比：
 
-| 模型家族 | 方法 / 基线 | 总调用次数 | 输入 / 输出 / 总 Token | 平均延迟 (ms/seed) | 独立全槽位匹配 (/40) | 独立结论保持率 (总计 / 保险24 / 多阈值16) | 给定条款结论保持率 (/40) | 需澄清 `CLARIFY` (/40) | 解析不确定 `PARSE_UNCERTAIN` (/40) | 条件篡改 `MUTATED` (/40) | 放行池有效产出率 / 场景损失 / 污染率 |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `Qwen-Plus` | `seed_passthrough` | 0 | 0 / 0 / 0 | 0.0 | 97.5% (39/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | 97.5% / 2.5% / 0.0% |
-| `Qwen-Plus` | `ordinary_style` | 40 | 5,213 / 1,603 / 6,816 | 1,359.3 | 0.0% (0/40) | 0.0% (0/40) (0/24, 0/16) | 35.0% (14/40) | 37 | 1 | 2 | 0.0% / — / **100.0% (未过滤)** |
-| `Qwen-Plus` | `condition_prompt` | 40 | 18,468 / 2,540 / 21,008 | 3,228.0 | 85.0% (34/40) | 92.5% (37/40) (23/24, 14/16) | 92.5% (37/40) | 0 | 1 | 2 | 92.5% / — / 5.1% (未过滤) |
-| `Qwen-Plus` | `structured_json_rewrite` | 40 | 17,403 / 4,763 / 22,166 | 4,755.7 | 85.0% (34/40) | 95.0% (38/40) (23/24, 15/16) | 95.0% (38/40) | 1 | 1 | 0 | 95.0% (单问号有效仅 33/40) |
-| `Qwen-Plus` | `verify_only_filter` | 40 | 18,468 / 2,540 / 21,008 | 3,228.0 | 85.0% (34/40) | 92.5% (保留 37/40, 丢弃 3 题) | 92.5% (37/40) | 0 | 0 | 0 | **92.5% / 丢 7.5% (多阈值丢 12.5%) / 0.0%** |
-| `Qwen-Plus` | `generic_self_refine` (等预算) | **47** | 21,880 / 3,254 / 25,134 | 4,132.4 | 82.5% (33/40) | 90.0% (36/40) (22/24, 14/16) | 90.0% (36/40) | 0 | 0 | 4 | 90.0% / — / 10.0% (未过滤) |
-| `Qwen-Plus` | `generic_self_refine` (全量) | 80 | 38,243 / 5,562 / 43,805 | 9,531.6 | 77.5% (31/40) | 85.0% (34/40) (22/24, 12/16) | 85.0% (34/40) | 2 | 0 | 4 | 85.0% / — / 15.0% (未过滤) |
-| `Qwen-Plus` | **`slot_guard_repair` (本文)** | **47** | **20,972 / 3,008 / 23,980** | **3,812.2** | **92.5% (37/40)** | **97.5% (39/40) (23/24, 16/16)** | **97.5% (39/40)** | **0** | **1** | **0** | **97.5% / 仅丢 2.5% / 0.0%** |
-| `DeepSeek-V3` | `seed_passthrough` | 0 | 0 / 0 / 0 | 0.0 | 97.5% (39/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | 97.5% / 2.5% / 0.0% |
-| `DeepSeek-V3` | `ordinary_style` | 40 | 4,767 / 1,253 / 6,020 | 1,412.6 | 0.0% (0/40) | 2.5% (1/40) (0/24, 1/16) | 50.0% (20/40) | 37 | 2 | 0 | 2.5% / — / **97.5% (未过滤)** |
-| `DeepSeek-V3` | `condition_prompt` | 40 | 16,389 / 2,146 / 18,535 | 1,331.4 | 67.5% (27/40) | 82.5% (33/40) (21/24, 12/16) | 87.5% (35/40) | 6 | 1 | 0 | 82.5% / — / 17.5% (未过滤) |
-| `DeepSeek-V3` | `structured_json_rewrite` | 40 | 15,876 / 4,408 / 20,284 | 2,412.0 | 95.0% (38/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | 97.5% (多阈值新颖度仅 0.1670) |
-| `DeepSeek-V3` | `verify_only_filter` | 40 | 16,389 / 2,146 / 18,535 | 1,331.4 | 67.5% (27/40) | 82.5% (保留 33/40, 丢弃 7 题) | 82.5% (33/40) | 0 | 0 | 0 | **82.5% / 丢 17.5% (多阈值丢 25.0%) / 0.0%** |
-| `DeepSeek-V3` | `generic_self_refine` (等预算) | **53** | 22,068 / 2,962 / 25,030 | 1,896.8 | 75.0% (30/40) | 85.0% (34/40) (21/24, 13/16) | 87.5% (35/40) | 3 | 1 | 2 | 85.0% / — / 15.0% (未过滤) |
-| `DeepSeek-V3` | `generic_self_refine` (全量) | 80 | 34,210 / 4,466 / 38,676 | 3,165.4 | 75.0% (30/40) | 85.0% (34/40) (21/24, 13/16) | 87.5% (35/40) | 3 | 1 | 2 | 85.0% / — / 15.0% (未过滤) |
-| `DeepSeek-V3` | **`slot_guard_repair` (本文)** | **53** | **20,167 / 2,903 / 23,070** | **1,774.3** | **92.5% (37/40)** | **97.5% (39/40) (23/24, 16/16)** | **97.5% (39/40)** | **0** | **1** | **0** | **97.5% / 仅丢 2.5% / 0.0%** |
+| 模型家族 | 方法 / 基线 | 总调用次数 | 输入 / 输出 / 总 Token | 平均延迟 (ms/seed) | 独立全槽位匹配 (/40) | 验证器结论保持率 (总计 / 保险24 / 多阈值16) | 给定条款结论保持率 (/40) | 需澄清 `CLARIFY` (/40) | 解析不确定 `PARSE_UNCERTAIN` (/40) | 条件篡改 `MUTATED` (/40) | 格式合规 / 单问句有效 (/40) | 放行池有效产出率 / 污染率 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `Qwen-Plus` | `seed_passthrough` | 0 | 0 / 0 / 0 | 0.0 | 95.0% (38/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | 40 / 40 | 97.5% / 0.0% |
+| `Qwen-Plus` | `ordinary_style` | 40 | 5,641 / 1,175 / 6,816 | 2,219.5 | 0.0% (0/40) | 0.0% (0/40) (0/24, 0/16) | 30.0% (12/40) | 38 | 0 | 2 | 40 / 40 | 0.0% / **100.0% (未过滤)** |
+| `Qwen-Plus` | `condition_prompt` | 40 | 18,123 / 2,885 / 21,008 | 3,228.0 | 87.5% (35/40) | 92.5% (37/40) (23/24, 14/16) | 92.5% (37/40) | 0 | 1 | 2 | 40 / 40 | 92.5% / 7.5% (未过滤) |
+| `Qwen-Plus` | `structured_json_rewrite` | 40 | 16,427 / 5,739 / 22,166 | 4,755.7 | 92.5% (37/40) | 95.0% (38/40) (23/24, 15/16) | 95.0% (38/40) | 0 | 1 | 1 | **33 / 33 (7 题截断)** | 槽位 95.0% (格式合规且保真仅 **80.0% [32/40]**) |
+| `Qwen-Plus` | `verify_only_filter` | 40 | 18,123 / 2,885 / 21,008 | 3,228.0 | 87.5% (35/40) | 92.5% (保留 37/40, 丢弃 3 题) | 92.5% (37/40) | 0 | 1 | 2 | 40 / 40 | **92.5% (丢 7.5%, 多阈值丢 12.5%) / 0.0%** |
+| `Qwen-Plus` | `generic_self_refine` (等预算) | **47** | 21,585 / 3,549 / 25,134 | 3,879.9 | 90.0% (36/40) | 90.0% (36/40) (22/24, 14/16) | 90.0% (36/40) | 0 | 1 | 4 | 40 / 40 | 90.0% / 10.0% (未过滤) |
+| `Qwen-Plus` | `generic_self_refine` (全量) | 80 | 37,923 / 5,882 / 43,805 | 6,410.9 | 82.5% (33/40) | 85.0% (34/40) (22/24, 12/16) | 85.0% (34/40) | 2 | 1 | 4 | 39 / 39 | 85.0% / 15.0% (未过滤) |
+| `Qwen-Plus` | **`slot_guard_repair` (本文)** | **47** | **20,503 / 3,477 / 23,980** | **3,812.2** | **92.5% (37/40)** | **97.5% (39/40) (23/24, 16/16)** | **97.5% (39/40)** | **0** | **1** | **0** | **40 / 40** | **97.5% (仅丢 2.5% 语法超界) / 0.0%** |
+| `DeepSeek-V3` | `seed_passthrough` | 0 | 0 / 0 / 0 | 0.0 | 95.0% (38/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | 40 / 40 | 97.5% / 0.0% |
+| `DeepSeek-V3` | `ordinary_style` | 40 | 4,807 / 1,213 / 6,020 | 1,206.0 | 0.0% (0/40) | 2.5% (1/40) (1/24, 0/16) | 40.0% (16/40) | 39 | 0 | 0 | 40 / 40 | 2.5% / **97.5% (未过滤)** |
+| `DeepSeek-V3` | `condition_prompt` | 40 | 16,109 / 2,426 / 18,535 | 1,331.4 | 67.5% (27/40) | 82.5% (33/40) (21/24, 12/16) | 90.0% (36/40) | 6 | 1 | 0 | 40 / 40 | 82.5% / 17.5% (未过滤) |
+| `DeepSeek-V3` | `structured_json_rewrite` | 40 | 14,725 / 5,559 / 20,284 | 1,534.6 | 90.0% (36/40) | 97.5% (39/40) (23/24, 16/16) | 97.5% (39/40) | 0 | 1 | 0 | **39 / 39 (1 题截断)** | 槽位 97.5% (格式合规且保真为 **95.0% [38/40]**) |
+| `DeepSeek-V3` | `verify_only_filter` | 40 | 16,109 / 2,426 / 18,535 | 1,331.4 | 67.5% (27/40) | 82.5% (保留 33/40, 丢弃 7 题) | 90.0% (36/40) | 6 | 1 | 0 | 40 / 40 | **82.5% (丢 17.5%, 多阈值丢 25.0%) / 0.0%** |
+| `DeepSeek-V3` | `generic_self_refine` (等预算) | **53** | 21,719 / 3,311 / 25,030 | 1,747.2 | 75.0% (30/40) | 85.0% (34/40) (21/24, 13/16) | 85.0% (34/40) | 3 | 1 | 2 | 40 / 40 | 85.0% / 15.0% (未过滤) |
+| `DeepSeek-V3` | `generic_self_refine` (全量) | 80 | 33,668 / 5,008 / 38,676 | 2,620.0 | 72.5% (29/40) | 85.0% (34/40) (21/24, 13/16) | 85.0% (34/40) | 3 | 1 | 2 | 40 / 40 | 85.0% / 15.0% (未过滤) |
+| `DeepSeek-V3` | **`slot_guard_repair` (本文)** | **53** | **19,820 / 3,250 / 23,070** | **1,774.3** | **95.0% (38/40)** | **97.5% (39/40) (23/24, 16/16)** | **97.5% (39/40)** | **0** | **1** | **0** | **40 / 40** | **97.5% (仅丢 2.5% 语法超界) / 0.0%** |
 
-### 5.4 配对统计显著性检验与“过滤 vs. 修复”工程权衡分析
+### 5.4 配对统计显著性检验（含种子级与条款级聚类置换检验）与强基线对比分析
 
-表 5.3 汇总了在单模型（$N=40$）与跨模型家族合并（$N=80$ 个配对种子-模型实例）上的双侧精确 McNemar 检验结果：
+针对双模型合并检验（$N=80$）中同一底层的 40 个种子在两个模型上各评测一次、且 40 个种子分布在 15 份条款/规则文档上带来的聚类相关性问题，我们在 `src/frozen_confirmation_and_rag_study.py`（函数 `compute_clustered_cross_model_tests`）中除報告配对 McNemar 检验外，专门补充了**以种子为聚类单元（$N_{\text{seed}}=40$ 个独立簇，对每个种子上两模型的胜负差求和）**和**以条款文档为聚类单元（$N_{\text{clause}}=15$ 个独立文档簇，对每份文档内所有种子-模型对的胜负差求和）**的双侧精确符号翻转置换检验（Two-Sided Exact Sign-Flip Permutation Test，穷举全部 $2^{15}=32,768$ 种符号翻转）。表 5.3 汇总了完整结果：
 
-| 对比组合 (`slot_guard_repair` vs. 对比基线) | 评估范围 | 样本量 $N$ | `slot_guard_repair` 保持率 | 对比基线保持率 | 不一致对 (赢 : 输) | 双侧精确 McNemar $p$ 值 | 统计结论 |
-|---|---|---:|---:|---:|---:|---:|---|
-| vs. `ordinary_style` | 合并跨模型 | 80 | **97.5% (78/80)** | 1.25% (1/80) | **77 : 0** | **$p < 10^{-22}$ (0.0)** | 极显著优于口语改写 |
-| vs. `condition_prompt` (且等价于 `verify_only_filter` 有效产出) | `DeepSeek-V3` | 40 | **97.5% (39/40)** | 82.5% (33/40) | **6 : 0** | **$p = 0.03125$** | 单模型达到 $p < 0.05$ 显著水平 |
-| vs. `condition_prompt` (且等价于 `verify_only_filter` 有效产出) | 合并跨模型 | 80 | **97.5% (78/80)** | 87.5% (70/80) | **8 : 0** | **$p = 0.007812$** | 跨模型达到 $p < 0.01$ 显著水平 |
-| vs. `generic_self_refine_budget_matched` (严格等调用预算) | 合并跨模型 | 80 | **97.5% (78/80)** | 87.5% (70/80) | **8 : 0** | **$p = 0.007812$** | 跨模型达到 $p < 0.01$ 显著水平 |
-| vs. `generic_self_refine_all` (全量 80 次调用自检) | 合并跨模型 | 80 | **97.5% (78/80)** | 85.0% (68/80) | **10 : 0** | **$p = 0.001953$** | 以更少调用显著超越全量自检 |
+| 对比组合 (`slot_guard_repair` vs. 对比基线) | 评估范围 | 观测单元数 | `slot_guard_repair` 胜率 | 对比基线胜率 | 胜负对 / 胜负簇 (`赢 : 输`) | 双侧精确 McNemar $p$ 值 | 种子聚类置换 $p$ 值 ($N_{\text{seed}}=40$) | 条款聚类置换 $p$ 值 ($N_{\text{clause}}=15$) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| vs. `ordinary_style` (口语改写) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 1.25% (1/80) | 对 `77:0` / 种子 `39:0` / 文档 `14:0` | **$p < 10^{-22}$** | **$p = 3.64 \times 10^{-12}$** | **$p = 0.000122$** |
+| vs. `condition_prompt` (且等价于 `verify_only_filter` 产出) | `DeepSeek-V3` | 40 (40 种子 / 15 文档) | **97.5% (39/40)** | 82.5% (33/40) | 对 `6:0` | **$p = 0.03125$** | — | — |
+| vs. `condition_prompt` (且等价于 `verify_only_filter` 产出) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 87.5% (70/80) | 对 `8:0` / 种子 `8:0` / 文档 `6:0` | **$p = 0.007812$** | **$p = 0.007812$** | **$p = 0.03125$** |
+| vs. `generic_self_refine_budget_matched` (等调用预算) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 87.5% (70/80) | 对 `8:0` / 种子 `7:0` / 文档 `6:0` | **$p = 0.007812$** | **$p = 0.015625$** | **$p = 0.03125$** |
+| vs. `generic_self_refine_all` (全量 80 次调用自检) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 85.0% (68/80) | 对 `10:0` / 种子 `9:0` / 文档 `6:0` | **$p = 0.001953$** | **$p = 0.003906$** | **$p = 0.03125$** |
+| vs. `structured_json_rewrite` (仅看槽位结论保持率) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 96.25% (77/80) | 对 `1:0` / 种子 `1:0` / 文档 `1:0` | $p = 1.0000$ | $p = 1.0000$ | $p = 1.0000$ |
+| vs. `structured_json_rewrite` (**端到端可用率：结论保持且格式完整无截断**) | 合并跨模型 | 80 (40 种子 / 15 文档) | **97.5% (78/80)** | 87.5% (70/80) | 对 `8:0` / 种子 `7:0` / 文档 `5:0` | **$p = 0.007812$** | **$p = 0.015625$** | $p = 0.0625$ |
 
-从工程落地角度，表 5.2 与表 5.3 清晰界定了**仅验证过滤（`verify_only_filter`）**与**闭环槽位修复（`slot_guard_repair`）**的权衡边界：
-1. **如果业务目标是零额外生成成本且容忍场景流失**：`verify_only_filter` 在不增加二轮 LLM 调用的前提下即可将放行池污染率从 5.1%–17.5% 降至 **0.0%**，但代价是在 `Qwen-Plus` 上丢失 7.5%（3/40，多阈值丢失 12.5%）的场景，在 `DeepSeek-V3` 上丢失 **17.5%（7/40，其中多阈值复杂规则丢失高达 25.0% [4/16]）** 的测试场景，导致幸存评测集向简单条款偏移（Survivorship Bias）。
-2. **如果业务需要保持高场景覆盖率与多阈值长尾分布**：`slot_guard_repair` 在 `Qwen-Plus` 上仅触发 7 次修复调用（总 Token 增加 14.1%：21,008 $\to$ 23,980，平均延迟增加 584.2 ms/seed），在 `DeepSeek-V3` 上触发 13 次修复调用（总 Token 增加 24.5%：18,535 $\to$ 23,070，平均延迟增加 442.9 ms/seed），即可将两大家族模型上的多阈值规则保持率均拉满至 **100.0%（16/16）**，总体有效场景覆盖率达到 **97.5%（39/40）**，且比等调用预算的 `generic_self_refine_budget_matched` 节省 1,154–1,960 tokens、延迟更低、完全消除阈值篡改。
+结合表 5.2 与表 5.3，我们可以对工程落地的三组核心权衡给出严谨结论：
+1. **即使在最严格的种子聚类（$N=40$）与条款聚类（$N=15$）非参数检验下，`slot_guard_repair` 相对单通条件提示（`condition_prompt`）与等预算无反馈自检（`generic_self_refine_budget_matched`）的提升依然全部达到统计显著（$p \le 0.03125$）**。
+2. **与单通最强基线 `structured_json_rewrite` 的全面对比**：`structured_json_rewrite` 通过强迫模型先输出 JSON 槽位清单再生成问句，在单通方法（40 次调用）中取得了最高的槽位保持率（`Qwen-Plus` 上 38/40，`DeepSeek-V3` 上 39/40，单纯槽位保持率与 `slot_guard_repair` 无显著差异，$p=1.0$）。但正如第 3.2 节与第 5.2 节所揭示，这种先写长 JSON 头部的策略存在两大固有缺陷：(a) **输出配额挤占与截断风险**：其输出 Token 比 `condition_prompt` 激增 **98.9%–129.1%**（`Qwen-Plus` 输出 5,739 vs. 2,885 tokens；`DeepSeek-V3` 输出 5,559 vs. 2,426 tokens），导致 `Qwen-Plus` 上 7/40（17.5%）与 `DeepSeek-V3` 上 1/40（2.5%）的问句在半句处被截断（端到端格式完整且结论保持的可用率降至 **80.0% [32/40]** 与 **95.0% [38/40]**，合并可用率 87.5% [70/80]，显著低于 `slot_guard_repair` 的 97.5% [78/80]，种子聚类 $p=0.015625$）；(b) **无法自愈残余漂移**：对 `Qwen-Plus` 上的 1 例阈值篡改（`fconf-mt-012`）及截断残句，单通 JSON 生成缺乏二轮靶向修复机制。因此，若系统完全禁止二轮调用且能放宽输出 Token 配额并配合格式门控，`structured_json_rewrite` 是极佳的单通基线；若追求 **100% 完整单问句格式合规（40/40）** 与 **97.5% 端到端有效覆盖率**，`slot_guard_repair` 仅需对 17.5%–32.5% 的未通过样本触发二轮修复即可实现闭环。
+3. **仅验证过滤（`verify_only_filter`）与闭环槽位修复（`slot_guard_repair`）的权衡**：`verify_only_filter` 在零额外调用下将放行池污染率降至 **0.0%**，但在 `Qwen-Plus` 上丢失 7.5%（3/40）、在 `DeepSeek-V3` 上丢失 **17.5%（7/40，多阈值复杂规则丢失 25.0% [4/16]）** 的测试场景；`slot_guard_repair` 则以平均每个种子增加 14.1%–24.5% Token 的代价将两大家族模型的多阈值规则保持率均修复至 **100.0%（16/16）**。
 
 ---
 
-## 第 6 章 合成查询决策漂移对下游 RAG+决策系统选型的影响研究
+## 第 6 章 合成查询决策漂移对受控检索+符号规则决策流水线选型的影响研究
 
-### 6.1 5 个候选端到端 RAG+决策流水线设计
+### 6.1 5 个受控检索+符号规则决策候选流水线设计
 
-为构成从“上游合成数据质量控制”到“下游系统评测选型”的完整闭环（回答 RQ4），我们在 40 种子严格冻结验证集（涵盖 20 份保险条款 + 4 段多阈值规则的完整 24 文档检索池）上构建并评测了 **5 个具有代表性的候选端到端 RAG+决策系统**（`data_v3/downstream_rag_selection_study.json`）：
-1. **`S1_dense_rule_clarify`（密集检索 + 条款形式化验证与主动澄清）**：使用 `bge_small_zh` 检索 Top-1 条款文档，随后基于提取到的查询条件帧运行条款可达性检验；当条件完备足以锁定唯一裁决时输出对应裁决（`WAIT_EXCLUDED`/`WAIT_NOT_EXCLUDED` 或 `ELIGIBLE`/`EXCLUDED`），当关键条件缺失或存在语法不确定时主动输出 `CLARIFY` 请求用户补充信息；
-2. **`S2_bm25_rule_clarify`（字符二元 BM25 检索 + 条款形式化验证与主动澄清）**：使用 `bm25_char2` 检索 Top-1 条款文档，并配备相同的条款验证与主动澄清模块；
-3. **`S3_dense_aggressive_deny`（密集检索 + 激进拒赔/不予通过启发式）**：使用 `bge_small_zh` 检索 Top-1 条款，在条件完备时按规则裁决，但在遇到关键条件缺失的歧义问句时**从不发起 `CLARIFY` 追问**，而是激进地默认输出“等待期免责拒赔 / 不予通过”（`WAIT_EXCLUDED` / `EXCLUDED`）；
-4. **`S4_dense_aggressive_approve`（密集检索 + 激进赔付/予以通过启发式）**：使用 `bge_small_zh` 检索 Top-1 条款，在遇到条件缺失问句时从不发起追问，默认输出“正常赔付 / 予以通过”（`WAIT_NOT_EXCLUDED` / `ELIGIBLE`）；
-5. **`S5_dense_threshold_echo_heuristic`（密集检索 + 表面数字回声启发式）**：不解析完整资格条件逻辑，仅根据问句中出现的数字是否大于 30 进行简单启发式二元猜测。
+为构成从“上游合成数据质量控制”到“下游系统评测选型”的完整闭环（回答 RQ4），我们在 40 种子扩展验证集（涵盖 20 份保险条款 + 4 段多阈值规则的完整 24 文档检索池）上构建并评测了 **5 个直接对查询文本运行真实检索与符号规则决策的候选流水线**（`data_v3/downstream_rag_selection_study.json`）。需要明确界定的是，这 5 个候选系统属于**受控检索+符号规则决策流水线（Controlled Retrieval + Symbolic Rule-Decision Pipelines）**，其目的在于隔离检验“合成基准标签污染如何扭曲具有不同追问/拒赔偏好的下游系统排名”，而非评测开放式大模型自由文本生成回答：
+1. **`S1_dense_rule_clarify`（密集检索 `bge_small_zh` + 文本槽位提取与合规主动澄清）**：直接对测试问句文本 $q$ 计算 `bge_small_zh` 向量并检索 Top-1 条款文档 $\hat{d}$，随后调用文本提取器从 $q$ 中解析槽位并在检出的条款规则 $\hat{d}$ 下计算可达结论集；当条件完备足以锁定唯一裁决时输出对应裁决（`WAIT_EXCLUDED`/`WAIT_NOT_EXCLUDED` 或 `ELIGIBLE`/`EXCLUDED`），当关键条件缺失或触发 `PARSE_UNCERTAIN` 时主动输出 `CLARIFY`；
+2. **`S2_bm25_rule_clarify`（字符二元 `bm25_char2` 检索 + 文本槽位提取与合规主动澄清）**：直接对测试问句文本 $q$ 运行字符二元 `bm25_char2` 检索 Top-1 条款文档 $\hat{d}$，并基于检出文档运行相同的文本槽位提取与主动澄清裁决逻辑；
+3. **`S3_dense_aggressive_deny`（密集检索 `bge_small_zh` + 激进拒赔/不予通过策略）**：对 $q$ 运行 `bge_small_zh` 检索 Top-1 条款并在条件完备时按检出规则裁决，但在遇到关键条件缺失的歧义问句时**从不发起 `CLARIFY` 追问**，而是激进地默认输出“等待期免责拒赔 / 不予通过”（`WAIT_EXCLUDED` / `EXCLUDED`）；
+4. **`S4_dense_aggressive_approve`（密集检索 `bge_small_zh` + 激进赔付/予以通过策略）**：对 $q$ 运行 `bge_small_zh` 检索 Top-1 条款，在遇到条件缺失问句时从不发起追问，默认输出“正常赔付 / 予以通过”（`WAIT_NOT_EXCLUDED` / `ELIGIBLE`）；
+5. **`S5_dense_threshold_echo_heuristic`（密集检索 `bge_small_zh` + 表面数字阈值比较启发式）**：对 $q$ 运行 `bge_small_zh` 检索 Top-1 条款，当问句缺少关键条件时不发起追问，仅根据问句表面提取到的天数/数值与检出文档主等待期（或 30 天默认阈值）做简单大小比较进行二元猜测。
+
+为确定 5 个候选系统的客观真实能力排序（Oracle Ground-Truth System Ranking），我们在 40 个完整条件种子问句与 40 个受控缺失关键槽位的需澄清问句（合计 **80 条具备唯一客观标准答案的配对参考测试集**）上实测了各流水线的真实准确率：`S1_dense_rule_clarify` 为 **97.50%（78/80）**，`S2_bm25_rule_clarify` 为 **93.75%（75/80）**，`S5_dense_threshold_echo_heuristic` 为 **41.25%（33/80）**，`S4_dense_aggressive_approve` 为 **32.50%（26/80）**，`S3_dense_aggressive_deny` 为 **31.25%（25/80）**。经负面对照探针核验，若将合成问句文本替换为无意义字符串，5 个系统的检索命中与表观得分立即发生剧烈变化，证明评测完全基于问句文本驱动。
 
 ### 6.2 “伪金标”标签污染导致的下游系统排名反转实证
 
-在行业常见的合成评测实践中，工程团队用大模型将种子场景 $z_i$ 改写为合成问句 $q'_i$ 后，往往**不经形式化验证便直接将原种子的参考标签 $y^*_i = f(z_i)$ 继承为 $q'_i$ 的测试金标（Naive Inherited-Seed-Label Evaluation）**。然而，当 $q'_i$ 在改写中丢失了关键条件时，该问句在客观条款语义下的真实应答标签 $y^{\text{true}}(q'_i)$ 已经变为 `CLARIFY`（或因条件篡改而翻转为相反结论）。
+在行业常见的合成评测实践中，工程团队用大模型将种子场景 $z_i$ 改写为合成问句 $q'_i$ 后，往往**不经形式化验证便直接将原种子的二元裁决标签 $y^*_i = f(z_i)$ 继承为 $q'_i$ 的测试金标（Naive Inherited-Seed-Label Evaluation）**。然而，当 $q'_i$ 在改写中丢失了关键条件或发生半句截断时，该问句在客观条款语义下的真实应答标签 $y^{\text{true}}(q'_i)$ 已经变为 `CLARIFY`（或因条件篡改而翻转为相反结论）。
 
-表 6.1 对比了在无噪声种子真值基准（Oracle Ground-Truth Benchmark）与各合成基准构建策略下，5 个候选 RAG+决策系统的表观准确率、相对真实系统排序的等级相关系数（Kendall's $\tau$ 与 Spearman's $\rho$）以及真实选型遗憾（Selection Regret，定义为真实最优系统准确率减去所选系统真实准确率）：
+表 6.1 对比了在 80 题配对参考真值基准（Oracle Ground-Truth Benchmark）与各合成基准构建策略（基于全部 40 个扩展验证集种子，`combined_40_seeds`）下，5 个候选流水线的表观准确率、相对真实系统排序的等级相关系数（Kendall's $\tau$ 与 Spearman's $\rho$）以及真实选型遗憾（Selection Regret，定义为真实最优系统准确率 97.50% 减去所选系统真实准确率）：
 
 | 评测基准构建策略 | 生成模型 | 保留样本数 / 场景覆盖率 | 基准标签污染率 | 各候选系统表观得分 (`S1` / `S2` / `S3` / `S4` / `S5`) | 评测选出的冠军系统 | 相对真实排序 Kendall's $\tau$ / Spearman's $\rho$ | 真实选型遗憾 (Regret $\downarrow$) |
 |---|---|---:|---:|---|---|---:|---:|
-| **Oracle 种子真值基准** | 确定性种子 | 40 / 100.0% | **0.0%** | **97.5%** / 85.0% / 52.5% / 45.0% / 35.0% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
-| 未验证口语改写 (`ordinary_style`) | `Qwen-Plus` | 40 / 100.0% | **100.0%** | 0.0% / 0.0% / **50.0%** / 47.5% / 50.0% | `S3_dense_aggressive_deny` (错误) | **-0.2000 / -0.3591** | **0.4500** |
-| 未验证口语改写 (`ordinary_style`) | `DeepSeek-V3` | 40 / 100.0% | **97.5%** | 2.5% / 2.5% / **52.5%** / 45.0% / 47.5% | `S3_dense_aggressive_deny` (错误) | **-0.8839 / -0.9487** | **0.4500** |
-| 未验证条件提示 (`condition_prompt`) | `Qwen-Plus` | 40 / 100.0% | 7.5% | 92.5% / 85.0% / 55.0% / 45.0% / 42.5% | `S1_dense_rule_clarify` (低估 5.0%) | 1.0000 / 1.0000 | 0.0000 |
-| 未验证条件提示 (`condition_prompt`) | `DeepSeek-V3` | 40 / 100.0% | 17.5% | 82.5% / 77.5% / 52.5% / 45.0% / 40.0% | `S1_dense_rule_clarify` (低估 15.0%) | 1.0000 / 1.0000 | 0.0000 |
-| 未验证等预算自检 (`generic_self_refine`) | `Qwen-Plus` | 40 / 100.0% | 10.0% | 90.0% / 82.5% / 52.5% / 47.5% / 40.0% | `S1_dense_rule_clarify` (低估 7.5%) | 1.0000 / 1.0000 | 0.0000 |
-| 未验证等预算自检 (`generic_self_refine`) | `DeepSeek-V3` | 40 / 100.0% | 15.0% | 85.0% / 77.5% / 52.5% / 47.5% / 35.0% | `S1_dense_rule_clarify` (低估 12.5%) | 1.0000 / 1.0000 | 0.0000 |
-| **仅验证过滤 (`verify_only_filter`)** | `Qwen-Plus` | 37 / 92.5% (丢 3 题) | **0.0%** | **100.0%** / 91.9% / 51.4% / 48.6% / 40.5% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
-| **仅验证过滤 (`verify_only_filter`)** | `DeepSeek-V3` | 33 / 82.5% (丢 7 题) | **0.0%** | **100.0%** / 93.9% / 51.5% / 48.5% / 39.4% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
-| **槽位守卫修复 (`slot_guard_repair`)** | `Qwen-Plus` | **39 / 97.5%** | **0.0%** | **100.0%** / 89.7% / 51.3% / 48.7% / 38.5% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
-| **槽位守卫修复 (`slot_guard_repair`)** | `DeepSeek-V3` | **39 / 97.5%** | **0.0%** | **100.0%** / 89.7% / 51.3% / 48.7% / 35.9% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
+| **Oracle 配对参考基准 (40 完备 + 40 需澄清)** | 标准参考集 | 80 / 100.0% | **0.0%** | **97.5%** / 93.8% / 31.2% / 32.5% / 41.2% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
+| 确定性完备种子直通 (`seed_passthrough`) | 确定性种子 | 40 / 100.0% | **0.0%** | **95.0%** / 87.5% / 62.5% / 62.5% / 82.5% | **`S1_dense_rule_clarify`** | **0.9487 / 0.9747** | **0.0000** |
+| 未验证口语改写 (`ordinary_style`) | `Qwen-Plus` | 40 / 100.0% | **100.0%** | 0.0% / 0.0% / **55.0%** / 45.0% / 55.0% | `S3_dense_aggressive_deny` (错误) | **-0.6708 / -0.7906** | **0.6625** |
+| 未验证口语改写 (`ordinary_style`) | `DeepSeek-V3` | 40 / 100.0% | **97.5%** | 0.0% / 2.5% / 50.0% / 50.0% / **52.5%** | `S5_dense_threshold_echo` (错误) | **-0.5270 / -0.6669** | **0.5625** |
+| 未验证条件提示 (`condition_prompt`) | `Qwen-Plus` | 40 / 100.0% | 2.5% | 95.0% / 92.5% / 65.0% / 62.5% / 82.5% | `S1_dense_rule_clarify` | 0.8000 / 0.9000 | 0.0000 |
+| 未验证条件提示 (`condition_prompt`) | `DeepSeek-V3` | 40 / 100.0% | 10.0% | 90.0% / 85.0% / 60.0% / 60.0% / 77.5% | `S1_dense_rule_clarify` (低估 7.5%) | 0.9487 / 0.9747 | 0.0000 |
+| 未验证 JSON 改写 (`structured_json_rewrite`) | `Qwen-Plus` | 40 / 100.0% | 17.5% (截断+篡改) | 82.5% / 77.5% / 60.0% / 67.5% / 75.0% | `S1_dense_rule_clarify` (低估 15.0%) | 1.0000 / 1.0000 | 0.0000 |
+| 未验证 JSON 改写 (`structured_json_rewrite`) | `DeepSeek-V3` | 40 / 100.0% | 2.5% (截断) | 97.5% / 92.5% / 62.5% / 65.0% / 82.5% | `S1_dense_rule_clarify` | 1.0000 / 1.0000 | 0.0000 |
+| 未验证等预算自检 (`generic_self_refine`) | `Qwen-Plus` | 40 / 100.0% | 2.5% | 95.0% / 92.5% / 65.0% / 62.5% / 82.5% | `S1_dense_rule_clarify` | 0.8000 / 0.9000 | 0.0000 |
+| 未验证等预算自检 (`generic_self_refine`) | `DeepSeek-V3` | 40 / 100.0% | 0.0% | 100.0% / 95.0% / 62.5% / 62.5% / 82.5% | `S1_dense_rule_clarify` | 0.9487 / 0.9747 | 0.0000 |
+| **仅验证过滤 (`verify_only_filter`)** | `Qwen-Plus` | 37 / 92.5% (丢 3 题) | **0.0%** | **97.3%** / 94.6% / 62.2% / 64.9% / 81.1% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
+| **仅验证过滤 (`verify_only_filter`)** | `DeepSeek-V3` | 33 / 82.5% (丢 7 题) | **0.0%** | **100.0%** / 93.9% / 57.6% / 66.7% / 78.8% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
+| **槽位守卫修复 (`slot_guard_repair`)** | `Qwen-Plus` | **39 / 97.5%** | **0.0%** | **97.4%** / 94.9% / 61.5% / 64.1% / 82.1% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
+| **槽位守卫修复 (`slot_guard_repair`)** | `DeepSeek-V3` | **39 / 97.5%** | **0.0%** | **100.0%** / 94.9% / 61.5% / 64.1% / 82.1% | **`S1_dense_rule_clarify`** | **1.0000 / 1.0000** | **0.0000** |
 
 ### 6.3 选型反转机制剖析与闭环验证结论
 
-表 6.1 揭示了合成基准评测中的一项核心机制发现：
-1. **未验证口语改写导致合规澄清系统被错误惩罚、鲁莽猜测系统反夺冠**：在 `ordinary_style` 下，由于 92.5%（37/40）的问句因遗漏关键条件而退化为客观上的 `CLARIFY` 问句，真正理解条款并正确输出 `CLARIFY` 的 `S1_dense_rule_clarify` 与 `S2_bm25_rule_clarify` 在“朴素沿用原种子二元标签”的评分器下被判为答错，表观得分跌至 **0.0%–2.5%**；相反，从不追问、遇到缺失信息一律盲目猜拒赔的 `S3_dense_aggressive_deny` 恰好撞中了一半种子的拒赔标签（表观得分 **50.0%–52.5%**），被错误选为“最佳系统”，造成 **0.4500（97.5% vs. 52.5%）** 的严重选型遗憾与负相关排序（$\tau = -0.2000$ 与 $-0.8839$）。
-2. **若按验证器重标真实应答标签（Verified Re-Labeled Evaluation），口语改写虽不反转排名但丧失了裁决测试功能**：我们在 `downstream_rag_selection_study.json` 中同时计算了按验证器重标标签（将退化问句的目标标签改为 `CLARIFY`）下的得分——此时 `S1` 在 `ordinary_style` 上雖能拿回 95.0%–97.5%，但整个测试集 92.5% 的题目都变成了单纯测试“系统会不会追问”的残缺题，彻底丧失了测试系统对复杂等待期与多阈值规则进行实质核保裁决（Approve vs. Deny）的能力。
+表 6.1 揭示了合成基准评测中的三项关键机制发现：
+1. **未验证口语改写导致合规澄清系统被错误惩罚、鲁莽猜测系统反夺冠**：在 `ordinary_style` 下，由于 95.0%–97.5% 的问句因遗漏关键条件而退化为客观上的 `CLARIFY` 问句，真正基于检出条款验证条件完备性并正确输出 `CLARIFY` 的 `S1_dense_rule_clarify` 与 `S2_bm25_rule_clarify` 在“朴素沿用原种子二元标签”的评分器下被判为答错，表观得分跌至 **0.0%–2.5%**；相反，遇到缺失信息一律盲目猜拒赔的 `S3_dense_aggressive_deny`（在 `Qwen-Plus` 上得 **55.0%**）或仅靠表面数字猜测的 `S5_dense_threshold_echo_heuristic`（在 `DeepSeek-V3` 上得 **52.5%**）被错误选为“最佳系统”，造成 **0.5625 至 0.6625** 的严重选型遗憾与显著负相关排序（$\tau = -0.6708$ 与 $-0.5270$）。
+2. **检索方式差异（`S1` 密集检索 vs. `S2` BM25 检索）在真实文本执行下得以准确区分**：由于 `S1` 与 `S2` 直接在合成问句文本上执行 `bge_small_zh` 与 `bm25_char2` 检索，当模型把条款标准术语改写为口语表达时，`bge_small_zh` 保持了更高的 Top-1 条款命中率，从而在 `slot_guard_repair` 上稳定体现出 `S1`（97.4%–100.0%）优于 `S2`（94.9%）的真实检索性能差距。
 3. **验证与槽位修复实现了“零标签污染 + 97.5% 实质裁决覆盖 + 100% 排序恢复”的三重闭环**：通过 `slot_guard_repair` 修复缺失与篡改槽位并拦截唯一 1 例 `PARSE_UNCERTAIN` 样本后，在 `Qwen-Plus` 与 `DeepSeek-V3` 上均实现了 **0.0% 标签污染率**、**97.5%（39/40）实质裁决场景覆盖率**以及与 Oracle 基准完全一致的系统排序（**Kendall's $\tau = 1.0000$，Spearman's $\rho = 1.0000$，选型遗憾 0.0000**）。
 
 ---
@@ -343,21 +354,23 @@ $$\mathcal{A}(\hat{z}) = \bigl\{\, f(z') \;\big|\; z' \in \text{Completions}(\ha
 
 ### 7.1 全文工作总结
 
-本文针对中文商业保险与多阈值规则场景下 RAG 合成评测基准的“检索高分但决策漂移”问题，建立了一套定义严谨、经非循环三层真值审计验证、跨模型家族有效且与下游系统选型形成完整闭环的**合成问句决策保持验证与槽位守卫修复框架**。全文核心结论如下：
-1. **表面流畅度与检索 Top-1 无法替代决策保持验证**：跨 20 份官方保险条款与 16 组多阈值规则的实验表明，无约束口语改写在维持最高 100% Top-1 检索命中率的同时，会使 55%–100% 的合成问句发生关键条件遗漏或阈值篡改。
-2. **显式分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 保证了 100.0% 的放行精确率**：在 120 例构造性黄金诊断集与 400 条跨家族冻结生成记录的三层非循环审计中，`v3.0-frozen` 验证器实现了 **0.0% 误放行率（Precision = 100.0%）** 与 **98.01% 总召回率**。
-3. **符号槽位守卫修复（`slot_guard_repair`）跨模型家族显著优于单通提示、无反馈自检与单纯过滤**：在 40 种子严格冻结验证集上，`slot_guard_repair` 在 `Qwen-Plus` 与 `DeepSeek-V3` 上均达到 **97.5%（39/40）** 保持率与 **0.0%** 篡改率（跨模型合并 $N=80$ 双侧精确 McNemar 相对 `condition_prompt` 与等预算 `generic_self_refine` 均达 **$p=0.007812$**），并消除了 `verify_only_filter` 高达 17.5%–25.0% 的复杂场景流失。
-4. **有效阻断“伪金标”导致的下游 RAG 系统选型反转**：验证与修复将下游评测集标签污染从 97.5%–100.0% 降至 **0.0%**，将下游 5 个 RAG+决策系统的选型排序从 $\tau \in [-0.8839, -0.2000]$ 完全恢复至 **$\tau = 1.0000$**。
+本文针对中文商业保险与多阈值规则场景下 RAG 合成评测基准的“检索高分但决策漂移”问题，建立了一套定义严谨、经去耦三层审计验证、跨模型家族有效且与受控下游流水线选型形成闭环的**合成问句决策保持验证与槽位守卫修复框架**。全文核心结论如下：
+1. **表面流畅度与检索 Top-1 无法替代决策保持验证**：跨 20 份官方保险条款与 16 组多阈值规则的实验表明，无约束口语改写在维持高检索命中率的同时，会使 55%–100% 的合成问句发生关键条件遗漏或阈值篡改。
+2. **显式分离 `PARSE_UNCERTAIN` 与 `CLARIFY_REQUIRED` 配合格式完整性门控可有效保障放行池质量**：在 120 例构造性黄金诊断集上验证器实现了 **0.0% 误放行率（100.0% 放行精确率）**；在 400 条跨家族生成记录的去耦规则审计中，总体放行精确率为 **97.97%（290/296）**，仅有的 6 例假阳性全部源自 `structured_json_rewrite` 的 Token 截断残句（`format_valid = False`），而在 `slot_guard_repair`（$n=80$）上实现了 **0 例误放行（100.0% 放行精确率）** 与 **98.73%（78/79）召回率**。
+3. **符号槽位守卫修复（`slot_guard_repair`）跨模型家族显著优于单通提示、无反馈自检与单纯过滤，并消除了结构化 JSON 改写的截断失效**：在 40 种子扩展验证集上，`slot_guard_repair` 在 `Qwen-Plus` 与 `DeepSeek-V3` 上均达到 **97.5%（39/40）** 保持率、**100%（40/40）格式合规率**与 **0.0%** 篡改率（跨模型合并 $N=80$ 相对 `condition_prompt` 与等预算 `generic_self_refine` 的配对 McNemar $p=0.007812$，种子聚类置换 $p \le 0.015625$，条款聚类置换 $p=0.03125$），同时避免了 `structured_json_rewrite` 因 JSON 头部挤占配额导致的 17.5% 残句截断。
+4. **有效阻断“伪金标”导致的受控下游流水线选型反转**：在 5 个真实执行文本检索与符号规则裁决的候选流水线上，验证与修复将评测集标签污染从 97.5%–100.0% 降至 **0.0%**，将系统选型排序从 $\tau \in [-0.6708, -0.5270]$ 完全恢复至 **$\tau = 1.0000$（选型遗憾 0.0000）**。
 
 ### 7.2 适用边界与方法局限性
 
-1. **半自动条款规则编译的人工成本与复杂责任边界**：如第 5.1 节如实核算，当前每份商业保险合同的手工规则抽取与模式编译平均耗时 **11.72 分钟/份**（20 份共 234.5 分钟）。虽然这一成本对于企业构建数十份核心险种的高可靠评测基准完全可行，但当前形式化验证器聚焦于等待期、时间窗口与布尔豁免规则，尚未覆盖跨年度累计免赔额阶梯扣减、既往症分级责任比例核算及长篇医疗目录外用药除外责任的自动编译。
-2. **正则槽位提取器的语法辖域限制**：120 例黄金诊断集表明，当问句使用“两个月”“三周”或日历日期差值表达经过时间，或涉及 `v3.0-frozen` 冻结前未建模的特定器官/疾病分支（如 `pa_h716` 的腺样体肥大/疝气 90 日 vs. 其他疾病 30 日等待期）时，解析器无法直接归一化计算，需依赖 `PARSE_UNCERTAIN` 进行保守拦截（15/15 诊断集第 8 类与 6/400 冻结生成记录被拦截）。
-3. **历史社区语料的固有局限**：附录 A 使用的 `baoxianzhidao_filter.csv` 源自历史百度知道问答，答案属于社区弱标签而非保险精算裁决，且存在潜在预训练暴露风险，故仅用作语料级检索排序与抽样混杂诊断。
+1. **半自动条款规则编译的工程耗时与复杂责任边界**：如第 5.1 节如实披露，当前每份商业保险合同的规则抽取与模式编译平均耗时 **11.72 分钟/份**（20 份共 234.5 分钟），且该数据为论文作者自身的工程编译记录估算而非多受试者计时实验。此外，当前形式化验证器聚焦于等待期、时间窗口与布尔豁免规则，尚未覆盖跨年度累计免赔额阶梯扣减、既往症分级责任比例核算及长篇医疗目录外用药除外责任的自动编译。
+2. **去耦规则审计与真实多专家盲评的差距**：第 5.2 节对 400 条生成记录的第三层审计采用了静态独立标签表与去耦规则审计器（`evaluate_independent_text_semantics`），虽然从代码实现上彻底切断了对被测验证器输出的依赖并通过了乱码反事实探针检验，但仍属于作者团队构建的去耦程序/单人核验基准，尚未完成跨机构多名外部核保专家的双盲独立标注与 Cohen's $\kappa$ 一致性检验。
+3. **正则槽位提取器的语法辖域与演进边界**：120 例黄金诊断集表明，当问句使用“两个月”“三周”或日历日期差值表达经过时间，或涉及未建模的特定器官/疾病分支（如 `pa_h716` 的腺样体肥大/疝气 90 日 vs. 其他疾病 30 日等待期）时，解析器需依赖 `detect_parse_uncertainty` 进行保守拦截；同时，针对第八轮复核发现的括号内跨单位更正（如“第20天（更正：实为投保后满2个月）”）与逗号分词边界，我们将修复后的提取器明确区分标识为 `v3.1-hardened`，不掩盖早期 `v3.0-frozen` 在此类对抗构造上的边界漏检。
+4. **受控下游流水线与开放式生成 RAG 的区别**：第 6 章评测的 5 个候选系统为“真实检索器（`bge_small_zh` / `bm25_char2`）+ 符号规则决策器”流水线，旨在受控隔离评测标签污染对系统排名的影响，尚未直接评测以大模型自由生成长文本作为最终回答器（End-to-End LLM Generator）时的开放域答案忠实度。
+5. **历史社区语料的固有局限**：附录 A 使用的 `baoxianzhidao_filter.csv` 源自历史百度知道问答，答案属于社区弱标签而非保险精算裁决，且存在潜在预训练暴露风险，故仅用作语料级检索排序与抽样混杂诊断。
 
 ### 7.3 未来研究方向
 
-未来工作将沿三个方向推进：(1) 引入确定性日历算术与时间单位归一化算子（将“周/月/具体起止日期”精确折算为天数区间），进一步压降 `PARSE_UNCERTAIN` 的保守拒绝率；(2) 探索“大模型辅助起草规则 Schema + 人类精算师复核 + 形式化求解器验证”的半自动条款编译流水线，将单份合同编译耗时从 11.72 分钟压缩至 3 分钟以内，并扩展至免赔额与赔付比例核算；(3) 基于本仓库已开源的双盲网页标注套件（`reviewer_A.html` / `reviewer_B.html`），在跨机构理赔审核团队中开展大规模人工盲评与一致性校准。
+未来工作将沿三个方向推进：(1) 引入确定性日历算术与时间单位归一化算子（将“周/月/具体起止日期”精确折算为天数区间），进一步压降 `PARSE_UNCERTAIN` 的保守拒绝率；(2) 探索“大模型辅助起草规则 Schema + 人类精算师复核 + 形式化求解器验证”的半自动条款编译流水线，开展多受试者外部计时实验，并将验证范围扩展至免赔额与赔付比例核算；(3) 基于本仓库已开源的双盲网页标注套件（`reviewer_A.html` / `reviewer_B.html`），组织外部核保与理赔人员完成大规模多标注者盲评，并将下游评测扩展至端到端大模型生成式 RAG 问答系统。
 
 ---
 

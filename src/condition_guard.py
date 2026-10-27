@@ -16,9 +16,25 @@ def chinese_number(text):
 
 
 def resolve_contrastive_and_negated_spans(text):
-    """Resolve explicit contrastive corrections ('不是/并非/并不是 A，而是/实际是 B')
+    """Resolve explicit contrastive corrections ('不是/并非/并不是 A，而是/实际是 B'),
+    parenthetical/inline corrections ('A（更正：B）' / 'A，更正为B'),
     and strip standalone negated duration phrases so negated numbers are not extracted as facts."""
     num_day_re = r'(?:第|满|达|已经|已)?\s*[0-9零〇一二两三四五六七八九十百]+\s*(?:天|日)'
+
+    def _replace_inline_correction(match):
+        prefix = match.group(1)
+        corr_span = (match.group(2) or match.group(3) or '').strip()
+        if re.match(r'^' + num_day_re, corr_span):
+            return prefix + corr_span
+        return corr_span
+
+    resolved = re.sub(
+        r'([^，。；！？,.;!?\d（(]{0,18}?)'
+        + num_day_re
+        + r'\s*(?:[（(]\s*(?:更正|修正|勘误|实为|实际(?:上)?(?:是|为)?)[：:]?\s*([^）)]+)[）)]|[，、；,]?\s*(?:更正|修正|勘误)(?:为|是|[：:])\s*([^，。；！？,.;!?]+))',
+        _replace_inline_correction,
+        text,
+    )
 
     def _replace_contrastive(match):
         prefix = match.group(1)
@@ -32,7 +48,7 @@ def resolve_contrastive_and_negated_spans(text):
         + num_day_re
         + r'(?:[，、；,]?\s*)(?:而是|实际是|其实是|实际上是|实为|却是|而是在|实际是在)([^，。；！？,.;!?]{1,24})',
         _replace_contrastive,
-        text,
+        resolved,
     )
     resolved = re.sub(
         r'(?:并不是|并非|不是|不到|未满|不足|未达|未达到|尚不足|不超|未超过)'
@@ -44,13 +60,15 @@ def resolve_contrastive_and_negated_spans(text):
     return resolved
 
 
-def detect_parse_uncertainty(text):
+def detect_parse_uncertainty(text, include_unmodeled_v3_0_branches=True):
     """Identify surface syntax patterns that exceed the deterministic day-slot regex grammar
     (e.g., non-day time units, calendar date spans, relative arithmetic against thresholds,
-    negated/approximate bounds without affirmative day counts, or conflicting multi-day values).
+    negated/approximate bounds without affirmative day counts, conflicting multi-day values,
+    or unmodeled sub-benefit branches in v3.0-frozen).
     Allows callers to separate parser syntax limitations (PARSE_UNCERTAIN) from genuine
-    business underspecification (DEGRADED_TO_CLARIFY)."""
+    business underspecification (DEGRADED_TO_CLARIFY) and blocks false accepts."""
     raw = compact(text)
+    resolved = resolve_contrastive_and_negated_spans(raw)
     num = r'[0-9零〇一二两三四五六七八九十百]+'
     reasons = []
     if re.search(
@@ -70,7 +88,7 @@ def detect_parse_uncertainty(text):
     ):
         reasons.append('relative_arithmetic_duration')
     if re.search(
-        r'(?:生效|停药|停用前序药物|术后|手术后|离职|解除劳动合同|知道权利受侵害)[^，。；！？]{0,18}?(?:第)?'
+        r'(?:生效|停药|停用前序药物|术后|手术后|离职|解除劳动合同|知道权利受侵害)[^，,。.;；!！?？]{0,18}?(?:第)?'
         + num
         + r'(?:天|日)\s*(?:或|还是|或者|以及|变成|改为|至|到)\s*(?:第)?'
         + num
@@ -78,7 +96,15 @@ def detect_parse_uncertainty(text):
         raw,
     ):
         reasons.append('conflicting_multi_day_values')
-    if re.search(
+    has_affirmative_day = bool(
+        re.search(
+            r'(?:生效|停药|停用前序药物|术后|手术后|离职|解除劳动合同|知道权利受侵害|未支付|未付|连续|距事故发生|事故发生后)[^，,。.;；!！?？]{0,16}?(?:第|满|达|已达|已经|已)?'
+            + num
+            + r'(?:天|日)',
+            resolved,
+        )
+    )
+    if not has_affirmative_day and re.search(
         r'(?:(?:保单生效|合同生效|生效|停用前序药物|停药|术后|手术后|离职|解除劳动合同)(?:后|算起|起|已经|已)?\s*(?:不到|未满|不足|未达|未达到|尚不足)\s*(?:第)?'
         + num
         + r'(?:天|日))|(?:'
@@ -88,10 +114,26 @@ def detect_parse_uncertainty(text):
         raw,
     ):
         reasons.append('negated_or_bounded_range_without_exact_day')
-    first = bool(re.search(r'(?:首次|第一次|头一次)(?:投保|购买|买)', raw))
-    new = bool(re.search(r'重新投保|再次投保|非连续投保', raw))
+    cleaned_enr = re.sub(
+        r'(?:(?:未|没|没有|并非|不是|非|无)[^，,。.;；!！?？]{0,18}?(?:重新投保|再次投保|非连续投保))'
+        r'|(?:(?:只有|除|仅)[^，,。.;；!！?？]{0,24}?(?:重新投保|再次投保)[^，,。.;；!！?？]{0,20}?无等待期)',
+        '',
+        raw,
+    )
+    first = bool(re.search(r'(?:首次|第一次|头一次)(?:投保|购买|买)', cleaned_enr))
+    new = bool(re.search(r'重新投保|再次投保|非连续投保', cleaned_enr))
     if first and new:
         reasons.append('contradictory_enrollment_polarity')
+    if (
+        include_unmodeled_v3_0_branches
+        and re.search(r'平安安康住院费用[（(]?B[，,]?2017[）)]?', raw)
+        and re.search(r'腺样体|疝气|扁桃腺|扁桃体|女性生殖器官', raw)
+        and not re.search(r'未说明是|未说明属于|未指明是', raw)
+    ):
+        day_m = re.findall(r'生效(?:算起|后|起)?(?:的)?(?:第)?(' + num + r')(?:天|日)', resolved)
+        day_val = chinese_number(day_m[0]) if len(day_m) == 1 else None
+        if day_val is None or day_val <= 90:
+            reasons.append('unmodeled_clause_benefit_branch')
     return {
         'is_parse_uncertain': bool(reasons),
         'reasons': reasons,
@@ -111,7 +153,7 @@ def extract_fields(text):
     fields['cause']='illness' if illness and not accident else 'accident' if accident and not illness else None
     number=r'([0-9零〇一二两三四五六七八九十百]+)'
     day=re.findall(r'生效(?:算起|后|起)?(?:的)?(?:第)?'+number+r'(?:天|日)',text)
-    if re.search(r'生效[^，。；！？]{0,18}?(?:第)?'+number+r'(?:天|日)\s*(?:或|还是|或者|以及|变成|改为)\s*(?:第)?'+number+r'(?:天|日)',text):
+    if re.search(r'生效[^，,。.;；!！?？]{0,18}?(?:第)?'+number+r'(?:天|日)\s*(?:或|还是|或者|以及|变成|改为)\s*(?:第)?'+number+r'(?:天|日)',text):
         day=[]
     fields['policy_day']=chinese_number(day[0]) if len(day)==1 else None
     wait=re.findall(r'(?:计划.{0,8}等待期(?:为|是)?|等待期为)'+number+r'(?:天|日)',text)

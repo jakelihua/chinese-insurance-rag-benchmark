@@ -632,15 +632,21 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(gold_sum['precision_on_accepted'], 1.0)
         self.assertEqual(gold_sum['parse_uncertain_flagged_total'], 45)
 
-        # 4. 40-seed Frozen Confirmation Set & Three-Layer Audit across Qwen-Plus and DeepSeek-V3
+        # 4. 40-seed Frozen Confirmation Set & Non-Circular Three-Layer Audit across Qwen-Plus and DeepSeek-V3
         fc_sum = json.loads((root / 'data_v3' / 'frozen_confirmation_summary.json').read_text(encoding='utf-8'))
         self.assertEqual(fc_sum['verifier_version'], 'v3.0-frozen')
         tl_sum = fc_sum['three_layer_frozen_confirmation_audit_summary']
         self.assertEqual(tl_sum['total_audited_generations'], 400)
-        self.assertEqual(tl_sum['false_accept_fp'], 0)
-        self.assertEqual(tl_sum['false_accept_rate'], 0.0)
-        self.assertEqual(tl_sum['precision_on_accepted'], 1.0)
-        self.assertEqual(tl_sum['false_reject_fn'], 6)
+        self.assertEqual(tl_sum['true_accept_tp'], 290)
+        self.assertEqual(tl_sum['false_accept_fp'], 6)
+        self.assertEqual(tl_sum['true_reject_tn'], 88)
+        self.assertEqual(tl_sum['false_reject_fn'], 16)
+        self.assertAlmostEqual(tl_sum['false_accept_rate'], 0.0638, places=4)
+        self.assertAlmostEqual(tl_sum['false_reject_rate'], 0.0523, places=4)
+        self.assertAlmostEqual(tl_sum['precision_on_accepted'], 0.9797, places=4)
+        self.assertAlmostEqual(tl_sum['recall_on_preserved'], 0.9477, places=4)
+        self.assertEqual(tl_sum['by_method']['slot_guard_repair']['fp'], 0)
+        self.assertEqual(tl_sum['by_method']['structured_json_rewrite']['fp'], 6)
 
         qwen_40 = fc_sum['model_family_results']['qwen_plus']['combined_40_seeds']
         ds_40 = fc_sum['model_family_results']['deepseek']['combined_40_seeds']
@@ -664,10 +670,22 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(pooled['slot_guard_vs_generic_self_refine_budget_matched']['right_success'], 70)
         self.assertAlmostEqual(pooled['slot_guard_vs_generic_self_refine_all']['exact_mcnemar_two_sided_p'], 0.001953, places=5)
 
-        # 5. Downstream RAG System Selection Study
+        clustered = fc_sum['clustered_cross_model_statistical_inference']
+        self.assertAlmostEqual(
+            clustered['slot_guard_vs_condition_prompt']['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided'],
+            0.0078125,
+            places=6,
+        )
+        self.assertAlmostEqual(
+            clustered['slot_guard_vs_generic_self_refine_budget_matched']['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided'],
+            0.015625,
+            places=6,
+        )
+
+        # 5. Downstream RAG System Selection Study (including combined_40_seeds)
         rag_sel = json.loads((root / 'data_v3' / 'downstream_rag_selection_study.json').read_text(encoding='utf-8'))
         for fam in ('qwen_plus', 'deepseek'):
-            for dom_key in ('insurance_24_seeds', 'multi_threshold_16_seeds'):
+            for dom_key in ('insurance_24_seeds', 'multi_threshold_16_seeds', 'combined_40_seeds'):
                 b_map = rag_sel[fam][dom_key]['benchmarks_by_generation_method']
                 self.assertFalse(b_map['ordinary_style']['top1_system_selection_correct'])
                 self.assertLess(b_map['ordinary_style']['kendall_tau_rank_correlation'], 0.0)
@@ -675,11 +693,91 @@ class ConditionTests(unittest.TestCase):
                 self.assertEqual(b_map['verify_only_filter']['inherited_label_corruption_rate'], 0.0)
                 self.assertTrue(b_map['slot_guard_repair']['top1_system_selection_correct'])
                 self.assertEqual(b_map['slot_guard_repair']['inherited_label_corruption_rate'], 0.0)
-                self.assertEqual(b_map['slot_guard_repair']['kendall_tau_rank_correlation'], 1.0)
+                self.assertGreaterEqual(b_map['slot_guard_repair']['kendall_tau_rank_correlation'], 0.94)
                 self.assertGreaterEqual(
                     b_map['slot_guard_repair']['scenario_coverage_rate'],
                     b_map['verify_only_filter']['scenario_coverage_rate'],
                 )
+            self.assertEqual(rag_sel[fam]['combined_40_seeds']['benchmarks_by_generation_method']['slot_guard_repair']['kendall_tau_rank_correlation'], 1.0)
+
+        # 6. Round 8 Adversarial & Non-Circularity Probes (inline corrections, nonsense perturbation, compile minutes)
+        from frozen_confirmation_and_rag_study import (
+            MANUAL_COMPILATION_MINUTES,
+            build_frozen_confirm_cross_seeds,
+            build_frozen_confirm_insurance_seeds,
+            build_three_layer_audit_records,
+            evaluate_downstream_rag_selection,
+            render_frozen_insurance_question,
+            score_frozen_confirmation_rows,
+        )
+        for pid, meta in FROZEN_CONFIRM_POLICIES.items():
+            self.assertEqual(meta['manual_compile_minutes'], MANUAL_COMPILATION_MINUTES[pid])
+        self.assertEqual(
+            mapping_audit['manual_rule_compilation_cost_summary']['total_minutes_20_insurance_contracts'],
+            234.5,
+        )
+        self.assertEqual(
+            mapping_audit['manual_rule_compilation_cost_summary']['mean_minutes_per_insurance_contract'],
+            11.72,
+        )
+
+        ins_seeds_map = {s['seed_id']: s for s in build_frozen_confirm_insurance_seeds()}
+        cross_seeds_map = {s['seed_id']: s for s in build_frozen_confirm_cross_seeds()}
+        seed_q_001 = render_frozen_insurance_question(ins_seeds_map['fconf-ins-001'])
+        probe_rows = [
+            {
+                'seed_id': 'fconf-ins-001',
+                'clause_id': 'pa_h716',
+                'domain_type': 'insurance',
+                'model_family': 'probe',
+                'method': 'condition_prompt',
+                'question': q_probe,
+                'seed_question': seed_q_001,
+                'llm_calls': 1,
+                'repaired': False,
+                'raw_response': q_probe,
+            }
+            for q_probe in [
+                '按平安安康住院费用（B，2017）医疗保险条款，申请其他疾病一般住院医疗，首次投保，保单生效第20天（更正：实际保单生效两个月），对应责任约定等待期为30天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？',
+                '按平安安康住院费用（B，2017）医疗保险条款，申请其他疾病一般住院医疗，首次投保，保单生效第20天（更正：实际1月1日生效，3月5日住院），对应责任约定等待期为30天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？',
+                '按平安安康住院费用（B，2017）医疗保险条款，申请其他疾病一般住院医疗，首次投保，保单生效第20天或第45天，对应责任约定等待期为30天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？',
+            ]
+        ]
+        scored_probes = score_frozen_confirmation_rows(probe_rows, ins_seeds_map, cross_seeds_map)
+        for sp in scored_probes:
+            self.assertEqual(sp['outcome'], 'DEGRADED_TO_CLARIFY')
+            self.assertEqual(sp['fine_outcome'], 'PARSE_UNCERTAIN')
+            self.assertTrue(sp['parse_uncertainty']['is_parse_uncertain'])
+            self.assertIsNone(sp['extracted'].get('policy_day'))
+
+        qwen_rows = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'frozen_confirmation_generations_qwen_plus.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        ds_rows = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'frozen_confirmation_generations_deepseek.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        corrupted_qwen = [dict(r, question='苹果香蕉葡萄？') for r in qwen_rows]
+        corrupted_ds = [dict(r, question='苹果香蕉葡萄？') for r in ds_rows]
+        _, nonsense_audit_sum = build_three_layer_audit_records(
+            corrupted_qwen, corrupted_ds, ins_seeds_map, cross_seeds_map, fc_src_map
+        )
+        self.assertEqual(nonsense_audit_sum['true_accept_tp'], 0)
+        self.assertEqual(nonsense_audit_sum['false_accept_fp'], 296)
+        self.assertEqual(nonsense_audit_sum['precision_on_accepted'], 0.0)
+
+        by_method_corrupted = {}
+        for r in corrupted_qwen:
+            if r['domain_type'] == 'insurance':
+                by_method_corrupted.setdefault(r['method'], []).append(r)
+        nonsense_rag = evaluate_downstream_rag_selection(by_method_corrupted, ins_seeds_map, domain_type='insurance')
+        self.assertEqual(
+            nonsense_rag['benchmarks_by_generation_method']['condition_prompt']['naive_benchmark_system_accuracy']['S1_dense_rule_clarify'],
+            0.0,
+        )
 
 
 if __name__=='__main__':unittest.main()

@@ -4,6 +4,7 @@
   "total_multi_threshold_rules": 4,
   "total_rule_documents": 24,
   "manual_rule_compilation_cost_summary": {
+    "measurement_basis": "author_engineering_time_estimate_not_human_subject_stopwatch_experiment",
     "mean_minutes_per_insurance_contract": 11.72,
     "min_minutes_per_insurance_contract": 9.5,
     "max_minutes_per_insurance_contract": 18.0,
