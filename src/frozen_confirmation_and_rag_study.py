@@ -2251,6 +2251,16 @@ def evaluate_combined_40seed_downstream_rag_selection(ins_rag, crs_rag):
     }
 
 
+def _format_p_val(p):
+    """Preserve scientific precision for very small p-values instead of rounding to 0.0."""
+    p_f = float(p)
+    if p_f == 0.0:
+        return 0.0
+    if p_f < 1e-6:
+        return float(f"{p_f:.6e}")
+    return round(p_f, 8)
+
+
 def exact_sign_flip_permutation_p(cluster_diffs):
     """Compute exact two-sided sign-flip permutation p-value and non-zero cluster sign test
     for clustered paired differences d_c (e.g., 40 seed clusters or 15 clause clusters)."""
@@ -2278,8 +2288,8 @@ def exact_sign_flip_permutation_p(cluster_diffs):
         dist = nxt
     tot_perms = 2 ** len(nz)
     extreme = sum(cnt for s_val, cnt in dist.items() if abs(s_val) >= obs_sum)
-    p_perm = round(float(extreme / tot_perms), 8)
-    p_sign = round(float(binomtest(pos_clusters, len(nz), 0.5).pvalue), 8)
+    p_perm = _format_p_val(extreme / tot_perms)
+    p_sign = _format_p_val(binomtest(pos_clusters, len(nz), 0.5).pvalue)
     return {
         'total_clusters': len(cluster_diffs),
         'nonzero_clusters': len(nz),
@@ -2315,7 +2325,7 @@ def paired_mcnemar_endpoint(rows, left, right, require_format_valid=True):
         'right_success': int(sum(right_map.values())),
         'left_only_wins': wins,
         'right_only_wins': losses,
-        'exact_mcnemar_two_sided_p': round(p_val, 8),
+        'exact_mcnemar_two_sided_p': _format_p_val(p_val),
     }
 
 
@@ -2372,8 +2382,8 @@ def holm_bonferroni_adjust(p_dict):
         p_adj = min(1.0, p_raw * (m - idx))
         running_max = max(running_max, p_adj)
         adjusted[k] = {
-            'raw_p': round(float(p_raw), 8),
-            'holm_adjusted_p': round(float(running_max), 8),
+            'raw_p': _format_p_val(p_raw),
+            'holm_adjusted_p': _format_p_val(running_max),
             'rank': idx + 1,
         }
     return adjusted
@@ -3321,11 +3331,21 @@ def main():
         'slot_guard_repair',
     ]
 
-    provider_api_meta_by_family = {'qwen_plus': {}, 'deepseek': {}}
+    provider_api_meta_by_family = {
+        'qwen_plus': {},
+        'deepseek': {},
+        'metadata_provenance_note': (
+            'In the historical confirmation and holdout JSONL files, raw_response, prompt_tokens, completion_tokens, '
+            'and latency_ms were captured at generation time, whereas the per-row api_meta dictionary '
+            '(recording requested_model, response_model, and system_fingerprint) was backfilled at the model-family '
+            'level from the author run record (`metadata_provenance="family_level_author_run_record_backfilled_per_row_without_request_id"`) '
+            'without per-request HTTP request_id or timestamp headers. Future live calls populate `api_meta` directly from HTTP responses.'
+        ),
+    }
     for r in scored_qwen + scored_deepseek + scored_fair_json + scored_uhold:
         fam_k = r.get('model_family')
         meta_k = r.get('api_meta') or {}
-        if fam_k in provider_api_meta_by_family and meta_k.get('response_model') and not provider_api_meta_by_family[fam_k]:
+        if fam_k in ('qwen_plus', 'deepseek') and meta_k.get('response_model') and not provider_api_meta_by_family[fam_k]:
             provider_api_meta_by_family[fam_k] = dict(meta_k)
     for fam_k in ('qwen_plus', 'deepseek'):
         if not provider_api_meta_by_family[fam_k] and _LAST_API_META.get(fam_k):
@@ -3529,7 +3549,7 @@ def main():
             json_day_eq_seed = 0
             json_day_changed = 0
             parsed_day_eq_seed = 0
-            parsed_day_none = 0
+            rendered_day_not_extracted = 0
             parsed_day_changed = 0
             rejected_cases = []
             for r in rows_d:
@@ -3539,6 +3559,7 @@ def main():
                 parsed_day = r['extracted'].get(day_key)
                 raw_text = r.get('raw_response', '')
                 json_day = None
+                j_obj = {}
                 m_j = re.search(r'\{[^\n]*\}', raw_text)
                 if m_j:
                     try:
@@ -3555,7 +3576,7 @@ def main():
                 if parsed_day == seed_day:
                     parsed_day_eq_seed += 1
                 elif parsed_day is None:
-                    parsed_day_none += 1
+                    rendered_day_not_extracted += 1
                 else:
                     parsed_day_changed += 1
 
@@ -3576,8 +3597,12 @@ def main():
                         'pair_id': f"{r['model_family']}:{r['seed_id']}",
                         'outcome': r['outcome'],
                         'json_day': json_day,
+                        'json_day_raw': j_obj.get('day'),
+                        'json_condition_raw': j_obj.get('condition') if 'condition' in j_obj else j_obj.get('cause'),
+                        'json_waiver_raw': j_obj.get('waiver'),
                         'seed_day': seed_day,
                         'parsed_day': parsed_day,
+                        'rendered_or_generated_question': r['question'],
                         'failure_category': cause_bucket,
                     })
             cat_counts = {}
@@ -3588,16 +3613,16 @@ def main():
                 'json_day_matches_seed_count': json_day_eq_seed,
                 'json_day_changed_from_seed_count': json_day_changed,
                 'parsed_day_matches_seed_count': parsed_day_eq_seed,
-                'parsed_day_none_due_to_nested_unit_string_in_json_day': parsed_day_none,
+                'rendered_elapsed_day_not_extracted': rendered_day_not_extracted,
                 'parsed_day_changed_from_seed_count': parsed_day_changed,
                 'rejected_count': len(rejected_cases),
                 'failure_category_counts': cat_counts,
                 'rejected_records': rejected_cases,
             }
         fair_structured_summary['implementation_and_protocol_audit'] = {
-            'structured_json_rewrite': 'Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); mean total tokens = 530.6.',
-            'structured_json_untruncated_320': 'Independent cloud API generation raising max_new_tokens from 160 to 320 under the identical two-line prompt; eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).',
-            'structured_json_schema_render': 'Post-hoc deterministic template rendering ablation (`render_question_from_extracted_json`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction errors.',
+            'structured_json_rewrite': 'Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); 80 cloud API calls (40 seeds x 2 model families), mean total tokens = 530.6.',
+            'structured_json_untruncated_320': 'Independent cloud API generation (`run_fair_structured_baselines_if_needed`) executing 80 requests (40 seeds x 2 model families) with `max_new_tokens=320` under the identical two-line prompt (26/80 raw responses match the 160-token run verbatim); eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).',
+            'structured_json_schema_render': 'Post-hoc deterministic template rendering ablation (`render_question_from_json_schema`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction and deterministic template-rendering/parser-matching errors.',
         }
         fair_structured_summary['failure_mechanism_decomposition'] = decomp
 

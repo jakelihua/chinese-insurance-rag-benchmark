@@ -11,14 +11,17 @@
       "requested_model": "qwen-plus",
       "response_model": "qwen-plus",
       "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-      "system_fingerprint": null
+      "system_fingerprint": null,
+      "metadata_provenance": "family_level_author_run_record_backfilled_per_row_without_request_id"
     },
     "deepseek": {
       "requested_model": "deepseek-chat",
       "response_model": "deepseek-flash",
       "endpoint": "https://api.deepseek.com/chat/completions",
-      "system_fingerprint": "e72d3c7f663d3e1383b00b3884cb4501"
-    }
+      "system_fingerprint": "e72d3c7f663d3e1383b00b3884cb4501",
+      "metadata_provenance": "family_level_author_run_record_backfilled_per_row_without_request_id"
+    },
+    "metadata_provenance_note": "In the historical confirmation and holdout JSONL files, raw_response, prompt_tokens, completion_tokens, and latency_ms were captured at generation time, whereas the per-row api_meta dictionary (recording requested_model, response_model, and system_fingerprint) was backfilled at the model-family level from the author run record (`metadata_provenance=\"family_level_author_run_record_backfilled_per_row_without_request_id\"`) without per-request HTTP request_id or timestamp headers. Future live calls populate `api_meta` directly from HTTP responses."
   },
   "study_scope": {
     "total_official_insurance_pdfs": 26,
@@ -273,7 +276,8 @@
         "requested_model": "qwen-plus",
         "response_model": "qwen-plus",
         "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-        "system_fingerprint": null
+        "system_fingerprint": null,
+        "metadata_provenance": "family_level_author_run_record_backfilled_per_row_without_request_id"
       },
       "insurance_24_seeds": {
         "seed_passthrough": {
@@ -1227,7 +1231,7 @@
             "fconf-cross-016"
           ],
           "right_only_wins": [],
-          "exact_mcnemar_two_sided_p": 0.0
+          "exact_mcnemar_two_sided_p": 3.637979e-12
         },
         "slot_guard_vs_condition_prompt": {
           "endpoint": "format_and_slot",
@@ -1314,7 +1318,8 @@
         "requested_model": "deepseek-chat",
         "response_model": "deepseek-flash",
         "endpoint": "https://api.deepseek.com/chat/completions",
-        "system_fingerprint": "e72d3c7f663d3e1383b00b3884cb4501"
+        "system_fingerprint": "e72d3c7f663d3e1383b00b3884cb4501",
+        "metadata_provenance": "family_level_author_run_record_backfilled_per_row_without_request_id"
       },
       "insurance_24_seeds": {
         "seed_passthrough": {
@@ -2267,7 +2272,7 @@
             "fconf-cross-016"
           ],
           "right_only_wins": [],
-          "exact_mcnemar_two_sided_p": 0.0
+          "exact_mcnemar_two_sided_p": 7.275958e-12
         },
         "slot_guard_vs_condition_prompt": {
           "endpoint": "format_and_slot",
@@ -2357,8 +2362,8 @@
         "positive_clusters": 39,
         "negative_clusters": 0,
         "observed_sum_diff": 77,
-        "exact_sign_flip_p_two_sided": 0.0,
-        "cluster_sign_test_p_two_sided": 0.0
+        "exact_sign_flip_p_two_sided": 3.637979e-12,
+        "cluster_sign_test_p_two_sided": 3.637979e-12
       },
       "clause_clustered_15_documents": {
         "total_clusters": 15,
@@ -2377,8 +2382,8 @@
             "positive_clusters": 39,
             "negative_clusters": 0,
             "observed_sum_diff": 77,
-            "exact_sign_flip_p_two_sided": 0.0,
-            "cluster_sign_test_p_two_sided": 0.0
+            "exact_sign_flip_p_two_sided": 3.637979e-12,
+            "cluster_sign_test_p_two_sided": 3.637979e-12
           },
           "clause_clustered_15_documents": {
             "total_clusters": 15,
@@ -2397,8 +2402,8 @@
             "positive_clusters": 39,
             "negative_clusters": 0,
             "observed_sum_diff": 77,
-            "exact_sign_flip_p_two_sided": 0.0,
-            "cluster_sign_test_p_two_sided": 0.0
+            "exact_sign_flip_p_two_sided": 3.637979e-12,
+            "cluster_sign_test_p_two_sided": 3.637979e-12
           },
           "clause_clustered_15_documents": {
             "total_clusters": 15,
@@ -2668,8 +2673,8 @@
   "holm_bonferroni_multiple_testing_summary": {
     "mcnemar_80_pairs_format_and_slot": {
       "slot_guard_vs_ordinary": {
-        "raw_p": 0.0,
-        "holm_adjusted_p": 0.0,
+        "raw_p": 1.323489e-23,
+        "holm_adjusted_p": 5.293956e-23,
         "rank": 1
       },
       "slot_guard_vs_condition_prompt": {
@@ -2690,8 +2695,8 @@
     },
     "seed_clustered_40_seeds_format_and_slot": {
       "slot_guard_vs_ordinary": {
-        "raw_p": 0.0,
-        "holm_adjusted_p": 0.0,
+        "raw_p": 3.637979e-12,
+        "holm_adjusted_p": 1.455192e-11,
         "rank": 1
       },
       "slot_guard_vs_condition_prompt": {
@@ -2735,8 +2740,8 @@
     "exploratory_6_comparisons_including_fair_structured": {
       "mcnemar_80_pairs_format_and_slot": {
         "slot_guard_vs_ordinary": {
-          "raw_p": 0.0,
-          "holm_adjusted_p": 0.0,
+          "raw_p": 1.323489e-23,
+          "holm_adjusted_p": 7.940934e-23,
           "rank": 1
         },
         "slot_guard_vs_condition_prompt": {
@@ -2767,8 +2772,8 @@
       },
       "seed_clustered_40_seeds_format_and_slot": {
         "slot_guard_vs_ordinary": {
-          "raw_p": 0.0,
-          "holm_adjusted_p": 0.0,
+          "raw_p": 3.637979e-12,
+          "holm_adjusted_p": 2.182787e-11,
           "rank": 1
         },
         "slot_guard_vs_condition_prompt": {
@@ -2919,7 +2924,7 @@
         "deepseek:fconf-cross-016"
       ],
       "right_only_wins": [],
-      "exact_mcnemar_two_sided_p": 0.0
+      "exact_mcnemar_two_sided_p": 1.323489e-23
     },
     "slot_guard_vs_condition_prompt": {
       "endpoint": "format_and_slot",
@@ -3255,9 +3260,9 @@
       }
     },
     "implementation_and_protocol_audit": {
-      "structured_json_rewrite": "Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); mean total tokens = 530.6.",
-      "structured_json_untruncated_320": "Independent cloud API generation raising max_new_tokens from 160 to 320 under the identical two-line prompt; eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).",
-      "structured_json_schema_render": "Post-hoc deterministic template rendering ablation (`render_question_from_extracted_json`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction errors."
+      "structured_json_rewrite": "Original confirmation baseline with max_new_tokens=160 and two-line output (first-line JSON + QUESTION line); 80 cloud API calls (40 seeds x 2 model families), mean total tokens = 530.6.",
+      "structured_json_untruncated_320": "Independent cloud API generation (`run_fair_structured_baselines_if_needed`) executing 80 requests (40 seeds x 2 model families) with `max_new_tokens=320` under the identical two-line prompt (26/80 raw responses match the 160-token run verbatim); eliminates length truncation on Qwen-Plus (33/40 -> 38/40) and reaches 73/80 = 91.25% overall (mean total tokens = 533.5).",
+      "structured_json_schema_render": "Post-hoc deterministic template rendering ablation (`render_question_from_json_schema`) over the first-line JSON extracted from the 160-token `structured_json_rewrite` responses (80/80 shared `raw_response`, zero extra API calls, inherited mean total tokens = 530.6). Isolates free-text QUESTION line drafting errors from open-ended JSON slot value extraction and deterministic template-rendering/parser-matching errors."
     },
     "failure_mechanism_decomposition": {
       "structured_json_schema_render": {
@@ -3265,7 +3270,7 @@
         "json_day_matches_seed_count": 80,
         "json_day_changed_from_seed_count": 0,
         "parsed_day_matches_seed_count": 78,
-        "parsed_day_none_due_to_nested_unit_string_in_json_day": 2,
+        "rendered_elapsed_day_not_extracted": 2,
         "parsed_day_changed_from_seed_count": 0,
         "rejected_count": 10,
         "failure_category_counts": {
@@ -3279,80 +3284,120 @@
             "pair_id": "qwen_plus:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "无",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "我投保了平安安康住院费用（B，2017）医疗保险，申请腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗，属于首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
           },
           {
             "pair_id": "qwen_plus:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "因意外伤害无等待期",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "我投保了平安附加守护全能（2023）提前给付重大疾病保险，申请轻度疾病、中症疾病及重大疾病保险金，属于首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗，因意外伤害无等待期，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "qwen_plus:fconf-cross-005",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 5,
+            "json_day_raw": 5,
+            "json_condition_raw": "无活动性出血并发症",
+            "json_waiver_raw": "无",
             "seed_day": 5,
             "parsed_day": 5,
+            "rendered_or_generated_question": "按膝关节置换规定，路径内常规抗凝状态，目前已达第5天，无活动性出血并发症，请问当前是否符合该规程或条款的准入与解除条件？",
             "failure_category": "abbreviated_clause_title_in_json_clause_slot"
           },
           {
             "pair_id": "qwen_plus:fconf-cross-014",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 50,
+            "json_day_raw": 50,
+            "json_condition_raw": "事故发生在合理上下班途中，交警认定为非本人主要责任",
+            "json_waiver_raw": "无延期批准",
             "seed_day": 50,
             "parsed_day": 50,
+            "rendered_or_generated_question": "按工伤保险条例第十四条上下班途中交通事故工伤认定规范规定，能依法受理并认定为工伤，目前已达第50天，事故发生在合理上下班途中，交警认定为非本人主要责任，无延期批准，请问当前是否符合该规程或条款的准入与解除条件？",
             "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
           },
           {
             "pair_id": "deepseek:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病住院治疗",
+            "json_waiver_raw": "无",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "我投保了平安安康住院费用（B，2017）医疗保险，申请腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗，属于首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗住院治疗，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
           },
           {
             "pair_id": "deepseek:fconf-ins-007",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 40,
+            "json_day_raw": 40,
+            "json_condition_raw": "非意外疾病住院治疗",
+            "json_waiver_raw": "意外伤害、重新投保、指定产品首次投保",
             "seed_day": 40,
             "parsed_day": 40,
+            "rendered_or_generated_question": "我投保了平安安医保（星耀版）医疗保险，申请基本部分及可选特需医疗费用保险金，属于首次投保，保单生效第40天，对应责任约定等待期为30天，因非意外疾病住院治疗住院治疗，意外伤害、重新投保、指定产品首次投保，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "我投保了平安附加守护全能（2023）提前给付重大疾病保险，申请轻度疾病、中症疾病及重大疾病保险金，属于首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗，意外伤害无等待期，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-ins-017",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 10,
+            "json_day_raw": 10,
+            "json_condition_raw": "非意外疾病住院治疗",
+            "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 10,
             "parsed_day": 10,
+            "rendered_or_generated_question": "我投保了太保互联网母婴医疗保险，申请主被保险人妊娠并发症住院医疗及产后康复医疗保险金，属于首次投保，保单生效第10天，对应责任约定等待期为15天，因非意外疾病住院治疗住院治疗，意外伤害无等待期，请问该次医疗费用是否受等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-cross-011",
             "outcome": "CONDITION_MUTATED",
             "json_day": 105,
+            "json_day_raw": 105,
+            "json_condition_raw": "连续未支付经济补偿超过90天",
+            "json_waiver_raw": "无书面同意豁免逾期并补足补偿",
             "seed_day": 105,
             "parsed_day": null,
+            "rendered_or_generated_question": "按劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引规定，高级技术人员且负有保密义务，目前已达第105天，连续未支付经济补偿超过90天，无书面同意豁免逾期并补足补偿，请问当前是否符合该规程或条款的准入与解除条件？",
             "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
           },
           {
             "pair_id": "deepseek:fconf-cross-014",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 50,
+            "json_day_raw": 50,
+            "json_condition_raw": "合理上下班途中发生交通事故，交警认定为非本人主要责任",
+            "json_waiver_raw": "无延期批准",
             "seed_day": 50,
             "parsed_day": 50,
+            "rendered_or_generated_question": "按工伤保险条例第十四条上下班途中交通事故工伤认定规范规定，职工近亲属提出申请，目前已达第50天，合理上下班途中发生交通事故，交警认定为非本人主要责任，无延期批准，请问当前是否符合该规程或条款的准入与解除条件？",
             "failure_category": "5_field_multi_threshold_json_schema_missing_dedicated_threshold_days_slot"
           }
         ]
@@ -3362,7 +3407,7 @@
         "json_day_matches_seed_count": 80,
         "json_day_changed_from_seed_count": 0,
         "parsed_day_matches_seed_count": 80,
-        "parsed_day_none_due_to_nested_unit_string_in_json_day": 0,
+        "rendered_elapsed_day_not_extracted": 0,
         "parsed_day_changed_from_seed_count": 0,
         "rejected_count": 7,
         "failure_category_counts": {
@@ -3375,56 +3420,84 @@
             "pair_id": "qwen_plus:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "无",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "按平安安康住院费用（B，2017）医疗保险条款，申请腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗，首次投保，保单生效第45天，对应责任约定等待期为90天，因非意外疾病住院治疗，请问该次医疗费用是否因等待期（或疾病观察期）限制而不予理赔？",
             "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
           },
           {
             "pair_id": "qwen_plus:fconf-ins-006",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 12,
+            "json_day_raw": 12,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "保险公司审核同意免除等待期",
             "seed_day": 12,
             "parsed_day": 12,
+            "rendered_or_generated_question": "按平安安医保（易核版）医疗保险条款，重新投保且保险公司审核同意免除等待期的情况下，保单生效第12天因非意外疾病住院治疗，申请一般医疗保险金与重大疾病医疗保险金，该次医疗费用是否因30日等待期（或疾病观察期）限制而不予理赔？",
             "failure_category": "approved_waiver_phrasing_missing_explicit_approval_marker"
           },
           {
             "pair_id": "deepseek:fconf-ins-003",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "无",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "按平安安康住院费用（B，2017）医疗保险条款，首次投保，保单生效第45天，因非意外疾病申请腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗，对应责任约定等待期为90天且无等待期豁免，请问该次医疗费用是否因等待期限制而不予理赔？",
             "failure_category": "unmodeled_pa_h716_specific_organ_benefit_lexicon_in_v3_0_frozen"
           },
           {
             "pair_id": "deepseek:fconf-ins-007",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 40,
+            "json_day_raw": 40,
+            "json_condition_raw": "非意外疾病住院治疗",
+            "json_waiver_raw": "意外伤害、重新投保、指定产品首次投保",
             "seed_day": 40,
             "parsed_day": 40,
+            "rendered_or_generated_question": "我首次投保平安安医保（星耀版）医疗保险，保单生效第40天因非意外疾病住院治疗，想申请基本部分及可选特需医疗费用保险金，条款规定自合同生效当日起（含生效当日）30日为等待期，仅意外伤害、不迟于上一保险期间届满前重新投保且经审核同意、已投保指定产品并在指定期限内首次投保这三种情形无等待期，我的情况不在无等待期情形内，请问这次医疗费用是否会因30天等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-ins-009",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 45,
+            "json_day_raw": 45,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 45,
             "parsed_day": 45,
+            "rendered_or_generated_question": "我首次投保平安附加守护全能（2023）提前给付重大疾病保险，保单生效第45天因非意外疾病住院治疗，按90天等待期和意外伤害无等待期的规定，这次申请轻度疾病、中症疾病及重大疾病保险金会不会因等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-ins-015",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 22,
+            "json_day_raw": 22,
+            "json_condition_raw": "非意外疾病",
+            "json_waiver_raw": "意外伤害或经审核免除等待期",
             "seed_day": 22,
             "parsed_day": 22,
+            "rendered_or_generated_question": "我首次投保太保个人中高端C款医疗保险（H2026），保单生效第22天因非意外疾病住院治疗，想申请住院医疗及康复医疗保险金，这款保险的等待期是自合同生效之日起30日内（含第30日），且仅意外伤害或经审核免除等待期两种情形无等待期，请问这次医疗费用是否因30天等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           },
           {
             "pair_id": "deepseek:fconf-ins-017",
             "outcome": "DEGRADED_TO_CLARIFY",
             "json_day": 10,
+            "json_day_raw": 10,
+            "json_condition_raw": "非意外疾病住院治疗",
+            "json_waiver_raw": "意外伤害无等待期",
             "seed_day": 10,
             "parsed_day": 10,
+            "rendered_or_generated_question": "首次投保太保互联网母婴医疗保险，保单生效第10天因非意外疾病住院治疗，申请主被保险人妊娠并发症住院医疗及产后康复医疗保险金，该险种等待期为15日且意外伤害无等待期，请问这次医疗费用是否因等待期限制而不予理赔？",
             "failure_category": "waiver_slot_or_clause_echo_causing_polarity_cooccurrence_reject"
           }
         ]
@@ -3639,7 +3712,7 @@
           "deepseek:uhold-cross-012"
         ],
         "right_only_wins": [],
-        "exact_mcnemar_two_sided_p": 0.0
+        "exact_mcnemar_two_sided_p": 1.421085e-14
       },
       "slot_guard_vs_condition_prompt": {
         "endpoint": "format_and_slot",
@@ -3750,8 +3823,8 @@
           "positive_clusters": 24,
           "negative_clusters": 0,
           "observed_sum_diff": 47,
-          "exact_sign_flip_p_two_sided": 1.2e-07,
-          "cluster_sign_test_p_two_sided": 1.2e-07
+          "exact_sign_flip_p_two_sided": 1.192093e-07,
+          "cluster_sign_test_p_two_sided": 1.192093e-07
         },
         "clause_clustered_15_documents": {
           "total_clusters": 10,
@@ -3770,8 +3843,8 @@
               "positive_clusters": 24,
               "negative_clusters": 0,
               "observed_sum_diff": 47,
-              "exact_sign_flip_p_two_sided": 1.2e-07,
-              "cluster_sign_test_p_two_sided": 1.2e-07
+              "exact_sign_flip_p_two_sided": 1.192093e-07,
+              "cluster_sign_test_p_two_sided": 1.192093e-07
             },
             "clause_clustered_15_documents": {
               "total_clusters": 10,
@@ -3790,8 +3863,8 @@
               "positive_clusters": 24,
               "negative_clusters": 0,
               "observed_sum_diff": 47,
-              "exact_sign_flip_p_two_sided": 1.2e-07,
-              "cluster_sign_test_p_two_sided": 1.2e-07
+              "exact_sign_flip_p_two_sided": 1.192093e-07,
+              "cluster_sign_test_p_two_sided": 1.192093e-07
             },
             "clause_clustered_15_documents": {
               "total_clusters": 10,

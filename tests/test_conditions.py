@@ -632,7 +632,7 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(gold_sum['precision_on_accepted'], 1.0)
         self.assertEqual(gold_sum['parse_uncertain_flagged_total'], 45)
 
-        # 4. 40-seed Frozen Confirmation Set & Non-Circular Three-Layer Audit across Qwen-Plus and DeepSeek-V3
+        # 4. 40-seed Frozen Confirmation Set & Dual-Implementation Three-Layer Audit across Qwen-Plus and DeepSeek
         fc_sum = json.loads((root / 'data_v3' / 'frozen_confirmation_summary.json').read_text(encoding='utf-8'))
         self.assertEqual(fc_sum['verifier_version'], 'v3.0-frozen')
         tl_sum = fc_sum['three_layer_frozen_confirmation_audit_summary']
@@ -987,11 +987,37 @@ class ConditionTests(unittest.TestCase):
             fc_sum['provider_api_response_metadata']['deepseek']['response_model'],
             'deepseek-flash',
         )
+        self.assertEqual(
+            fc_sum['provider_api_response_metadata']['deepseek']['metadata_provenance'],
+            'family_level_author_run_record_backfilled_per_row_without_request_id',
+        )
+        self.assertIn('metadata_provenance_note', fc_sum['provider_api_response_metadata'])
+
+        # Verify non-zero scientific-precision p-values (never rounded to 0.0)
+        ord_mcn = fc_sum['pooled_cross_model_paired_mcnemar_80_seeds']['slot_guard_vs_ordinary']['exact_mcnemar_two_sided_p']
+        ord_seed = fc_sum['clustered_cross_model_statistical_inference']['slot_guard_vs_ordinary']['seed_clustered_40_seeds']['exact_sign_flip_p_two_sided']
+        self.assertGreater(ord_mcn, 0.0)
+        self.assertLess(ord_mcn, 1e-22)
+        self.assertGreater(ord_seed, 0.0)
+        self.assertLess(ord_seed, 1e-11)
+
+        proto = fc_sum['fair_structured_baseline_ablation_40_seeds']['implementation_and_protocol_audit']
+        self.assertIn('render_question_from_json_schema', proto['structured_json_schema_render'])
+        self.assertIn('80 requests (40 seeds x 2 model families)', proto['structured_json_untruncated_320'])
+
         decomp = fc_sum['fair_structured_baseline_ablation_40_seeds']['failure_mechanism_decomposition']
         self.assertEqual(decomp['structured_json_schema_render']['json_day_matches_seed_count'], 80)
         self.assertEqual(decomp['structured_json_schema_render']['json_day_changed_from_seed_count'], 0)
         self.assertEqual(decomp['structured_json_schema_render']['parsed_day_matches_seed_count'], 78)
-        self.assertEqual(decomp['structured_json_schema_render']['parsed_day_none_due_to_nested_unit_string_in_json_day'], 2)
+        self.assertEqual(decomp['structured_json_schema_render']['rendered_elapsed_day_not_extracted'], 2)
+        rec_011 = [
+            rc for rc in decomp['structured_json_schema_render']['rejected_records']
+            if rc['pair_id'] == 'deepseek:fconf-cross-011'
+        ][0]
+        self.assertEqual(rec_011['json_day_raw'], 105)
+        self.assertEqual(rec_011['json_condition_raw'], '连续未支付经济补偿超过90天')
+        self.assertIsNone(rec_011['parsed_day'])
+        self.assertIn('目前已达第105天', rec_011['rendered_or_generated_question'])
         self.assertEqual(
             decomp['structured_json_schema_render']['failure_category_counts'],
             {
