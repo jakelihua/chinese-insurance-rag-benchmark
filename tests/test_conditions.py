@@ -407,5 +407,27 @@ class ConditionTests(unittest.TestCase):
                     matched_pids.add(pid)
         self.assertEqual(matched_pids, set(all_sources.keys()))
 
+        # 4. Check word-for-word abstract alignment between draft_en.md and main.tex
+        import re
+        md_abs = re.search(
+            r'## Abstract\s+(.+?)\s+---',
+            (root / 'paper' / 'draft_en.md').read_text(encoding='utf-8'),
+            re.S,
+        ).group(1).strip()
+        tex_abs = re.search(
+            r'\\begin\{abstract\}\s+(.+?)\s+\\end\{abstract\}',
+            (root / 'paper' / 'overleaf_package' / 'main.tex').read_text(encoding='utf-8'),
+            re.S,
+        ).group(1).strip()
+        norm_tex = (
+            tex_abs.replace(r'\%', '%')
+            .replace(r'\text{--}', '–')
+            .replace('{,}', ',')
+            .replace('$', '')
+            .replace('p=0.125', 'p = 0.125')
+        )
+        self.assertEqual(md_abs, norm_tex)
+        self.assertLessEqual(len(md_abs.split()), 200)
+
 
 if __name__=='__main__':unittest.main()
