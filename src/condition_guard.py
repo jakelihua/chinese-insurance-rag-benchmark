@@ -18,7 +18,7 @@ def chinese_number(text):
 def resolve_contrastive_and_negated_spans(text):
     """Resolve explicit contrastive corrections ('不是/并非/并不是 A，而是/实际是 B')
     and strip standalone negated duration phrases so negated numbers are not extracted as facts."""
-    num_day_re = r'(?:第|满|达|已经)?\s*[0-9零〇一二两三四五六七八九十百]+\s*(?:天|日)'
+    num_day_re = r'(?:第|满|达|已经|已)?\s*[0-9零〇一二两三四五六七八九十百]+\s*(?:天|日)'
 
     def _replace_contrastive(match):
         prefix = match.group(1)
@@ -28,16 +28,74 @@ def resolve_contrastive_and_negated_spans(text):
         return aff_span
 
     resolved = re.sub(
-        r'(?:并不是|并非|不是)([^，。；！？,.;!?\d]{0,18}?)' + num_day_re + r'(?:[，、；,]?\s*)(?:而是|实际是|其实是|实际上是|而是在)([^，。；！？,.;!?]{1,24})',
+        r'(?:并不是|并非|不是|非但不是)([^，。；！？,.;!?\d]{0,18}?)'
+        + num_day_re
+        + r'(?:[，、；,]?\s*)(?:而是|实际是|其实是|实际上是|实为|却是|而是在|实际是在)([^，。；！？,.;!?]{1,24})',
         _replace_contrastive,
         text,
     )
     resolved = re.sub(
-        r'(?:并不是|并非|不是|不到|未满|不足)(?:保单生效|生效|停用前序药物|停药|术后|手术后|离职后|解除劳动合同后|距离|已经|已|满|达|第){0,2}\s*' + num_day_re,
+        r'(?:并不是|并非|不是|不到|未满|不足|未达|未达到|尚不足|不超|未超过)'
+        r'(?:保单生效|合同生效|生效|停用前序药物|停药|术后|手术后|离职后|解除劳动合同后|知道权利受侵害后|后|距离|已经|已|满|达|第){0,3}\s*'
+        + num_day_re,
         '',
         resolved,
     )
     return resolved
+
+
+def detect_parse_uncertainty(text):
+    """Identify surface syntax patterns that exceed the deterministic day-slot regex grammar
+    (e.g., non-day time units, calendar date spans, relative arithmetic against thresholds,
+    negated/approximate bounds without affirmative day counts, or conflicting multi-day values).
+    Allows callers to separate parser syntax limitations (PARSE_UNCERTAIN) from genuine
+    business underspecification (DEGRADED_TO_CLARIFY)."""
+    raw = compact(text)
+    num = r'[0-9零〇一二两三四五六七八九十百]+'
+    reasons = []
+    if re.search(
+        r'(?:生效|停药|停用前序药物|术后|手术后|离职|解除劳动合同|知道权利受侵害)(?:算起|后|起|满|已|已经)?(?:第)?'
+        + num
+        + r'(?:个星期|星期|周|个月|月|半年|年)',
+        raw,
+    ) or re.search(r'\d{1,2}月\d{1,2}[日号].{0,24}\d{1,2}月\d{1,2}[日号]', raw):
+        reasons.append('unsupported_time_unit_or_calendar_date')
+    if re.search(
+        r'(?:(?:比|较)(?:等待期|观察期|洗脱期|预防期|期限)(?:少|短|多|长|超|超出|早|晚)'
+        + num
+        + r'(?:天|日))|(?:(?:等待期|观察期|洗脱期|预防期)(?:刚过|届满后|满后|前)'
+        + num
+        + r'(?:天|日))',
+        raw,
+    ):
+        reasons.append('relative_arithmetic_duration')
+    if re.search(
+        r'(?:生效|停药|停用前序药物|术后|手术后|离职|解除劳动合同|知道权利受侵害)[^，。；！？]{0,18}?(?:第)?'
+        + num
+        + r'(?:天|日)\s*(?:或|还是|或者|以及|变成|改为|至|到)\s*(?:第)?'
+        + num
+        + r'(?:天|日)',
+        raw,
+    ):
+        reasons.append('conflicting_multi_day_values')
+    if re.search(
+        r'(?:(?:保单生效|合同生效|生效|停用前序药物|停药|术后|手术后|离职|解除劳动合同)(?:后|算起|起|已经|已)?\s*(?:不到|未满|不足|未达|未达到|尚不足)\s*(?:第)?'
+        + num
+        + r'(?:天|日))|(?:'
+        r'(?:不到|未满|不足|未达|未达到|尚不足)(?:保单生效|合同生效|生效|停用前序药物|停药|术后|手术后|离职后|解除劳动合同后|后|距离|已经|已|满|达|第){0,3}\s*'
+        + num
+        + r'(?:天|日))',
+        raw,
+    ):
+        reasons.append('negated_or_bounded_range_without_exact_day')
+    first = bool(re.search(r'(?:首次|第一次|头一次)(?:投保|购买|买)', raw))
+    new = bool(re.search(r'重新投保|再次投保|非连续投保', raw))
+    if first and new:
+        reasons.append('contradictory_enrollment_polarity')
+    return {
+        'is_parse_uncertain': bool(reasons),
+        'reasons': reasons,
+    }
 
 
 def extract_fields(text):

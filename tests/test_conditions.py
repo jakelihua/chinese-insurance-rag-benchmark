@@ -575,5 +575,111 @@ class ConditionTests(unittest.TestCase):
         self.assertIn('year={2015}', bib_text)
         self.assertIn('author={Divekar, Abhishek}', bib_text)
 
+    def test_masters_thesis_frozen_confirmation_and_rag_selection(self):
+        """Verify all Master's Thesis deliverables:
+        - PARSE_UNCERTAIN vs CLARIFY_REQUIRED separation
+        - 24-document Clause-to-Rule Mapping Audit (20 official insurance PDFs + 4 multi-threshold rules)
+        - 120-case Gold Diagnostic & Adversarial Suite (0.0% False Accept Rate)
+        - 40-seed Strictly Frozen Confirmation Set (v3.0-frozen, aliases=[] on all 11 new PDFs, 2 cloud model families)
+        - Downstream RAG System Evaluation & Selection impact
+        """
+        import json
+        from frozen_confirmation_and_rag_study import (
+            FROZEN_CONFIRM_POLICIES,
+            VERIFIER_VERSION,
+            detect_parse_uncertainty,
+        )
+
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(VERIFIER_VERSION, 'v3.0-frozen')
+        self.assertEqual(len(FROZEN_CONFIRM_POLICIES), 11)
+        fc_sources = json.loads((root / 'data_v3' / 'frozen_confirmation_sources.json').read_text(encoding='utf-8'))
+        fc_src_map = {s['id']: s for s in fc_sources}
+        for pid, meta in FROZEN_CONFIRM_POLICIES.items():
+            self.assertEqual(meta['aliases'], [], f'Frozen confirmation policy {pid} must have empty aliases')
+            self.assertIn(pid, fc_src_map)
+            self.assertEqual(len(fc_src_map[pid]['sha256']), 64)
+            self.assertGreaterEqual(fc_src_map[pid]['anchor']['pdf_page_1based'], 1)
+
+        # 1. PARSE_UNCERTAIN detection on month/week units, calendar spans, negated/conflicting durations
+        p_month = detect_parse_uncertainty('按《平安安康医疗保险（2018）》条款，我是首次投保，保单生效满两个月后因非意外疾病住院治疗，请问是否受等待期限制？')
+        self.assertTrue(p_month['is_parse_uncertain'])
+        self.assertIn('unsupported_time_unit_or_calendar_date', p_month['reasons'])
+
+        p_cal = detect_parse_uncertainty('按《平安安康医疗保险（2018）》条款，我是首次投保，3月1日保单正式生效，同年5月10日因非意外疾病住院治疗，请问是否受等待期限制？')
+        self.assertTrue(p_cal['is_parse_uncertain'])
+        self.assertIn('unsupported_time_unit_or_calendar_date', p_cal['reasons'])
+
+        p_clean_omit = detect_parse_uncertainty('按《平安安康医疗保险（2018）》条款，我是首次投保，因非意外疾病住院治疗，请问是否受等待期限制？')
+        self.assertFalse(p_clean_omit['is_parse_uncertain'])
+
+        # 2. Clause-to-Rule Mapping Audit (20 official insurance PDFs + 4 multi-threshold rules = 24)
+        mapping_audit = json.loads((root / 'data_v3' / 'clause_rule_mapping_audit.json').read_text(encoding='utf-8'))
+        self.assertEqual(mapping_audit['total_rule_documents'], 24)
+        self.assertEqual(mapping_audit['total_official_insurance_pdfs'], 20)
+        self.assertEqual(mapping_audit['total_multi_threshold_rules'], 4)
+        self.assertEqual(len(mapping_audit['insurance_contracts']), 20)
+        self.assertEqual(len(mapping_audit['multi_threshold_rules']), 4)
+
+        # 3. 120-case Gold Diagnostic Suite (0.0% False Accept Rate, 100% precision on accepted)
+        gold_sum = json.loads((root / 'data_v3' / 'gold_diagnostic_summary.json').read_text(encoding='utf-8'))
+        self.assertEqual(gold_sum['total_cases'], 120)
+        self.assertEqual(gold_sum['gold_positive_preserved_cases'], 60)
+        self.assertEqual(gold_sum['gold_negative_changed_or_ambiguous_cases'], 60)
+        self.assertEqual(gold_sum['false_accept_fp'], 0)
+        self.assertEqual(gold_sum['false_accept_rate_among_gold_negatives'], 0.0)
+        self.assertEqual(gold_sum['false_reject_rate_on_supported_day_syntax_categories_1_to_7'], 0.0)
+        self.assertEqual(gold_sum['precision_on_accepted'], 1.0)
+        self.assertEqual(gold_sum['parse_uncertain_flagged_total'], 45)
+
+        # 4. 40-seed Frozen Confirmation Set & Three-Layer Audit across Qwen-Plus and DeepSeek-V3
+        fc_sum = json.loads((root / 'data_v3' / 'frozen_confirmation_summary.json').read_text(encoding='utf-8'))
+        self.assertEqual(fc_sum['verifier_version'], 'v3.0-frozen')
+        tl_sum = fc_sum['three_layer_frozen_confirmation_audit_summary']
+        self.assertEqual(tl_sum['total_audited_generations'], 400)
+        self.assertEqual(tl_sum['false_accept_fp'], 0)
+        self.assertEqual(tl_sum['false_accept_rate'], 0.0)
+        self.assertEqual(tl_sum['precision_on_accepted'], 1.0)
+        self.assertEqual(tl_sum['false_reject_fn'], 6)
+
+        qwen_40 = fc_sum['model_family_results']['qwen_plus']['combined_40_seeds']
+        ds_40 = fc_sum['model_family_results']['deepseek']['combined_40_seeds']
+        self.assertEqual(qwen_40['ordinary_style']['preserved_decision'], 0)
+        self.assertEqual(qwen_40['condition_prompt']['preserved_decision'], 37)
+        self.assertEqual(qwen_40['generic_self_refine_budget_matched']['preserved_decision'], 36)
+        self.assertEqual(qwen_40['generic_self_refine_all']['preserved_decision'], 34)
+        self.assertEqual(qwen_40['slot_guard_repair']['preserved_decision'], 39)
+
+        self.assertEqual(ds_40['ordinary_style']['preserved_decision'], 1)
+        self.assertEqual(ds_40['condition_prompt']['preserved_decision'], 33)
+        self.assertEqual(ds_40['generic_self_refine_budget_matched']['preserved_decision'], 34)
+        self.assertEqual(ds_40['generic_self_refine_all']['preserved_decision'], 34)
+        self.assertEqual(ds_40['slot_guard_repair']['preserved_decision'], 39)
+
+        pooled = fc_sum['pooled_cross_model_paired_mcnemar_80_seeds']
+        self.assertEqual(pooled['slot_guard_vs_condition_prompt']['left_success'], 78)
+        self.assertEqual(pooled['slot_guard_vs_condition_prompt']['right_success'], 70)
+        self.assertAlmostEqual(pooled['slot_guard_vs_condition_prompt']['exact_mcnemar_two_sided_p'], 0.007812, places=5)
+        self.assertEqual(pooled['slot_guard_vs_generic_self_refine_budget_matched']['left_success'], 78)
+        self.assertEqual(pooled['slot_guard_vs_generic_self_refine_budget_matched']['right_success'], 70)
+        self.assertAlmostEqual(pooled['slot_guard_vs_generic_self_refine_all']['exact_mcnemar_two_sided_p'], 0.001953, places=5)
+
+        # 5. Downstream RAG System Selection Study
+        rag_sel = json.loads((root / 'data_v3' / 'downstream_rag_selection_study.json').read_text(encoding='utf-8'))
+        for fam in ('qwen_plus', 'deepseek'):
+            for dom_key in ('insurance_24_seeds', 'multi_threshold_16_seeds'):
+                b_map = rag_sel[fam][dom_key]['benchmarks_by_generation_method']
+                self.assertFalse(b_map['ordinary_style']['top1_system_selection_correct'])
+                self.assertLess(b_map['ordinary_style']['kendall_tau_rank_correlation'], 0.0)
+                self.assertTrue(b_map['verify_only_filter']['top1_system_selection_correct'])
+                self.assertEqual(b_map['verify_only_filter']['inherited_label_corruption_rate'], 0.0)
+                self.assertTrue(b_map['slot_guard_repair']['top1_system_selection_correct'])
+                self.assertEqual(b_map['slot_guard_repair']['inherited_label_corruption_rate'], 0.0)
+                self.assertEqual(b_map['slot_guard_repair']['kendall_tau_rank_correlation'], 1.0)
+                self.assertGreaterEqual(
+                    b_map['slot_guard_repair']['scenario_coverage_rate'],
+                    b_map['verify_only_filter']['scenario_coverage_rate'],
+                )
+
 
 if __name__=='__main__':unittest.main()

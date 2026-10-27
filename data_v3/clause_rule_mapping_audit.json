@@ -1,0 +1,725 @@
+{
+  "verifier_version": "v3.0-frozen",
+  "total_official_insurance_pdfs": 20,
+  "total_multi_threshold_rules": 4,
+  "total_rule_documents": 24,
+  "manual_rule_compilation_cost_summary": {
+    "mean_minutes_per_insurance_contract": 11.72,
+    "min_minutes_per_insurance_contract": 9.5,
+    "max_minutes_per_insurance_contract": 18.0,
+    "total_minutes_20_insurance_contracts": 234.5,
+    "workflow_steps": [
+      "1. Locate waiting-period / observation-period article and benefit definitions in PDF (3-5 min)",
+      "2. Record wait_days thresholds, accident exemption, and renewal/waiver exemption booleans (3-6 min)",
+      "3. Verify sub-benefit branches (if multi-benefit) and run sanity unit test against seed witness (3-7 min)"
+    ]
+  },
+  "insurance_contracts": [
+    {
+      "id": "pa_p0781",
+      "split": "dev_calibration_5",
+      "title": "平安关爱相伴团体医疗保险（B款）",
+      "insurer": "平安",
+      "sha256": "55a4e49a07ebb05c07a44c9a43e4e75dc474f317ef153ebc6df7cb5c612ef204",
+      "bytes": 857880,
+      "pdf_page_1based": 4,
+      "char_span_on_page": [
+        472,
+        754
+      ],
+      "bbox_pdf_points": [
+        56.63999938964844,
+        492.59893798828125,
+        538.765625,
+        634.2289428710938
+      ],
+      "verbatim_clause_excerpt": "2.2等待期自本合同生效日起90日(含第90日)为等待期。被保险人(10.6)在等待期内发生保险事故的,我们均不承担给付各项保险金的责任,其中,被保险人在等待期内经医院(10.7)确诊初次发生您投保的保险责任中所约定的特定疾病(10.8)或轻症疾病(10.9),由此导致的治疗,无论治疗时间与生效之日是否间隔超过等待期,我们均不承担给付特定疾病医疗保险金和轻症疾病医疗保险金的责任。我们向您无息返还该被保险人对应的所交保险费,对该被保险人的保险责任终止。符合以下情形之一的无等待期:(一)被保险人因遭受意外事故(10.10)发生本合同所约定的特定疾病或轻症疾病的。",
+      "compiled_rule_parameters": {
+        "days": [
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Specific disease exclusions, deductible/reimbursement ratio arithmetic, hospital tier co-pay"
+    },
+    {
+      "id": "pa_h865",
+      "split": "dev_calibration_5",
+      "title": "平安员工及家属住院医疗保险",
+      "insurer": "平安",
+      "sha256": "112aea1a036ce5a2e9172c9dc880113240aed567a25dd22aa6c8658e076d75c9",
+      "bytes": 989029,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        602,
+        896
+      ],
+      "bbox_pdf_points": [
+        62.66400146484375,
+        448.6789245605469,
+        518.739990234375,
+        615.2389526367188
+      ],
+      "verbatim_clause_excerpt": "等待期除另有约定外,本主险合同生效日起30天内(含第30天)为等待期。被保险人在投保后至等待期结束前产生的医疗费用,我们不承担赔付保险金的责任。被保险人在投保后至等待期结束前发生的疾病所导致的医疗费用,无论此等费用是否发生在等待期内,我们都不承担本主险合同所有保险金的赔付责任。被保险人在投保后至等待期结束之日前罹患本主险合同预定的特定疾病(详见8.4及附表2)的,我们不承担给付保险金的责任,本主险合同终止,我们向您无息退还所有保险费。以下两种情形,无等待期:(1)因意外伤害(见8.5)发生上述情形的;(2)根据本条款1.6条的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 10.5,
+      "out_of_scope_clauses": "Specific disease exclusions, deductible/reimbursement ratio arithmetic, hospital tier co-pay"
+    },
+    {
+      "id": "cpic_86017",
+      "split": "dev_calibration_5",
+      "title": "太保互联网C款门急诊医疗保险",
+      "insurer": "太平洋",
+      "sha256": "54aca8a0b54c61faf9a9cb477baf17a9bf53be2d986615b2fcc28d4b3564ddf5",
+      "bytes": 573932,
+      "pdf_page_1based": 4,
+      "char_span_on_page": [
+        243,
+        682
+      ],
+      "bbox_pdf_points": [
+        62.06399917602539,
+        229.5089111328125,
+        549.5884399414062,
+        474.1189270019531
+      ],
+      "verbatim_clause_excerpt": "2.3等待期对于本保险条款“2.5.1互联网在线问诊费医疗保险金”、“2.5.2互联网药品费用医疗保险金”:除另有约定外,自本合同生效之日起25日内(含第25日)、15日内(含第15日)或7日内(含第7日)为等待期。具体等待期天数根据您投保时的保险计划确定并在保险计划表上载明。若被保险人在等待期内发生符合本合同约定条件的互联网在线问诊费和互联网药品费用,我们均不承担任何赔付互联网在线问诊费医疗保险金和互联网药品费用医疗保险金的责任。对于本保险条款“2.5.4门急诊疾病医疗保险金”:除另有约定外,自本合同生效之日起25日内(含第25日)为等待期。若被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付门急诊疾病医疗保险金的责任。以下两种情形,无等待期:(1)对于本保险条款“2.5.3门急诊意外医疗保险金”保险责任,无等待期;(2)根据本保险条款“2.2保险期间与不保证续保”的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "compiled_rule_parameters": {
+        "days": [
+          7,
+          15,
+          25
+        ],
+        "accident_exempt": false,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 15.0,
+      "out_of_scope_clauses": "Specific disease exclusions, deductible/reimbursement ratio arithmetic, hospital tier co-pay"
+    },
+    {
+      "id": "cpic_82859",
+      "split": "dev_calibration_5",
+      "title": "太保互联网个人一年期住院E款医疗保险",
+      "insurer": "太平洋",
+      "sha256": "8bfda0ffd63ae35ec51d7f7ce593cd30ccd4a6c18679a85465f20a495f11403f",
+      "bytes": 1299946,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        259,
+        434
+      ],
+      "bbox_pdf_points": [
+        62.06399917602539,
+        276.33892822265625,
+        547.0676879882812,
+        380.4989318847656
+      ],
+      "verbatim_clause_excerpt": "2.3等待期除另有约定外,自本合同生效之日起30日内(含第30日)为等待期。若被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付保险金的责任。以下两种情形,无等待期:(1)因意外伤害6发生的保险事故;(2)根据本保险条款“2.2保险期间与不保证续保”的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Specific disease exclusions, deductible/reimbursement ratio arithmetic, hospital tier co-pay"
+    },
+    {
+      "id": "tk_group_2018",
+      "split": "dev_calibration_5",
+      "title": "泰康悦享环球（尊享版）高端医疗保险",
+      "insurer": "泰康",
+      "sha256": "0d207b7c2bf7709eeb4cd045ce7c5dac25bb6d002644088766de3d87c01f5851",
+      "bytes": 985526,
+      "pdf_page_1based": 4,
+      "char_span_on_page": [
+        47,
+        632
+      ],
+      "bbox_pdf_points": [
+        46.68000030517578,
+        82.74896240234375,
+        541.1799926757812,
+        389.7389221191406
+      ],
+      "verbatim_clause_excerpt": "2.5等待期您为被保险人首次投保本合同或者非连续投保本合同时:(1)被保险人非因意外伤害(见7.7)需要住院(见7.8)(不含因心理健康及精神疾病住院的情况)治疗的,自本合同生效日起30日为等待期;(2)被保险人非因意外伤害需要接受特殊门诊治疗的(指门诊肾透析(见7.9)、门诊恶性肿瘤电疗(见7.10)、门诊恶性肿瘤放化疗(见7.11)或者器官移植后的门诊抗排异治疗),自本合同生效日起30日为等待期;(3)被保险人因心理健康及精神疾病需要住院治疗的,自本合同生效日起10个月为等待期;(4)被保险人非因意外伤害需要接受普通门急诊治疗(不含因心理健康及精神疾病需要门急诊治疗的情况),自普通门急诊医疗保险金责任生效日起30日为等待期;(5)被保险人因心理健康及精神疾病需要门急诊治疗的,自普通门急诊医疗保险金责任生效日起10个月为等待期;(6)被保险人因疾病需要接受牙科治疗的,自牙科/眼科治疗保险金责任生效日起6个月为等待期;(7)被保险人进行牙齿正畸治疗的,自牙科/眼科治疗保险金责任生效日起24个月为等待期。被保险人在等待期内发生的保险事故,无论治疗时间与生效之日是否间隔超过等待期,我们均不承担给付保险金的责任。被保险人因意外伤害进行住院或者门急诊治疗的无等待期。如果您为被保险人连续不间断投保本合同,续保合同各项责任的等待期从首次投保该责任的生效日开始计算。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.5,
+      "out_of_scope_clauses": "Specific disease exclusions, deductible/reimbursement ratio arithmetic, hospital tier co-pay"
+    },
+    {
+      "id": "pa_2011_36",
+      "split": "extension_set_4",
+      "title": "平安住院安心医疗保险",
+      "insurer": "平安",
+      "sha256": "10916a68758a238f696dbd4593cb198e5a5061eb80dfbcd5ba39aef745a1cf37",
+      "bytes": 282952,
+      "pdf_page_1based": 1,
+      "char_span_on_page": [
+        399,
+        1063
+      ],
+      "bbox_pdf_points": [
+        55.680023193359375,
+        456.574951171875,
+        546.2400512695312,
+        731.6149291992188
+      ],
+      "verbatim_clause_excerpt": "(一)一般住院医疗津贴投保人为被保险人首次投保本保险或非连续投保本保险时,自本合同生效日起30日为等待期,投保人为被保险人连续投保本保险的或被保险人因遭受意外事故而住院治疗的无等待期。另有约定的按约定内容执行。被保险人在等待期内发生疾病,由此而导致的住院治疗,无论住院治疗时间与生效之日是否间隔超过30日,本公司均不承担给付保险金的责任。被保险人在保险期间内发生且延续至本合同满期日后30日内的住院治疗,本公司承担给付保险金的责任。被保险人因遭受意外事故或因疾病,经医院确诊必须住院治疗的,本公司自被保险人每次住院的第4日起每日按约定的每日住院津贴给付一般住院医疗津贴,每次住院的给付日数为合理住院日数减3日。被保险人每次住院日数超过15日的,须事先向本公司提出书面申请,经本公司同意后,本公司方对超过15日的住院日数部分给付住院医疗津贴,否则,本公司对每次住院的住院医疗津贴给付以15日为限。在本合同有效期内,一般住院医疗津贴的累计给付日数最多为180日,累计给付一般住院医疗津贴的日数达到180日时,对该被保险人该项保险责任终止。(二)癌症住院医疗津贴投保人为被保险人首次投保本保险或非连续投保本保险时,自本合同生效日起90日为等待期,投保人为被保险人连续投保本保险的无等待期。另有约定的按约定内容执行。被保险人在等待期内患癌症,由此而导致的住院治疗,无论住院治疗时间与生效之日是否间隔超过90日,本公司均不承担给付保险金的责任。被保险人在保险期间内发生且延续至本合同满期日后30日内的住院治疗,本公司承担给付保险金的责任。",
+      "compiled_rule_parameters": {
+        "days": [
+          30,
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": {
+          "general_hospital": {
+            "label": "一般住院医疗津贴",
+            "wait_days": 30,
+            "accident_exempt": true,
+            "approval_exempt": true
+          },
+          "cancer_hospital": {
+            "label": "癌症住院医疗津贴",
+            "wait_days": 90,
+            "accident_exempt": false,
+            "approval_exempt": true
+          }
+        },
+        "aliases": [
+          "平安住院安心医疗险",
+          "平安住院安心险",
+          "住院安心医疗保险",
+          "住院安心医疗险"
+        ]
+      },
+      "manual_compilation_minutes": 18.0,
+      "out_of_scope_clauses": "Non-waiting-period exclusions and benefit amount table arithmetic"
+    },
+    {
+      "id": "pa_p0254",
+      "split": "extension_set_4",
+      "title": "平安住院医疗保险",
+      "insurer": "平安",
+      "sha256": "d6ad23849fec1e925d700e47d825c90088c790c0c533b2f548091031a35942cc",
+      "bytes": 222103,
+      "pdf_page_1based": 1,
+      "char_span_on_page": [
+        237,
+        493
+      ],
+      "bbox_pdf_points": [
+        56.66400146484375,
+        381.7689514160156,
+        561.0055541992188,
+        487.86895751953125
+      ],
+      "verbatim_clause_excerpt": "第四条保险责任除另有约定外,投保人为被保险人首次投保本保险或非连续投保本保险时,自本合同生效日起90日为等待期,投保人为被保险人连续投保本保险的或被保险人因遭受意外事故进行治疗的无等待期。被保险人在等待期内发生疾病,由此而导致的住院治疗,无论住院治疗时间与生效之日是否间隔超过90日,本公司均不承担给付保险金的责任。被保险人在保险期间内发生且延续至本合同满期日后90日内的住院治疗,本公司承担给付保险金的责任。在本合同有效期内,除等待期期间依前款约定外,本公司根据投保人与本公司的约定承担以下一项或多项保险责任:",
+      "compiled_rule_parameters": {
+        "days": [
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": [
+          "平安住院医疗险"
+        ]
+      },
+      "manual_compilation_minutes": 10.0,
+      "out_of_scope_clauses": "Non-waiting-period exclusions and benefit amount table arithmetic"
+    },
+    {
+      "id": "pa_p0321",
+      "split": "extension_set_4",
+      "title": "平安肺癌疾病保险",
+      "insurer": "平安",
+      "sha256": "e04e0b452858d539886623bdce909e1a3927996234c24d36c271cb32e0dcdda6",
+      "bytes": 145791,
+      "pdf_page_1based": 1,
+      "char_span_on_page": [
+        237,
+        504
+      ],
+      "bbox_pdf_points": [
+        56.66400146484375,
+        381.7689514160156,
+        555.7642211914062,
+        501.3089599609375
+      ],
+      "verbatim_clause_excerpt": "第四条保险责任投保人为被保险人首次投保本保险或非连续投保本保险时,自本合同生效日起30日为等待期,投保人为被保险人连续投保本保险的无等待期。等待期另有约定的按约定执行。被保险人在等待期内经医院确诊初次发生原发性肺癌的,本公司不承担给付保险金的责任。对投保人返还所交保险费,本保险合同终止。在本合同有效期内,除等待期期间依前款约定外,本公司承担下列保险责任:被保险人经医院确诊初次发生原发性肺癌的,本公司按其保险金额给付保险金,本保险合同终止。被保险人在投保前发生原发性肺癌的,本公司不承担给付保险金的责任。上述原发性肺癌不包括原位癌。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": false,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": [
+          "平安肺癌疾病险",
+          "平安肺癌险",
+          "肺癌疾病保险"
+        ]
+      },
+      "manual_compilation_minutes": 12.5,
+      "out_of_scope_clauses": "Non-waiting-period exclusions and benefit amount table arithmetic"
+    },
+    {
+      "id": "cpic_93896",
+      "split": "extension_set_4",
+      "title": "附加（广西地区）学生幼儿住院医疗保险（2025版）",
+      "insurer": "太平洋",
+      "sha256": "309d8f029fb8ea4266a6986c4a6863aa0f8c4dc416b5b3799250044ad76d2a48",
+      "bytes": 180250,
+      "pdf_page_1based": 1,
+      "char_span_on_page": [
+        378,
+        952
+      ],
+      "bbox_pdf_points": [
+        90.0,
+        375.3044738769531,
+        510.4900207519531,
+        662.4734497070312
+      ],
+      "verbatim_clause_excerpt": "第四条保险责任一、住院医疗费用保险金在本附加险合同保险期间内,被保险人因遭受意外伤害或者自本附加险合同生效之日起30日(续保不受30日规定的限制)后因疾病住院(详见释义)治疗,被保险人在中华人民共和国境内(不含港、澳、台地区,下同)二级以上(含二级)公立医院或保险人认可的医疗机构(详见释义)住院诊疗所支出的、符合基本医疗保险支付范围(详见释义)的费用,保险人按照以下约定承担保险责任:(一)保险人按照被保险人实际发生且符合前款规定的医疗费用扣除基本医疗保险赔偿金额和免赔额后的剩余金额,按本附加险合同约定的赔付比例给付医疗保险金。(二)被保险人从其他商业医疗保险保障计划或其他任何途径获得补偿的,保险人应按照被保险人实际发生且符合前款规定的的全部医疗费用扣除其他途径(详见释义)获得的补偿金额后的剩余金额为限进行赔偿,赔偿最高限额不超过第(一)项规定的赔偿金额。被保险人因疾病或意外伤害而住院治疗,到保险期间届满仍未结束的,保险人在本附加险合同保险责任范围内继续承担给付保险金责任,其中疾病住院治疗最长可至保险期间届满之日起第30日止,意外伤害住院治疗最长可至意外伤害发生之日起第180日止;被保险人在本附加合同保险期间内遭受意外伤害,但未及时住院治疗的,保险人在本附加险合同责任范围内继续承担给付保险金责任,最长可至意外发生之日起第180日止。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": [
+          "附加广西地区学生幼儿住院医疗保险",
+          "太平洋广西学生幼儿住院医疗险",
+          "太保广西学生幼儿住院险",
+          "广西学生幼儿住院医疗保险"
+        ]
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Non-waiting-period exclusions and benefit amount table arithmetic"
+    },
+    {
+      "id": "pa_h716",
+      "split": "frozen_confirmation_11",
+      "title": "平安安康住院费用（B，2017）医疗保险",
+      "insurer": "平安",
+      "sha256": "c6597d19f042c02733b1d07313d91af2e3f77e770b8fba51d8464164db74fa2d",
+      "bytes": 943748,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        0,
+        237
+      ],
+      "bbox_pdf_points": [
+        90.74400329589844,
+        59.328922271728516,
+        548.5115356445312,
+        194.70892333984375
+      ],
+      "verbatim_clause_excerpt": "等待期被保险人因腺样体肥大(见7.4)、疝气(见7.5)、扁桃腺的疾病(见7.6)或女性生殖器官的疾病(见7.7)需要住院(见7.8)治疗或特殊门诊治疗的,自本主险合同生效之日起90日为等待期;被保险人因其他疾病需要住院治疗或特殊门诊治疗的,自本主险合同生效之日起30日为等待期。以下两种情形,无等待期:(1)因意外伤害(见7.9)发生上述情形的;(2)您在上一保险期间届满60日内重新投保本产品的。被保险人在等待期内发生保险事故(见7.10),我们不承担给付保险金的责任。",
+      "compiled_rule_parameters": {
+        "days": [
+          30,
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": {
+          "general_hospital": {
+            "label": "其他疾病一般住院医疗",
+            "days": [
+              30
+            ],
+            "wait_days": 30,
+            "accident_exempt": true,
+            "approval_exempt": false
+          },
+          "specific_organ_hospital": {
+            "label": "腺样体肥大、疝气、扁桃腺或女性生殖器官疾病住院医疗",
+            "days": [
+              90
+            ],
+            "wait_days": 90,
+            "accident_exempt": true,
+            "approval_exempt": false
+          }
+        },
+        "aliases": []
+      },
+      "manual_compilation_minutes": 17.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "pa_2651",
+      "split": "frozen_confirmation_11",
+      "title": "平安安医保（易核版）医疗保险",
+      "insurer": "平安",
+      "sha256": "7fa649061fe02b32d6158d9c9b276f541c9690afc0a0f8c1fb16fe2fe622bf5f",
+      "bytes": 1368300,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        581,
+        911
+      ],
+      "bbox_pdf_points": [
+        61.439998626708984,
+        477.4724426269531,
+        546.8500366210938,
+        677.114501953125
+      ],
+      "verbatim_clause_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满后60日重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "pa_l0001",
+      "split": "frozen_confirmation_11",
+      "title": "平安安医保（星耀版）医疗保险",
+      "insurer": "平安",
+      "sha256": "85e18de2d8131929b7f56c0946eb85e7ee4a0ac4c7f7ef209334b9be8ab0d208",
+      "bytes": 1334149,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        0,
+        229
+      ],
+      "bbox_pdf_points": [
+        180.83999633789062,
+        60.544464111328125,
+        544.208251953125,
+        214.9944610595703
+      ],
+      "verbatim_clause_excerpt": "自本合同生效当日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.11条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满前重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 9.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "pa_1714",
+      "split": "frozen_confirmation_11",
+      "title": "平安附加守护全能（2023）提前给付重大疾病保险",
+      "insurer": "平安",
+      "sha256": "4ca9f0ac3cd8373990d1de63455d5fe2b1795d33d6ca9e063e9c0e1451568f0e",
+      "bytes": 1533441,
+      "pdf_page_1based": 2,
+      "char_span_on_page": [
+        230,
+        421
+      ],
+      "bbox_pdf_points": [
+        56.279998779296875,
+        381.3081359863281,
+        547.6262817382812,
+        456.5673522949219
+      ],
+      "verbatim_clause_excerpt": "1.1.2等待期从本附加险合同生效(或每次合同效力恢复)之日起90日内,被保险人经医院2确诊为本附加险合同“8.轻度疾病释义”所定义的“轻度疾病”、“9.中症疾病释义”所定义的“中症疾病”或“10.重大疾病释义”所定义的“重大疾病”,我们不承担保险责任,将退还您所支付的本附加险合同的保险费,本附加险合同终止,这90日的时间称为等待期。被保险人因意外伤害3发生上述情形的,无等待期。",
+      "compiled_rule_parameters": {
+        "days": [
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 10.0,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "pa_1072",
+      "split": "frozen_confirmation_11",
+      "title": "平安e生保长期医疗保险（费率可调）",
+      "insurer": "平安",
+      "sha256": "f043311c2257f6f5e5cd14120c4f418ed9ef2245dda21fc1eb80d75ae21f1079",
+      "bytes": 1394564,
+      "pdf_page_1based": 2,
+      "char_span_on_page": [
+        190,
+        540
+      ],
+      "bbox_pdf_points": [
+        62.400001525878906,
+        346.626220703125,
+        542.167236328125,
+        562.8863525390625
+      ],
+      "verbatim_clause_excerpt": "1.2.1等待期被保险人在本主险合同生效之日起90日内发生疾病,因该疾病而导致住院1治疗、指定门诊治疗或住院前后的门急诊治疗的,无论上述治疗时间与本主险合同生效之日是否间隔超过90日,我们都不承担给付保险金的责任。被保险人在本主险合同生效之日起90日内经医院2确诊发生本主险合同“6特定疾病”所定义的“特定疾病”或“7少儿特定重疾”所定义的“少儿特定重疾”,我们不承担给付保险金的责任,向您返还所交保险费,本主险合同终止。上述90日的时间称为等待期。以下四种情形,无等待期:(1)被保险人因意外伤害3发生上述情形的;(2)您在保证续保期间内续保本产品的;(3)您在不迟于上一保证续保期间届满后60日重新投保本产品的;(4)您已投保我们指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。",
+      "compiled_rule_parameters": {
+        "days": [
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "pa_596",
+      "split": "frozen_confirmation_11",
+      "title": "平安e生保（尊享版）医疗保险",
+      "insurer": "平安",
+      "sha256": "88b784c61f52a2e21a2a12f96ba5d73412de95e68a4453af03a27e8ab1245edc",
+      "bytes": 1047811,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        490,
+        815
+      ],
+      "bbox_pdf_points": [
+        60.35900115966797,
+        437.512451171875,
+        544.625,
+        637.1544799804688
+      ],
+      "verbatim_clause_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院2确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院确诊本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害3发生上述情形的;2.您在不迟于上一保险期间届满后60日重新投保本产品且经我们审核同意的;3.您已投保指定的产品,并在我们指定的期限内首次投保本产品且经我们审核同意的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 10.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "cpic_107082",
+      "split": "frozen_confirmation_11",
+      "title": "太保个人中高端C款医疗保险（H2026）",
+      "insurer": "太平洋",
+      "sha256": "98562a559e3901dd06ce1992527fdba9a6aad6292de5f4de3bef8a8f7543dba3",
+      "bytes": 1299863,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        139,
+        314
+      ],
+      "bbox_pdf_points": [
+        56.66400146484375,
+        183.7889404296875,
+        538.9154052734375,
+        290.37890625
+      ],
+      "verbatim_clause_excerpt": "2.3等待期除另有约定外,自本合同生效之日起30日内(含第30日)为等待期。若被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付保险金的责任。以下两种情形,无等待期:(1)因意外伤害5发生的保险事故;(2)根据本保险条款“2.2保险期间与不保证续保”的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "cpic_106702",
+      "split": "frozen_confirmation_11",
+      "title": "太保互联网母婴医疗保险",
+      "insurer": "太平洋",
+      "sha256": "fef1c02035611ad83ecd0f669d796b315d5d2b8e1d0c3b61a10473d8dc3e5aaf",
+      "bytes": 878426,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        111,
+        449
+      ],
+      "bbox_pdf_points": [
+        56.63999938964844,
+        181.98770141601562,
+        550.3300170898438,
+        365.1288757324219
+      ],
+      "verbatim_clause_excerpt": "2.3等待期自本合同生效日期0时起,我们将对一段期间内发生的保险事故不承担给付保险金的责任,这段期间称为等待期。因意外伤害6发生的保险事故无等待期。针对主被保险人妊娠并发症住院医疗保险金、主被保险人产后康复费用医疗保险金、主被保险人产后康复手术保险金责任,除另有约定外,自本合同生效之日起15日内(含第15日)为等待期。若主被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付保险金的责任。针对主被保险人妊娠终止津贴保险金、主被保险人急诊津贴保险金、附属被保险人住院医疗保险金、附属被保险人先天性疾病住院医疗保险金、附属被保险人罕见病住院医疗保险金、附属被保险人特定医疗项目住院津贴保险金、附属被保险人早产育婴箱津贴保险金责任无等待期。",
+      "compiled_rule_parameters": {
+        "days": [
+          15
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 9.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "cpic_60201",
+      "split": "frozen_confirmation_11",
+      "title": "附加团体疾病医疗保险（B款）（H2014）",
+      "insurer": "太平洋",
+      "sha256": "80050c1912debf2d315782c62d1670dd2ce6fc9ef5275d1a91fab44d8e56ffc0",
+      "bytes": 356610,
+      "pdf_page_1based": 2,
+      "char_span_on_page": [
+        459,
+        593
+      ],
+      "bbox_pdf_points": [
+        64.55999755859375,
+        500.9289245605469,
+        536.1599731445312,
+        559.497802734375
+      ],
+      "verbatim_clause_excerpt": "2.3等待期投保人首次投保或在本附加险合同保险期间届满后第31日起提出继续投保申请,且经本公司同意的,除另有约定外,自合同生效日起30日内为等待期。投保人在本附加险合同保险期间届满后30日内为同一被保险人提出继续投保申请且经本公司同意的,为续保。续保不受等待期的限制。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": false,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 11.0,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "cpic_79920",
+      "split": "frozen_confirmation_11",
+      "title": "深圳专属团体医疗保险",
+      "insurer": "太平洋",
+      "sha256": "b3deb2a5103f2f2d6afe5db0589847e31aa89daaaa213f4f20fac63f71422875",
+      "bytes": 330742,
+      "pdf_page_1based": 3,
+      "char_span_on_page": [
+        180,
+        364
+      ],
+      "bbox_pdf_points": [
+        90.0,
+        241.50100708007812,
+        505.32000732421875,
+        464.3769836425781
+      ],
+      "verbatim_clause_excerpt": "(七)等待期自本合同生效日起30日(含第30日)为等待期。被保险人在等待期内经医院确诊罹患本合同所约定的特定疾病的,我们不承担保险责任,向您返还该被保险人所对应的保险费,对该被保险人的保险责任终止。符合以下情形之一的无等待期:1、根据“保证续保”进行续保的;2、在上一保证续保期间届满60日内,您申请重新投保本产品并经我们审核同意的;3、被保险人因遭受意外事故导致的。",
+      "compiled_rule_parameters": {
+        "days": [
+          30
+        ],
+        "accident_exempt": true,
+        "approval_exempt": true,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 10.5,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    },
+    {
+      "id": "cpic_85050",
+      "split": "frozen_confirmation_11",
+      "title": "心安·怡住院费用医疗保险（H2017A）",
+      "insurer": "太平洋",
+      "sha256": "a16bd72ab6ac987a750e5bfac95cc962ac69c46f7f85cc280a0c0b68d9b90c06",
+      "bytes": 270915,
+      "pdf_page_1based": 1,
+      "char_span_on_page": [
+        401,
+        689
+      ],
+      "bbox_pdf_points": [
+        90.02400207519531,
+        495.83892822265625,
+        505.6638488769531,
+        703.7089233398438
+      ],
+      "verbatim_clause_excerpt": "2、疾病观察期自合同生效之日起90日内为疾病观察期,续保无疾病观察期。若被保险人在疾病观察期内确诊疾病,无论对该疾病的治疗发生在疾病观察期内或疾病观察期后,本公司均不承担任何给付保险金的责任。3、保险责任在合同保险期间内,且合同有效的前提下,本产品提供以下保障:住院医疗保险金:若被保险人遭受意外伤害或在疾病观察期后因意外伤害以外的原因发生疾病,在本公司指定医疗机构的普通病房住院治疗,对于被保险人在指定医疗机构发生的合理且必要的住院医疗费用(指合同约定的药品费及其他住院医疗费用),本公司以合同基本保险金额及药品费分项给付限额为限,按以下公式计算并给付住院医疗保险金:(1)",
+      "compiled_rule_parameters": {
+        "days": [
+          90
+        ],
+        "accident_exempt": true,
+        "approval_exempt": false,
+        "benefits": null,
+        "aliases": []
+      },
+      "manual_compilation_minutes": 12.0,
+      "out_of_scope_clauses": "Unseen sub-benefit lexical synonyms not in v3.0-frozen (e.g., pa_h716 adenoid/hernia 90d branch)"
+    }
+  ],
+  "multi_threshold_rules": [
+    {
+      "id": "med_egfr_tki",
+      "split": "multi_threshold_composite_4",
+      "title": "国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程",
+      "domain": "healthcare",
+      "verbatim_clause_excerpt": "《国家医保目录奥希替尼（EGFR-TKI）门诊特药准入规程》：参保患者申请奥希替尼门诊特药统筹报销，须满足：（1）经基因检测确认为EGFR T790M突变阳性（野生型或阴性不予准入）；（2）若为一代靶向药耐药后二线转换申请，需在停用前序药物满14天洗脱期后方可给药报销；若为一线初治申请或经肿瘤专家组急诊特批豁免洗脱期，则不受14天洗脱期限制。",
+      "manual_compilation_minutes": 12.0
+    },
+    {
+      "id": "med_vte_prophylaxis",
+      "split": "multi_threshold_composite_4",
+      "title": "骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径",
+      "domain": "healthcare",
+      "verbatim_clause_excerpt": "《骨科大型手术后低分子肝素静脉血栓（VTE）预防临床路径》：患者术后抗凝疗程按手术分型执行（膝关节置换标准预防期10天，髋关节置换标准预防期35天）。在标准预防期内：若无活动性出血并发症，属于路径内常规抗凝给药范围；若出现活动性出血且未获血液科会诊特批继续抗凝，或已超出所选术式标准预防期天数且无专科延长医嘱，均列为路径禁忌或不予纳入常规路径。",
+      "manual_compilation_minutes": 12.0
+    },
+    {
+      "id": "law_work_injury",
+      "split": "multi_threshold_composite_4",
+      "title": "工伤保险条例第十四条上下班途中交通事故工伤认定规范",
+      "domain": "legal",
+      "verbatim_clause_excerpt": "《工伤保险条例第十四条上下班途中交通事故工伤认定规范》：职工在上下班合理路线途中发生交通事故申请工伤认定，须满足：（1）交警责任认定为非本人主要责任（同等责任、次要责任或无责任均可；若为本人主要责任或全部责任则不予认定工伤）；（2）用人单位须在事故发生之日起30日内提出申请，工伤职工或近亲属可在365日内直接提出申请（若已获人社部门书面批准延长申请时限则不受上述天数限制）。超出对应申请人类别法定期限且无延期批准的，不予受理。",
+      "manual_compilation_minutes": 12.0
+    },
+    {
+      "id": "law_noncompete",
+      "split": "multi_threshold_composite_4",
+      "title": "劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引",
+      "domain": "legal",
+      "verbatim_clause_excerpt": "《劳动合同法第二十四条竞业限制经济补偿与单方解除合规指引》：竞业限制义务仅适用于高级管理人员、高级技术人员和其他负有保密义务的人员。劳动合同解除后，因用人单位原因连续未支付经济补偿超过90天（3个月）的，劳动者请求解除竞业限制约定应予支持（不再受竞业限制约束）；若未支付天数未满90天，或用人单位已在法院催告宽限期内获劳动者书面同意豁免逾期并补足补偿，则竞业限制协议继续有效。",
+      "manual_compilation_minutes": 12.0
+    }
+  ]
+}

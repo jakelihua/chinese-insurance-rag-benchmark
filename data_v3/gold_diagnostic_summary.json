@@ -1,0 +1,82 @@
+{
+  "total_cases": 120,
+  "category_count": 8,
+  "gold_positive_preserved_cases": 60,
+  "gold_negative_changed_or_ambiguous_cases": 60,
+  "true_accept_tp": 45,
+  "false_accept_fp": 0,
+  "true_reject_tn": 60,
+  "false_reject_fn": 15,
+  "false_accept_rate_among_gold_negatives": 0.0,
+  "false_reject_rate_among_gold_positives_all_8_categories": 0.25,
+  "false_reject_rate_on_supported_day_syntax_categories_1_to_7": 0.0,
+  "precision_on_accepted": 1.0,
+  "recall_on_all_gold_positives": 0.75,
+  "parse_uncertain_flagged_total": 45,
+  "by_category": {
+    "complete_standard": {
+      "n": 15,
+      "true_accept": 15,
+      "false_accept": 0,
+      "true_reject": 0,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 0
+    },
+    "colloquial_paraphrase": {
+      "n": 15,
+      "true_accept": 15,
+      "false_accept": 0,
+      "true_reject": 0,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 0
+    },
+    "non_pivotal_omission": {
+      "n": 15,
+      "true_accept": 15,
+      "false_accept": 0,
+      "true_reject": 0,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 0
+    },
+    "pivotal_omission_ambiguous": {
+      "n": 15,
+      "true_accept": 0,
+      "false_accept": 0,
+      "true_reject": 15,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 0
+    },
+    "contrastive_day_correction": {
+      "n": 15,
+      "true_accept": 0,
+      "false_accept": 0,
+      "true_reject": 15,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 0
+    },
+    "negated_or_bounded_duration": {
+      "n": 15,
+      "true_accept": 0,
+      "false_accept": 0,
+      "true_reject": 15,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 15
+    },
+    "conflicting_multi_time_or_benefit": {
+      "n": 15,
+      "true_accept": 0,
+      "false_accept": 0,
+      "true_reject": 15,
+      "false_reject_parse_limitation": 0,
+      "parse_uncertain_count": 15
+    },
+    "unsupported_syntax_determinate": {
+      "n": 15,
+      "true_accept": 0,
+      "false_accept": 0,
+      "true_reject": 0,
+      "false_reject_parse_limitation": 15,
+      "parse_uncertain_count": 15
+    }
+  }
+}

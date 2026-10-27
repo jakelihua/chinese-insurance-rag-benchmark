@@ -388,6 +388,7 @@ def extract_cross_slots_v2(text, seed_frame=None):
     # Remove matched threshold clause phrase before searching elapsed_day to avoid conflating '事故发生后30天内提出申请' with elapsed_day
     cleaned_for_day = re.sub(r'用人单位(?:须|在)?事故发生(?:之日|后)(?:起|的)?\s*\d+\s*[天日]内提出申请', '', resolved_text)
     cleaned_for_day = re.sub(r'法定的解除竞业限制的条件是连续未支付\s*\d+\s*[天日]', '', cleaned_for_day)
+    cleaned_for_day = re.sub(r'(?:规程|规则)?(?:要求|规定)?洗脱期(?:必须|须|为|是)?(?:满)?\s*\d+\s*[天日]', '', cleaned_for_day)
 
     m_paren = re.search(r'超过(?:了)?\d+天（即(\d+)天）', cleaned_for_day)
     if m_paren:
@@ -420,7 +421,7 @@ def extract_cross_slots_v2(text, seed_frame=None):
     ):
         obs['approved_waiver'] = 'unknown'
     elif re.search(
-        r'(?:尚未|未曾|并未|未经|不予|未予|(?:未|没有|没)(?:获|获得|得到|取得|批准|同意|书面同意|特批|签署|给予))[^，。？]{0,14}(?:特批|豁免|批准延长|延长申请时限|延长申请时间|书面同意豁免|同意公司延期|同意豁免逾期)',
+        r'(?:尚未|未曾|并未|未经|不予|未予|既未|没有|没|未|无)(?![^，。？]{0,14}(?:出血|但|却|已获|已得|已书))[^，。？]{0,18}?(?:特批|豁免|批准延长|延长申请时限|延长申请时间|书面同意豁免|同意公司延期|同意豁免逾期)',
         text,
     ):
         obs['approved_waiver'] = False

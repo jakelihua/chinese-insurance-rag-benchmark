@@ -46,25 +46,25 @@ def extract_fields_surface_normalized(text, policies=POLICIES):
         if len(day) == 1:
             fields['policy_day'] = chinese_number(day[0])
     if fields['plan_wait_days'] is None:
-        wait = re.findall(r'(?:计划|责任|约定|条款).{0,10}等待期(?:为|是)?' + num + r'(?:天|日)', norm)
+        wait = re.findall(r'(?:计划|责任|约定|条款).{0,10}(?:等待期|观察期)(?:为|是)?' + num + r'(?:天|日)', norm)
         if not wait:
-            wait = re.findall(r'等待期(?:为|是)?' + num + r'(?:天|日)', norm)
+            wait = re.findall(r'(?:等待期|观察期)(?:为|是)?' + num + r'(?:天|日)', norm)
         if not wait:
-            wait = re.findall(num + r'(?:天|日)(?:的)?等待期', norm)
+            wait = re.findall(num + r'(?:天|日)(?:的)?(?:等待期|观察期)', norm)
         if len(wait) == 1:
             fields['plan_wait_days'] = chinese_number(wait[0])
     if re.search(
-        r'(?:(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期.{0,8}(?:还不清楚|尚不清楚|不清楚|不确定))'
-        r'|(?:(?:还不清楚|尚不清楚|不清楚|不确定).{0,12}(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期)',
+        r'(?:(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?(?:等待期|观察期).{0,8}(?:还不清楚|尚不清楚|不清楚|不确定))'
+        r'|(?:(?:还不清楚|尚不清楚|不清楚|不确定).{0,12}(?:是否|有没有).{0,16}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?(?:等待期|观察期))',
         norm,
     ):
         fields['approved_waiver'] = None
     elif re.search(
-        r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?等待期',
+        r'(?:未获|尚未获|没有获得|没获得|未曾获|并未获|未经|(?:未|没有)(?:获|获得|得到|批准|同意)).{0,12}(?:批准|同意)?.{0,8}免(?:去|除)?(?:了)?(?:等待期|观察期)',
         norm,
     ):
         fields['approved_waiver'] = False
-    elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?(?:了)?等待期', norm):
+    elif re.search(r'(?:已获|已经|已).{0,15}(?:批准|同意).{0,8}免(?:去|除)?(?:了)?(?:等待期|观察期)', norm):
         fields['approved_waiver'] = True
     if any('benefits' in p for p in policies.values()):
         has_gen = bool(re.search(r'一般住院医疗津贴|一般住院津贴|普通住院津贴|一般住院', norm))
