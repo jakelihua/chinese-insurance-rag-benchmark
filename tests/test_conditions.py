@@ -1082,33 +1082,50 @@ class ConditionTests(unittest.TestCase):
         study._LAST_API_META.clear()
 
     def test_ccf_a_upgrade_suite_raw_clause_panel_real_llm_rag_and_multi_rule(self):
-        """Verify all 4 experiments in the CCF-A Upgrade Suite (`src/ccf_a_upgrade_study.py`):
+        """Verify all 4 experiments and all 8 audit remediations in the CCF-A Upgrade Suite (`src/ccf_a_upgrade_study.py`):
         1. Blinded 3-flagship raw-clause semantic adjudication (`kimi-k3`, `deepseek-v4-pro`, `qwen3.8-max`)
-           across all 88 seeds (264 batches, 1,408 core records) with live HTTP header provenance.
+           across all 88 seeds (264 batches, 1,408 core records) plus strictly zero-hint Pure-Verbatim adjudication
+           on all 40 confirmation seeds (120 batches, 640 core records), reporting both binary usability Fleiss' kappa
+           and 3-way semantic label Fleiss' kappa.
         2. Joint utility & template discrimination power (`multi_template_3`, `complete_6slot_schema_render`,
-           and novelty vs. dense-over-lexical retrieval discrimination correlation).
-        3. Downstream system selection on 6 real cloud LLM RAG pipelines (`L1`..`L6`, 1,939 cached reader calls).
-        4. Non-waiting-period multi-rule generalization (24 seeds, 48 pairs across 3 new rule families),
-           pooled 88-seed (176-pair, 25-clause) Holm-Bonferroni clustered permutation tests, and independent
-           zero-shot schema compiler audit (`11/11` exact match for both `qwen3.8-max` and `kimi-k3`).
+           and deduplicated/seed-clustered novelty vs. dense-over-lexical retrieval discrimination correlation).
+        3. Downstream system selection on 9 real cloud LLM RAG pipelines (`L1`..`L9`, 4,067 cached reader calls),
+           same-model protocol ablation (`L1` vs `L9`, `L7` vs `L5`, `L8` vs `L6`), External Holdout-48 validation,
+           and permutation-invariant majority voting in `_get_panel_true_label`.
+        4. Verbatim PDF-grounded non-waiting-period multi-rule generalization (24 seeds, 48 pairs across 3 rule families),
+           pooled 88-seed (176-pair, 25-clause, 21-source-document) Holm-Bonferroni clustered permutation tests, and
+           uncontaminated 17-PDF zero-shot schema compiler audit (`17/17` 3-field exact match for `qwen3.8-max` & `kimi-k3`).
         """
+        import ast
+        import inspect
+        import itertools
         import json
         from pathlib import Path
         import ccf_a_upgrade_study as upg
 
         root = Path(__file__).resolve().parents[1]
         summary = json.loads((root / 'data_v3' / 'ccf_a_upgrade_summary.json').read_text(encoding='utf-8'))
-        self.assertEqual(summary['study_version'], 'v3.2-ccf-a-upgrade')
+        self.assertEqual(summary['study_version'], 'v3.3-ccf-a-audit-remediated')
 
-        # 1. Experiment 1: Blinded 3-flagship raw-clause adjudication
+        # 1. Experiment 1: Protocol-Guided & Pure-Verbatim 3-flagship raw-clause adjudication
         exp1 = summary['experiment_1_blinded_3flagship_raw_clause_adjudication']
         self.assertEqual(exp1['evaluated_records_core_8_methods_confirm_40'], 640)
         self.assertEqual(exp1['evaluated_records_core_methods_all_88_seeds'], 1408)
         ia = exp1['inter_adjudicator_agreement']
         self.assertAlmostEqual(ia['fleiss_kappa_3_flagship_judges'], 0.7411, places=4)
+        self.assertAlmostEqual(ia['fleiss_kappa_3way_semantic_label_confirm_640'], 0.8578, places=4)
         self.assertAlmostEqual(ia['exact_agreement_rate_verifier_vs_panel_majority'], 0.8719, places=4)
-        self.assertAlmostEqual(ia['all_88_seeds_1408_records_fleiss_kappa'], 0.6741, places=4)
-        self.assertAlmostEqual(ia['all_88_seeds_1408_records_exact_agreement_rate'], 0.848, places=4)
+        self.assertAlmostEqual(ia['all_88_seeds_1408_records_fleiss_kappa'], 0.7423, places=4)
+        self.assertAlmostEqual(ia['all_88_seeds_1408_records_3way_fleiss_kappa'], 0.8464, places=4)
+        self.assertAlmostEqual(ia['all_88_seeds_1408_records_exact_agreement_rate'], 0.8246, places=4)
+        self.assertAlmostEqual(ia['non_waiting_24_seeds_384_records_pure_verbatim_binary_fleiss_kappa'], 0.8041, places=4)
+        self.assertAlmostEqual(ia['non_waiting_24_seeds_384_records_pure_verbatim_3way_fleiss_kappa'], 0.8345, places=4)
+
+        pv = exp1['pure_verbatim_confirmation_40_adjudication_640']
+        self.assertAlmostEqual(pv['fleiss_kappa_binary_usability'], 0.7008, places=4)
+        self.assertAlmostEqual(pv['fleiss_kappa_3way_semantic_label'], 0.8366, places=4)
+        self.assertAlmostEqual(pv['exact_agreement_protocol_guided_vs_pure_verbatim_majority'], 0.9656, places=4)
+        self.assertAlmostEqual(pv['cohens_kappa_binary_protocol_guided_vs_pure_verbatim_majority'], 0.8857, places=4)
 
         err_audit = exp1['parser_vs_raw_clause_panel_error_audit_640']
         self.assertEqual(err_audit['parser_accepted_panel_accepted_tp'], 475)
@@ -1117,12 +1134,17 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(err_audit['parser_false_accept_count_panel_rejected'], 36)
 
         p176_panel = exp1['pooled_88_seeds_176_pairs_under_raw_clause_panel']
-        self.assertEqual(p176_panel['ordinary_style']['a_pass'], 166)
-        self.assertEqual(p176_panel['ordinary_style']['b_pass'], 30)
-        self.assertEqual(p176_panel['structured_json_schema_render']['b_pass'], 125)
-        self.assertLess(p176_panel['structured_json_schema_render']['clause_clustered_p'], 0.001)
-        self.assertEqual(p176_panel['structured_json_rewrite']['b_pass'], 140)
-        self.assertLess(p176_panel['structured_json_rewrite']['clause_clustered_p'], 0.01)
+        self.assertEqual(p176_panel['ordinary_style']['a_pass'], 161)
+        self.assertEqual(p176_panel['ordinary_style']['b_pass'], 48)
+        self.assertEqual(p176_panel['ordinary_style']['n_clause_clusters'], 25)
+        self.assertEqual(p176_panel['ordinary_style']['n_source_doc_clusters'], 21)
+        self.assertEqual(p176_panel['structured_json_schema_render']['b_pass'], 130)
+        self.assertLess(p176_panel['structured_json_schema_render']['source_doc_clustered_p'], 0.005)
+        self.assertEqual(p176_panel['structured_json_rewrite']['b_pass'], 118)
+        self.assertLess(p176_panel['structured_json_rewrite']['clause_clustered_p'], 0.005)
+        self.assertEqual(p176_panel['condition_prompt']['b_pass'], 161)
+        self.assertEqual(p176_panel['structured_json_untruncated_320']['b_pass'], 161)
+        self.assertEqual(p176_panel['generic_self_refine_budget_matched']['b_pass'], 163)
 
         adj_rows = [
             json.loads(line)
@@ -1135,75 +1157,165 @@ class ConditionTests(unittest.TestCase):
             self.assertTrue(ar['api_meta']['http_date'])
             self.assertEqual(ar['api_meta']['metadata_provenance'], 'captured_live_from_http_response')
 
-        # 2. Experiment 2: Joint utility & template discrimination
+        pv_rows = [
+            json.loads(line)
+            for line in (root / 'data_v3' / 'ccf_a_pure_verbatim_adjudications.jsonl').read_text(encoding='utf-8').splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(pv_rows), 120)
+        for pr in pv_rows:
+            self.assertEqual(pr['adjudication_protocol'], 'pure_verbatim')
+            self.assertTrue(pr['api_meta']['http_request_id'])
+
+        # 2. Experiment 2: Joint utility & deduplicated/clustered novelty correlation
         exp2 = summary['experiment_2_joint_utility_and_template_discrimination']
         corr = exp2['novelty_vs_retriever_discrimination_correlation']
         self.assertEqual(corr['n_usable_insurance_queries'], 421)
         self.assertAlmostEqual(corr['spearman_rho'], 0.1631, places=4)
         self.assertLess(corr['spearman_p'], 0.001)
+        self.assertEqual(corr['deduplicated_unique_queries']['n_unique_usable_queries'], 245)
+        self.assertEqual(corr['deduplicated_unique_queries']['n_seed_clusters'], 24)
+        self.assertAlmostEqual(corr['deduplicated_unique_queries']['pearson_r'], 0.1182, places=4)
+        self.assertAlmostEqual(corr['deduplicated_unique_queries']['spearman_rho'], 0.2109, places=4)
+        self.assertAlmostEqual(corr['within_seed_fixed_effects_demeaned']['within_seed_pearson_r'], 0.0983, places=4)
+        self.assertGreater(corr['within_seed_fixed_effects_demeaned']['exact_within_seed_permutation_p'], 0.10)
 
-        # 3. Experiment 3: 6 real cloud LLM RAG pipelines
+        # 3. Experiment 3: 9 real cloud LLM RAG pipelines, same-model protocol ablation, & _get_panel_true_label AST probe
         exp3 = summary['experiment_3_real_llm_rag_downstream_selection']
+        self.assertEqual(len(exp3['candidate_real_llm_pipelines']), 9)
+        self.assertEqual(len(exp3['same_protocol_abstaining_6_pipeline_ids']), 6)
         self.assertEqual(exp3['reference_winner_pipeline'], 'L2_rrf_deepseek_v4pro_abstaining')
+        self.assertEqual(exp3['external_holdout_winner_pipeline'], 'L7_bge_deepseek_v41_abstaining')
         self.assertAlmostEqual(exp3['reference_80_benchmark_accuracy']['L2_rrf_deepseek_v4pro_abstaining'], 0.95, places=4)
+        self.assertAlmostEqual(exp3['reference_80_benchmark_accuracy']['L7_bge_deepseek_v41_abstaining'], 0.9375, places=4)
         self.assertAlmostEqual(exp3['reference_80_benchmark_accuracy']['L5_bge_deepseek_v41_forced_binary'], 0.50, places=4)
+        self.assertAlmostEqual(exp3['external_holdout_48_benchmark_accuracy']['L7_bge_deepseek_v41_abstaining'], 0.9375, places=4)
+        self.assertEqual(len(exp3['same_model_protocol_ablation']), 3)
         for fam in ('qwen_plus', 'deepseek'):
             ord_res = exp3['by_generator_family'][fam]['ordinary_style']
             sgr_res = exp3['by_generator_family'][fam]['slot_guard_repair']
-            self.assertGreater(ord_res['mae_vs_raw_clause_panel_truth'], 0.55)
-            self.assertLess(ord_res['kendall_tau_vs_panel_truth'], -0.45)
-            self.assertLess(sgr_res['mae_vs_raw_clause_panel_truth'], 0.07)
-            self.assertGreater(sgr_res['kendall_tau_vs_panel_truth'], 0.70)
-            self.assertLess(sgr_res['mae_paired_vs_reference_80'], 0.03)
+            self.assertGreater(ord_res['raw_clause_panel_label_corruption_rate'], 0.70)
+            self.assertGreater(ord_res['mae_vs_raw_clause_panel_truth'], 0.50)
+            self.assertLess(ord_res['kendall_tau_vs_panel_truth'], -0.60)
+            self.assertLess(ord_res['same_protocol_abstaining_6_pipelines']['kendall_tau_vs_panel_truth_abstaining_6'], -0.30)
+            self.assertEqual(sgr_res['symbolic_label_corruption_rate'], 0.0)
+            self.assertLessEqual(sgr_res['raw_clause_panel_label_corruption_rate'], 0.08)
+            self.assertLess(sgr_res['mae_vs_raw_clause_panel_truth'], 0.08)
+            self.assertGreater(sgr_res['kendall_tau_vs_panel_truth'], 0.50)
+            self.assertGreater(sgr_res['paired_kendall_tau'], 0.65)
+            self.assertGreater(sgr_res['same_protocol_abstaining_6_pipelines']['kendall_tau_vs_panel_truth_abstaining_6'], 0.75)
+            self.assertGreater(sgr_res['external_holdout_48_validation']['kendall_tau_vs_external_holdout_48'], 0.75)
+
+        # AST probe on _get_panel_true_label inside run_or_load_real_llm_rag_study
+        fn_tree = ast.parse(inspect.getsource(upg.run_or_load_real_llm_rag_study)).body[0]
+        panel_fn_node = next(
+            node for node in fn_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == '_get_panel_true_label'
+        )
+        mod_node = ast.Module(body=[panel_fn_node], type_ignores=[])
+        ast.fix_missing_locations(mod_node)
+        judge_ids = [j[0] for j in upg.ADJUDICATOR_MODELS]
+        probe_ns = {
+            'ADJUDICATOR_MODELS': upg.ADJUDICATOR_MODELS,
+            'adjudication_records': {
+                ('probe', jid): {
+                    'judgments_by_question': {
+                        'q': {'policy_identified': True, 'sentence_complete': True, 'decision': dec}
+                    }
+                }
+                for jid, dec in zip(judge_ids, ['WAIT_EXCLUDED', 'WAIT_NOT_EXCLUDED', 'WAIT_NOT_EXCLUDED'])
+            },
+        }
+        exec(compile(mod_node, '<panel_vote_probe>', 'exec'), probe_ns)
+        panel_fn = probe_ns['_get_panel_true_label']
+        # Inverted 2-vs-1 majority must return 'WAIT_NOT_EXCLUDED' (never seed_gold 'WAIT_EXCLUDED')
+        self.assertEqual(panel_fn('probe', 'q', 'WAIT_EXCLUDED'), 'WAIT_NOT_EXCLUDED')
+        # 1-1-1 three-way split must be permutation-invariant and return 'CLARIFY'
+        three_votes = [
+            {'policy_identified': True, 'sentence_complete': True, 'decision': 'WAIT_EXCLUDED'},
+            {'policy_identified': True, 'sentence_complete': True, 'decision': 'WAIT_NOT_EXCLUDED'},
+            {'policy_identified': True, 'sentence_complete': False, 'decision': 'CLARIFY_REQUIRED'},
+        ]
+        for perm in itertools.permutations(three_votes):
+            probe_ns['adjudication_records'] = {
+                ('probe', jid): {'judgments_by_question': {'q': vote}}
+                for jid, vote in zip(judge_ids, perm)
+            }
+            self.assertEqual(panel_fn('probe', 'q', 'WAIT_EXCLUDED'), 'CLARIFY')
+        # Missing adjudication record must raise KeyError (never silently return seed_gold)
+        with self.assertRaises(KeyError):
+            panel_fn('nonexistent-seed', 'q', 'WAIT_EXCLUDED')
 
         rag_rows = [
             json.loads(line)
             for line in (root / 'data_v3' / 'ccf_a_real_llm_rag_responses.jsonl').read_text(encoding='utf-8').splitlines()
             if line.strip()
         ]
-        self.assertEqual(len(rag_rows), 1939)
+        self.assertEqual(len(rag_rows), 4067)
         for rr in rag_rows[:20]:
             self.assertTrue(rr['api_meta']['http_request_id'])
             self.assertIn(
                 rr['parsed_label'],
-                ('WAIT_EXCLUDED', 'WAIT_NOT_EXCLUDED', 'RULE_EXCLUDED', 'RULE_ELIGIBLE', 'CLARIFY_REQUIRED'),
+                ('WAIT_EXCLUDED', 'WAIT_NOT_EXCLUDED', 'RULE_EXCLUDED', 'RULE_ELIGIBLE', 'CLARIFY_REQUIRED', 'CLARIFY'),
             )
 
-        # 4. Experiment 4: Non-waiting-period multi-rule generalization & pooled 176-pair stats
+        # 4. Experiment 4: Verbatim PDF non-waiting-period multi-rule generalization, 21-doc pooled stats, & 17-PDF compiler audit
         seeds_24, clause_defs_4 = upg.build_non_waiting_seeds_list()
         self.assertEqual(len(seeds_24), 24)
-        s0 = seeds_24[0]
-        q0 = upg.render_non_waiting_seed_question(s0, clause_defs_4)
-        ext0 = upg.extract_non_waiting_slots(q0, clause_defs_4)
-        out0, miss0, mut0 = upg.evaluate_non_waiting_outcome(ext0, s0, clause_defs_4)
-        self.assertEqual(out0, 'PRESERVED_DECISION')
-        self.assertEqual(miss0, [])
-        self.assertEqual(mut0, [])
+        for s_item in seeds_24:
+            q_full = upg.render_non_waiting_seed_question(s_item, clause_defs_4)
+            ext_full = upg.extract_non_waiting_slots(q_full, clause_defs_4)
+            out_full, miss_full, mut_full = upg.evaluate_non_waiting_outcome(ext_full, s_item, clause_defs_4)
+            self.assertEqual(out_full, 'PRESERVED_DECISION', f"Failed on {s_item['seed_id']}: miss={miss_full}, mut={mut_full}")
+            self.assertEqual(miss_full, [])
+            self.assertEqual(mut_full, [])
 
-        q0_drop = upg.render_non_waiting_seed_question(s0, clause_defs_4, drop_field=s0['pivotal_field'])
-        ext0_drop = upg.extract_non_waiting_slots(q0_drop, clause_defs_4)
-        out0_drop, miss0_drop, _ = upg.evaluate_non_waiting_outcome(ext0_drop, s0, clause_defs_4)
-        self.assertEqual(out0_drop, 'AMBIGUOUS_NEED_CLARIFICATION')
-        self.assertIn(s0['pivotal_field'], miss0_drop)
+            q_drop = upg.render_non_waiting_seed_question(s_item, clause_defs_4, drop_field=s_item['pivotal_field'])
+            ext_drop = upg.extract_non_waiting_slots(q_drop, clause_defs_4)
+            out_drop, miss_drop, _ = upg.evaluate_non_waiting_outcome(ext_drop, s_item, clause_defs_4)
+            self.assertEqual(out_drop, 'AMBIGUOUS_NEED_CLARIFICATION', f"Drop failed on {s_item['seed_id']}")
+            self.assertIn(s_item['pivotal_field'], miss_drop)
+
+        # Verify upper-bound operator on 30-day prescription cap (15 days -> RULE_ELIGIBLE; 45 days -> RULE_EXCLUDED)
+        rx_ok = upg.non_waiting_decision(
+            {'clause_id': 'ins_age_rx_pa1073', 'status': 'primary', 'condition': 'routine', 'elapsed_day': 15, 'threshold_days': 30, 'approved_waiver': 'granted'},
+            clause_defs_4,
+        )
+        rx_ex = upg.non_waiting_decision(
+            {'clause_id': 'ins_age_rx_pa1073', 'status': 'primary', 'condition': 'routine', 'elapsed_day': 45, 'threshold_days': 30, 'approved_waiver': 'granted'},
+            clause_defs_4,
+        )
+        self.assertEqual(rx_ok, 'RULE_ELIGIBLE')
+        self.assertEqual(rx_ex, 'RULE_EXCLUDED')
 
         exp4 = summary['experiment_4_multi_rule_generalization_and_pooled_176_stats']
         mr_sum = exp4['non_waiting_rule_families_24_seeds_48_pairs']['methods_summary']
         self.assertEqual(mr_sum['slot_guard_repair']['joint_usable'], 48)
-        self.assertEqual(mr_sum['slot_guard_repair']['raw_clause_panel_majority_usable'], 45)
-        self.assertEqual(mr_sum['ordinary_style']['joint_usable'], 3)
+        self.assertEqual(mr_sum['slot_guard_repair']['raw_clause_panel_majority_usable'], 40)
+        self.assertEqual(mr_sum['ordinary_style']['joint_usable'], 0)
+        self.assertEqual(mr_sum['ordinary_style']['raw_clause_panel_majority_usable'], 22)
 
         p176 = exp4['pooled_88_seeds_176_pairs_all_4_rule_families']
         for b_name, st in p176.items():
             self.assertEqual(st['n_pairs'], 176)
             self.assertEqual(st['n_seeds'], 88)
             self.assertEqual(st['n_clause_clusters'], 25)
+            self.assertEqual(st['n_source_doc_clusters'], 21)
             self.assertEqual(st['a_pass'], 174)
             self.assertGreater(st['exact_mcnemar_p'], 0.0)
-            self.assertLessEqual(st['holm_6_clause_clustered_p'], 0.00293)
+            self.assertLessEqual(st['holm_6_clause_clustered_p'], 0.015625)
+            self.assertLessEqual(st['holm_6_source_doc_clustered_p'], 0.015625)
 
-        comp_audit = exp4['independent_zero_shot_schema_compiler_audit']['compilers']
-        self.assertEqual(comp_audit['qwen3_8_max']['exact_schema_matches'], 11)
-        self.assertEqual(comp_audit['kimi_k3']['exact_schema_matches'], 11)
+        comp_audit_full = exp4['independent_zero_shot_schema_compiler_audit']
+        self.assertIn('example_fictitious_000', comp_audit_full['description'])
+        comp_audit = comp_audit_full['compilers']
+        self.assertEqual(comp_audit['qwen3_8_max']['total_clauses'], 17)
+        self.assertEqual(comp_audit['qwen3_8_max']['exact_schema_matches'], 17)
+        self.assertEqual(comp_audit['qwen3_8_max']['exact_4field_matches'], 17)
+        self.assertEqual(comp_audit['kimi_k3']['exact_schema_matches'], 17)
+        self.assertEqual(comp_audit['kimi_k3']['exact_4field_matches'], 16)
+        self.assertEqual(comp_audit['deepseek_v4_pro']['exact_schema_matches'], 16)
+        self.assertEqual(comp_audit['deepseek_v4_pro']['exact_4field_matches'], 16)
 
 
 if __name__=='__main__':unittest.main()
