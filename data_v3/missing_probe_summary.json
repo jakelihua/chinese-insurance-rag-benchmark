@@ -1,0 +1,125 @@
+{
+ "n_calls_expected": 480,
+ "n_calls_completed": 480,
+ "missing_calls": [],
+ "isolated/protocol_guided": {
+  "by_judge": {
+   "kimi_k3": {
+    "missing_critical": "29/40"
+   },
+   "deepseek_v4_pro": {
+    "missing_critical": "28/40"
+   },
+   "qwen3_8_max": {
+    "missing_critical": "33/40"
+   },
+   "majority_3": {
+    "missing_critical": "31/40"
+   }
+  },
+  "probes_missed_by_majority": [
+   "fconf-cross-002",
+   "fconf-cross-003",
+   "fconf-cross-005",
+   "fconf-cross-007",
+   "fconf-cross-011",
+   "fconf-cross-013",
+   "fconf-ins-002",
+   "fconf-ins-014",
+   "fconf-ins-019"
+  ],
+  "unparsed_items": 0
+ },
+ "isolated/pure_verbatim": {
+  "by_judge": {
+   "kimi_k3": {
+    "missing_critical": "30/40"
+   },
+   "deepseek_v4_pro": {
+    "missing_critical": "29/40"
+   },
+   "qwen3_8_max": {
+    "missing_critical": "34/40"
+   },
+   "majority_3": {
+    "missing_critical": "31/40"
+   }
+  },
+  "probes_missed_by_majority": [
+   "fconf-cross-002",
+   "fconf-cross-005",
+   "fconf-cross-007",
+   "fconf-cross-011",
+   "fconf-cross-013",
+   "fconf-ins-002",
+   "fconf-ins-003",
+   "fconf-ins-004",
+   "fconf-ins-014"
+  ],
+  "unparsed_items": 0
+ },
+ "with_controls/protocol_guided": {
+  "by_judge": {
+   "kimi_k3": {
+    "complete": "39/40",
+    "counterfactual": "40/40",
+    "missing_critical": "39/40"
+   },
+   "deepseek_v4_pro": {
+    "complete": "37/40",
+    "counterfactual": "36/40",
+    "missing_critical": "38/40"
+   },
+   "qwen3_8_max": {
+    "complete": "37/40",
+    "counterfactual": "37/40",
+    "missing_critical": "38/40"
+   },
+   "majority_3": {
+    "complete": "38/40",
+    "counterfactual": "39/40",
+    "missing_critical": "38/40"
+   }
+  },
+  "probes_missed_by_majority": [
+   "fconf-cross-011",
+   "fconf-ins-002"
+  ],
+  "unparsed_items": 0
+ },
+ "with_controls/pure_verbatim": {
+  "by_judge": {
+   "kimi_k3": {
+    "complete": "34/40",
+    "complete_flipped": 2,
+    "counterfactual": "36/40",
+    "counterfactual_flipped": 2,
+    "missing_critical": "40/40"
+   },
+   "deepseek_v4_pro": {
+    "complete": "33/40",
+    "complete_flipped": 3,
+    "counterfactual": "34/40",
+    "counterfactual_flipped": 2,
+    "missing_critical": "39/40"
+   },
+   "qwen3_8_max": {
+    "complete": "35/40",
+    "counterfactual": "33/40",
+    "counterfactual_flipped": 1,
+    "missing_critical": "39/40"
+   },
+   "majority_3": {
+    "complete": "34/40",
+    "complete_flipped": 2,
+    "counterfactual": "35/40",
+    "counterfactual_flipped": 2,
+    "missing_critical": "39/40"
+   }
+  },
+  "probes_missed_by_majority": [
+   "fconf-ins-002"
+  ],
+  "unparsed_items": 0
+ }
+}

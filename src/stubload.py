@@ -4,7 +4,7 @@ local generation and TF-IDF retrieval, none of which this analysis calls.
 They are replaced by inert stub modules so the pure-Python rule code can be imported."""
 import sys, types, importlib.abc, importlib.machinery
 
-STUB_ROOTS = {"fitz", "torch", "transformers", "sklearn", "numpy", "scipy"}
+STUB_ROOTS = {"fitz", "torch", "transformers", "sklearn"}  # numpy and scipy are real dependencies
 
 class _Anything:
     def __init__(self, *a, **k): pass
