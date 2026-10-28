@@ -452,6 +452,9 @@
     "waiting_or_observation_period_items_count": 9,
     "additional_quantitative_eligibility_items_count": 41,
     "waiting_9_analysis": {
+      "selection_rule": "Deterministic pre-registered filter: any(k in question or k in gold_answer for k in ['等待期', '观察期']) across all 960 InsQABench items",
+      "question_direct_or_implicit_waiting_items_count": 7,
+      "answer_enumerated_restrictive_clause_items_count": 2,
       "clauses_with_explicit_numeric_wait_days": 3,
       "explicit_wait_days_extraction_accuracy": 1.0,
       "clauses_deferring_wait_days_to_policy_schedule_or_crossref": 6,

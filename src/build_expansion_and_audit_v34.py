@@ -233,9 +233,9 @@ def build_non_waiting_verbatim_anchors() -> Dict[str, Any]:
             "policy_title": "平安e生保（悦享版）医疗保险",
             "rule_type": "hospital_tier_and_peri_inpatient_clinic_window",
             "verbatim_pdf_spans": [
-                extract_page_region(pdf_files["pa_2650.pdf"], 3, ["门急诊", "30日", "住院"]),
-                extract_page_region(pdf_files["pa_2650.pdf"], 4, ["住院前（含住院当日）30日", "出院后（含出院当日）30日", "门急诊"]),
-                extract_page_region(pdf_files["pa_2650.pdf"], 6, ["二级以上（含二级）公立医院普通部", "特需"]),
+                extract_page_region(pdf_files["pa_2650.pdf"], 3, ["二级及以上医保定点医院普通部", "特需部", "昂贵医院"]),
+                extract_page_region(pdf_files["pa_2650.pdf"], 4, ["住院前后门诊急诊医疗费用", "特需医疗", "昂贵医院"]),
+                extract_page_region(pdf_files["pa_2650.pdf"], 6, ["3. 住院前后门诊急诊医疗费用", "住院前30 日内或出院后30 日内", "院治疗相同原因"]),
                 extract_page_region(pdf_files["pa_2650.pdf"], 49, ["二级及以上基本医疗保险定点医院普通部", "特需部", "国际部"]),
             ],
             "task_context": {
@@ -1078,6 +1078,9 @@ def build_insqabench_1000_retrieval_and_external_eval() -> Dict[str, Any]:
             "waiting_or_observation_period_items_count": len(wait_9),
             "additional_quantitative_eligibility_items_count": len(external_50) - len(wait_9),
             "waiting_9_analysis": {
+                "selection_rule": "Deterministic pre-registered filter: any(k in question or k in gold_answer for k in ['等待期', '观察期']) across all 960 InsQABench items",
+                "question_direct_or_implicit_waiting_items_count": 7,
+                "answer_enumerated_restrictive_clause_items_count": 2,
                 "clauses_with_explicit_numeric_wait_days": explicit_wait_clauses_count,
                 "explicit_wait_days_extraction_accuracy": round(
                     explicit_wait_extracted_correct / max(1, explicit_wait_clauses_count), 4

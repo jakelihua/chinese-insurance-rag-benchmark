@@ -1463,10 +1463,28 @@ class ConditionTests(unittest.TestCase):
         self.assertTrue(zhongan_rec['gold_waiting_schema']['renewal_exempt'])
         self.assertEqual(zhongan_rec['gold_waiting_schema']['wait_days'], 30)
 
-        # Verify InsQABench 50-item external audit: all 9 waiting items genuinely ask/answer about waiting/observation period
+        # Verify non_waiting_verbatim_pdf_anchors.json has tight paragraph-level bounding boxes (zero full-page fallbacks) and exact SHA-256 digests
+        nw_anchors = json.loads((root / 'data_v3' / 'non_waiting_verbatim_pdf_anchors.json').read_text(encoding='utf-8'))
+        for cid, cobj in nw_anchors['clauses'].items():
+            for sp in cobj['verbatim_pdf_spans']:
+                bbox = sp['bbox_pdf_points']
+                self.assertGreater(bbox[0], 0.0, f"Full-page fallback bbox detected on {cid} page {sp['page_1based']}")
+                self.assertGreater(bbox[1], 0.0, f"Full-page fallback bbox detected on {cid} page {sp['page_1based']}")
+                self.assertEqual(
+                    sp['span_sha256'],
+                    hashlib.sha256(sp['raw_verbatim_text'].encode('utf-8')).hexdigest(),
+                )
+                self.assertEqual(
+                    sp['cleaned_span_sha256'],
+                    hashlib.sha256(sp['superscript_cleaned_text'].encode('utf-8')).hexdigest(),
+                )
+
+        # Verify InsQABench 50-item external audit: all 9 waiting items genuinely ask/answer about waiting/observation period (7 direct/implicit + 2 restrictive-clause enumerations)
         insqa_ext = json.loads((root / 'data_v3' / 'insqabench_large_scale_retrieval_and_external_eval.json').read_text(encoding='utf-8'))
         ext_50 = insqa_ext['external_insqabench_validation_50']
         self.assertEqual(len(ext_50['waiting_9_analysis']['items']), 9)
+        self.assertEqual(ext_50['waiting_9_analysis']['question_direct_or_implicit_waiting_items_count'], 7)
+        self.assertEqual(ext_50['waiting_9_analysis']['answer_enumerated_restrictive_clause_items_count'], 2)
         for w_item in ext_50['waiting_9_analysis']['items']:
             qa_str = w_item['question'] + ' ' + w_item['gold_answer_excerpt']
             self.assertTrue('等待期' in qa_str or '观察期' in qa_str)
