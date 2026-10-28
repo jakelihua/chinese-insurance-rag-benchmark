@@ -1703,6 +1703,17 @@ NON_WAITING_RULE_CLAUSES = {
     },
 }
 
+_NON_WAIT_ANCHORS_FILE = Path(__file__).resolve().parents[1] / "data_v3" / "non_waiting_verbatim_pdf_anchors.json"
+if _NON_WAIT_ANCHORS_FILE.exists():
+    try:
+        _nw_anchors_data = json.loads(_NON_WAIT_ANCHORS_FILE.read_text(encoding="utf-8"))
+        for _cid, _cmeta in NON_WAITING_RULE_CLAUSES.items():
+            if _cid in _nw_anchors_data.get("clauses", {}):
+                _cmeta["fitz_page_bbox_anchors"] = _nw_anchors_data["clauses"][_cid]["verbatim_pdf_spans"]
+                _cmeta["task_context"] = _nw_anchors_data["clauses"][_cid]["task_context"]
+    except Exception:
+        pass
+
 
 def build_24_multi_rule_seeds():
     """Construct verbatim PDF-grounded clause definitions for the 4 official non-waiting-period
@@ -4204,9 +4215,26 @@ def main():
         },
     }
 
+    non_wait_anchors_path = args.out_dir / "non_waiting_verbatim_pdf_anchors.json"
+    non_wait_anchors = json.loads(non_wait_anchors_path.read_text(encoding="utf-8")) if non_wait_anchors_path.exists() else {}
+    for cid, cmeta in NON_WAITING_RULE_CLAUSES.items():
+        if cid in non_wait_anchors.get("clauses", {}):
+            cmeta["fitz_page_bbox_anchors"] = non_wait_anchors["clauses"][cid]["verbatim_pdf_spans"]
+            cmeta["task_context"] = non_wait_anchors["clauses"][cid]["task_context"]
+
+    multi_insurer_path = args.out_dir / "multi_insurer_official_sources.json"
+    multi_insurer_audit = json.loads(multi_insurer_path.read_text(encoding="utf-8")) if multi_insurer_path.exists() else {}
+
+    insqabench_path = args.out_dir / "insqabench_large_scale_retrieval_and_external_eval.json"
+    insqabench_eval = json.loads(insqabench_path.read_text(encoding="utf-8")) if insqabench_path.exists() else {}
+
     exp4_summary = {
         "non_waiting_rule_families_24_seeds_48_pairs": {
             "clauses": NON_WAITING_RULE_CLAUSES,
+            "fitz_verbatim_pdf_anchors_summary": {
+                "provenance_version": non_wait_anchors.get("provenance_version"),
+                "source_pdfs": non_wait_anchors.get("source_pdfs", {}),
+            },
             "methods_summary": mrule_summary_by_method,
             "paired_tests_vs_slot_guard_repair_n48": stats_48_mrule,
             "paired_tests_vs_slot_guard_repair_n48_under_pure_verbatim_panel": stats_48_mrule_panel,
@@ -4214,15 +4242,37 @@ def main():
         "pooled_64_seeds_128_pairs_waiting_period": stats_128_pooled,
         "pooled_88_seeds_176_pairs_all_4_rule_families": stats_176_all,
         "independent_zero_shot_schema_compiler_audit": compiler_audit,
+        "expanded_27_pdf_10_insurer_schema_and_superscript_audit": multi_insurer_audit.get(
+            "expanded_waiting_period_schema_audit_27_pdfs", {}
+        ),
         "component_gain_and_role_decomposition": component_decomposition,
     }
 
+    exp5_summary = {
+        "multi_insurer_36_official_pdfs_and_superscript_cleaning": {
+            "total_official_pdfs_in_project": multi_insurer_audit.get("total_official_pdfs_in_project", 36),
+            "distinct_insurer_groups_count": multi_insurer_audit.get("distinct_insurer_groups_count", 10),
+            "insurer_distribution_36_pdfs": multi_insurer_audit.get("insurer_distribution_36_pdfs", {}),
+            "expanded_waiting_period_schema_audit_27_pdfs": multi_insurer_audit.get(
+                "expanded_waiting_period_schema_audit_27_pdfs", {}
+            ),
+            "superscript_cleaning_summary": multi_insurer_audit.get("superscript_cleaning_summary", {}),
+        },
+        "fudan_insqabench_1000_clause_distractor_retrieval": insqabench_eval.get(
+            "large_scale_1000_clause_retrieval", {}
+        ),
+        "fudan_insqabench_50_external_cross_validation": insqabench_eval.get(
+            "external_insqabench_validation_50", {}
+        ),
+    }
+
     full_summary = {
-        "study_version": "v3.3-ccf-a-audit-remediated",
+        "study_version": "v3.4-ccf-a-audit-and-corpus-expanded",
         "experiment_1_blinded_3flagship_raw_clause_adjudication": exp1_summary,
         "experiment_2_joint_utility_and_template_discrimination": exp2_summary,
         "experiment_3_real_llm_rag_downstream_selection": exp3_summary,
         "experiment_4_multi_rule_generalization_and_pooled_176_stats": exp4_summary,
+        "experiment_5_multi_insurer_36pdf_and_insqabench_1000_expansion": exp5_summary,
     }
     out_summary_path = args.out_dir / "ccf_a_upgrade_summary.json"
     base.write_json(out_summary_path, full_summary)

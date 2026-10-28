@@ -422,6 +422,7 @@ class ConditionTests(unittest.TestCase):
         norm_tex = (
             tex_abs.replace(r'\%', '%')
             .replace(r'\text{--}', '–')
+            .replace(r'\le', '<=')
             .replace('{,}', ',')
             .replace('$', '')
             .replace('p=0.125', 'p = 0.125')
@@ -1105,7 +1106,7 @@ class ConditionTests(unittest.TestCase):
 
         root = Path(__file__).resolve().parents[1]
         summary = json.loads((root / 'data_v3' / 'ccf_a_upgrade_summary.json').read_text(encoding='utf-8'))
-        self.assertEqual(summary['study_version'], 'v3.3-ccf-a-audit-remediated')
+        self.assertEqual(summary['study_version'], 'v3.4-ccf-a-audit-and-corpus-expanded')
 
         # 1. Experiment 1: Protocol-Guided & Pure-Verbatim 3-flagship raw-clause adjudication
         exp1 = summary['experiment_1_blinded_3flagship_raw_clause_adjudication']
@@ -1400,9 +1401,32 @@ class ConditionTests(unittest.TestCase):
         self.assertAlmostEqual(mix_ds['mae_vs_raw_clause_panel_truth'], 0.0816, places=4)
         self.assertAlmostEqual(mix_ds['constant_clarify_counterbaseline']['mae_vs_raw_clause_panel_truth'], 0.4333, places=4)
 
-        for cid_k, cmeta in upg.NON_WAITING_RULE_CLAUSES.items():
+        for cid_k, cmeta in exp4['non_waiting_rule_families_24_seeds_48_pairs']['clauses'].items():
             self.assertIn('verbatim_pdf_spans', cmeta)
             self.assertIn('modeling_scope_note', cmeta)
+            self.assertIn('fitz_page_bbox_anchors', cmeta)
+            self.assertIn('task_context', cmeta)
+
+        exp5 = summary['experiment_5_multi_insurer_36pdf_and_insqabench_1000_expansion']
+        self.assertEqual(exp5['multi_insurer_36_official_pdfs_and_superscript_cleaning']['total_official_pdfs_in_project'], 36)
+        self.assertEqual(exp5['multi_insurer_36_official_pdfs_and_superscript_cleaning']['distinct_insurer_groups_count'], 10)
+        self.assertEqual(
+            exp5['multi_insurer_36_official_pdfs_and_superscript_cleaning']['expanded_waiting_period_schema_audit_27_pdfs']['combined_27_pdf_symbolic_compiler_3core_matches'],
+            27,
+        )
+        self.assertEqual(exp5['fudan_insqabench_1000_clause_distractor_retrieval']['total_corpus_clauses'], 1000)
+        self.assertAlmostEqual(
+            exp5['fudan_insqabench_1000_clause_distractor_retrieval']['key_findings']['ordinary_style_1000_standard_bm25_top1'],
+            0.9250,
+            places=4,
+        )
+        self.assertAlmostEqual(
+            exp5['fudan_insqabench_1000_clause_distractor_retrieval']['key_findings']['slot_guard_repair_1000_standard_rrf_top1'],
+            0.9875,
+            places=4,
+        )
+        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['total_external_items_evaluated'], 50)
+        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['waiting_or_observation_period_items_count'], 22)
 
         decomp = exp4['component_gain_and_role_decomposition']
         self.assertIn('+86.93 pp', decomp['stage1_explicit_slot_prompting_gain']['symbolic_usability_delta'])

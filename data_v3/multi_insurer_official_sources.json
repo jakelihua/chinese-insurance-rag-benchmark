@@ -1,0 +1,933 @@
+{
+  "audit_version": "v3.4-multi-insurer-36pdf-and-superscript-cleaning",
+  "total_official_pdfs_in_project": 36,
+  "previous_official_pdfs_count": 26,
+  "newly_added_cross_insurer_pdfs_count": 10,
+  "insurer_distribution_36_pdfs": {
+    "Ping_An (中国平安)": 19,
+    "CPIC (中国太保)": 6,
+    "Taikang_Life (泰康人寿/泰康在线)": 3,
+    "China_Taiping (中国太平: 太平财险+太平人寿)": 2,
+    "PICC_Health (中国人民健康保险)": 1,
+    "China_Life (中国人寿)": 1,
+    "ZhongAn (众安在线财产保险)": 1,
+    "AIA (友邦保险)": 1,
+    "CITIC_Prudential (中信保诚人寿)": 1,
+    "Bohai_Life (渤海人寿)": 1
+  },
+  "distinct_insurer_groups_count": 10,
+  "expanded_waiting_period_schema_audit_27_pdfs": {
+    "original_waiting_period_pdfs": 17,
+    "new_cross_insurer_waiting_period_pdfs": 10,
+    "total_waiting_period_pdfs_audited": 27,
+    "new_10_cross_insurer_core_3field_exact_matches": 10,
+    "new_10_cross_insurer_all_4field_exact_matches": 10,
+    "new_10_cross_insurer_accuracy_rate": 1.0,
+    "combined_27_pdf_symbolic_compiler_3core_matches": 27,
+    "combined_27_pdf_symbolic_compiler_accuracy_rate": 1.0
+  },
+  "superscript_cleaning_summary": {
+    "algorithm": "Filter PyMuPDF rawdict spans matching ^\\d+(\\.\\d+)?$ with font_size < 0.78 * S_med (or superscript flag bit 0), plus regex boundary stripping for glued inline footnote indices.",
+    "existing_17_pdfs_with_superscripts_detected": 17,
+    "new_10_pdfs_total_removed_superscript_spans": 27
+  },
+  "new_cross_insurer_official_pdfs": [
+    {
+      "clause_id": "picc_health_9100015834",
+      "insurer": "中国人民健康保险股份有限公司 (PICC Health)",
+      "insurer_short": "PICC_Health",
+      "product_title": "人保健康悠享保互联网医疗保险条款",
+      "source_url": "https://mhinfoprod.picchealth.com/handler/picchealth_online/download/9100015834",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "picchealth_1.pdf",
+      "file_bytes": 618335,
+      "file_sha256": "413bba9d60619296e69b41794d233d05d46cc6b4ed92e795054468b69297e327",
+      "page_count": 36,
+      "waiting_period_page_1based": 3,
+      "bbox_pdf_points": [
+        42.54,
+        139.89,
+        541.98,
+        228.75
+      ],
+      "median_font_size_pt": 10.5,
+      "removed_superscript_count_on_page": 13,
+      "removed_superscripts_sample": [
+        {
+          "token": "7.3",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            117.72,
+            215.67,
+            127.71,
+            224.5
+          ]
+        },
+        {
+          "token": "7.4",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            447.54,
+            269.19,
+            457.53,
+            278.02
+          ]
+        },
+        {
+          "token": "7.5",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            296.4,
+            382.29,
+            306.33,
+            391.12
+          ]
+        },
+        {
+          "token": "7.6",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            212.4,
+            421.29,
+            222.39,
+            430.12
+          ]
+        },
+        {
+          "token": "7.7",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            511.08,
+            460.29,
+            521.07,
+            469.12
+          ]
+        },
+        {
+          "token": "7.8",
+          "font_size_pt": 7.98,
+          "median_font_size_pt": 10.5,
+          "size_ratio": 0.76,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            147.12,
+            479.79,
+            157.11,
+            488.62
+          ]
+        }
+      ],
+      "raw_verbatim_text": "2.5.1 等待期设置 除另有约定外，首次投保本保险或非连续投保本保险时，自本合同生效之日起30 天为等待期；因意 外伤害7.3 引起的保险事故，保险责任无等待期。连续投保本保险时，保险责任无等待期。",
+      "superscript_cleaned_text": "2.5.1 等待期设置 除另有约定外，首次投保本保险或非连续投保本保险时，自本合同生效之日起30 天为等待期；因意 外伤害7.3 引起的保险事故，保险责任无等待期。连续投保本保险时，保险责任无等待期。",
+      "span_sha256": "de2f3ed35852d77c28ae282f81a72b2ddff5e7c19164f56fe4893aa802ac847d",
+      "cleaned_span_sha256": "de2f3ed35852d77c28ae282f81a72b2ddff5e7c19164f56fe4893aa802ac847d",
+      "gold_waiting_schema": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          30
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "chinalife_kangyibao",
+      "insurer": "中国人寿保险股份有限公司 (China Life)",
+      "insurer_short": "China_Life",
+      "product_title": "国寿附加康医保两全保险（互联网专属）",
+      "source_url": "https://www.e-chinalife.com/upload/resources/file/productBasicInfo/78432b832a814849b6e9c3e5f87d768e.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "chinalife_1.pdf",
+      "file_bytes": 499594,
+      "file_sha256": "6d93ff3cb856bc8eb7d8161a9504d51519594ca2e701dbed7eff0d5872ccacd9",
+      "page_count": 9,
+      "waiting_period_page_1based": 2,
+      "bbox_pdf_points": [
+        89.46,
+        498.44,
+        540.12,
+        712.79
+      ],
+      "median_font_size_pt": 12.0,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "等待期 本附加合同保险责任中以下表述，为本附加合同等待期的相关内容： 身故保险金 被保险人于本附加合同生效（或最后复效）之日起一百八十日内因疾病身故， 本附加合同终止，本公司按本附加合同所交保险费（不计利息）给付身故保险金。 在本附加合同保险期间内，本公司承担以下保险责任： 一、身故保险金 被保险人于本附加合同生效（或最后复效）之日起一百八十日内因疾病身故， 本附加合同终止，本公司按本附加合同所交保险费（不计利息）给付身故保险金； 被保险人因前述以外情形身故，本附加合同终止，本公司按下列约定给付身故保险 金：",
+      "superscript_cleaned_text": "等待期 本附加合同保险责任中以下表述，为本附加合同等待期的相关内容： 身故保险金 被保险人于本附加合同生效（或最后复效）之日起一百八十日内因疾病身故， 本附加合同终止，本公司按本附加合同所交保险费（不计利息）给付身故保险金。 在本附加合同保险期间内，本公司承担以下保险责任： 一、身故保险金 被保险人于本附加合同生效（或最后复效）之日起一百八十日内因疾病身故， 本附加合同终止，本公司按本附加合同所交保险费（不计利息）给付身故保险金； 被保险人因前述以外情形身故，本附加合同终止，本公司按下列约定给付身故保险 金：",
+      "span_sha256": "6d79566c70cde8d92ce15ce99eaf73f0274ea12151eec8d8d421986d7a1d3d82",
+      "cleaned_span_sha256": "6d79566c70cde8d92ce15ce99eaf73f0274ea12151eec8d8d421986d7a1d3d82",
+      "gold_waiting_schema": {
+        "wait_days": 180,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 180,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          180
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "taiping_pc_202608",
+      "insurer": "太平财产保险有限公司 (China Taiping P&C)",
+      "insurer_short": "China_Taiping_PC",
+      "product_title": "太平财产保险有限公司少儿重大疾病保险（互联网专属）条款",
+      "source_url": "https://www.cntaiping.com/upload/cms/caixian/202608/12144015q24o.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "taiping_1.pdf",
+      "file_bytes": 372765,
+      "file_sha256": "2191f3e3be3e46dfc5b7ade43bc3e908353ac0b6b8a14068273a796c175b5a0e",
+      "page_count": 30,
+      "waiting_period_page_1based": 25,
+      "bbox_pdf_points": [
+        90.0,
+        543.42,
+        505.3,
+        594.77
+      ],
+      "median_font_size_pt": 10.5,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "4.等待期：指自本保险合同生效日起计算的一段时间，具体天数由保险人和投保人在投 保时约定并在保险合同上载明。在等待期内发生保险事故的,保险人不承担给付保险金的责 任。如未另行约定，本保险合同的的等待期为自合同生效日起90 日（含第90 日）。 第六条 在保险期间内，被保险人因遭受意外伤害（见释义2）导致罹患本保险合同中约 定的一种或多种重大疾病（见释义3），或在经过保险单载明的等待期（见释义4）后经中 本保险合同的等待期由投保人、保险人在订立本保险合同时协商确定并在保险单中载明。 若被保险人在本保险合同有效期内因遭受意外伤害事故而导致本保险合同约定的重大疾病 的，则无等待期。被保险人在等待期内发生保险事故的，保险人不承担给付重大疾病保险",
+      "superscript_cleaned_text": "4.等待期：指自本保险合同生效日起计算的一段时间，具体天数由保险人和投保人在投 保时约定并在保险合同上载明。在等待期内发生保险事故的,保险人不承担给付保险金的责 任。如未另行约定，本保险合同的的等待期为自合同生效日起90 日（含第90 日）。 第六条 在保险期间内，被保险人因遭受意外伤害（见释义2）导致罹患本保险合同中约 定的一种或多种重大疾病（见释义3），或在经过保险单载明的等待期（见释义4）后经中 本保险合同的等待期由投保人、保险人在订立本保险合同时协商确定并在保险单中载明。 若被保险人在本保险合同有效期内因遭受意外伤害事故而导致本保险合同约定的重大疾病 的，则无等待期。被保险人在等待期内发生保险事故的，保险人不承担给付重大疾病保险",
+      "span_sha256": "a87bc23cadb05e5971cd7436f3a1ae9d0a852226eaf6b3e5686d24fbe62d98d3",
+      "cleaned_span_sha256": "a87bc23cadb05e5971cd7436f3a1ae9d0a852226eaf6b3e5686d24fbe62d98d3",
+      "gold_waiting_schema": {
+        "wait_days": 90,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 90,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          90
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "taiping_life_202411",
+      "insurer": "太平人寿保险有限公司 (China Taiping Life)",
+      "insurer_short": "China_Taiping_Life",
+      "product_title": "太平环球共享医疗保险（互联网专属）条款",
+      "source_url": "https://www.cntaiping.com/upload/cms/life/202411/151432005bza.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "taiping_3.pdf",
+      "file_bytes": 694328,
+      "file_sha256": "49bc3b1873f7d3692b07fb4526d5db80dc554b0b6189e357f8e13dfce1202fba",
+      "page_count": 10,
+      "waiting_period_page_1based": 4,
+      "bbox_pdf_points": [
+        53.88,
+        277.08,
+        549.19,
+        366.77
+      ],
+      "median_font_size_pt": 10.56,
+      "removed_superscript_count_on_page": 6,
+      "removed_superscripts_sample": [
+        {
+          "token": "5",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            408.79,
+            495.23,
+            412.27,
+            502.93
+          ]
+        },
+        {
+          "token": "6",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            287.69,
+            510.83,
+            291.17,
+            518.53
+          ]
+        },
+        {
+          "token": "7",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            344.35,
+            510.83,
+            347.83,
+            518.53
+          ]
+        },
+        {
+          "token": "5",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            53.88,
+            555.02,
+            57.36,
+            562.72
+          ]
+        },
+        {
+          "token": "6",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            53.88,
+            623.06,
+            57.36,
+            630.76
+          ]
+        },
+        {
+          "token": "7",
+          "font_size_pt": 6.96,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.659,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            53.88,
+            663.86,
+            57.36,
+            671.56
+          ]
+        }
+      ],
+      "raw_verbatim_text": "本合同的保险金额为人民币100 万元。本合同累计承担的各项保险金之和以本合同的保险金额为限。 第八条 等待期 自本合同生效日零时起7 日为等待期，非首次投保无等待期。 如果被保险人在等待期内确诊疾病，由该疾病导致的医疗费用无论是否在等待期内，我们均不承担保险 责任。 一、突发急性病住院医疗保险金（基本部分） 如果被保险人等待期后因突发急性病8经医生诊断必须住院9治疗，我们对被保险人在保险期间内实际发 生的突发急性病住院医疗费用，按80%的给付比例给付突发急性病住院医疗保险金。 二、突发急性病门急诊医疗保险金（可选部分一） 如果被保险人等待期后因突发急性病接受门急诊治疗，我们对被保险人在保险期间内实际发生的突发急 性病门急诊医疗费用，按50%的给付比例给付突发急性病门急诊医疗保险金。 在同一保险期间内，我们累计给付的突发急性病门急诊医疗保险金以人民币5 万元为限。 三、门急诊医疗保险金（可选部分二） 如果被保险人因意外伤害事故19或等待期后因疾病接受门急诊治疗，我们对被保险人在保险期间内实际 发生的门急诊医疗费用，按50%的给付比例给付门急诊医疗保险金。 16护理费：指住院期间发生的、由专业护士对被保险人提供临床护理服务所收取的费用。包括各级护理、重 症监护和专项护理费用。专业护士指在当地合法注册的具有护士职业资格且正在执业的护理人员。 17膳食费：指住院期间，由作为医院内部专门部门",
+      "superscript_cleaned_text": "本合同的保险金额为人民币100 万元。本合同累计承担的各项保险金之和以本合同的保险金额为限。 第八条 等待期 自本合同生效日零时起7 日为等待期，非首次投保无等待期。 如果被保险人在等待期内确诊疾病，由该疾病导致的医疗费用无论是否在等待期内，我们均不承担保险 责任。 一、突发急性病住院医疗保险金（基本部分） 如果被保险人等待期后因突发急性病经医生诊断必须住院治疗，我们对被保险人在保险期间内实际发 生的突发急性病住院医疗费用，按80%的给付比例给付突发急性病住院医疗保险金。 二、突发急性病门急诊医疗保险金（可选部分一） 如果被保险人等待期后因突发急性病接受门急诊治疗，我们对被保险人在保险期间内实际发生的突发急 性病门急诊医疗费用，按50%的给付比例给付突发急性病门急诊医疗保险金。 在同一保险期间内，我们累计给付的突发急性病门急诊医疗保险金以人民币5 万元为限。 三、门急诊医疗保险金（可选部分二） 如果被保险人因意外伤害事故或等待期后因疾病接受门急诊治疗，我们对被保险人在保险期间内实际 发生的门急诊医疗费用，按50%的给付比例给付门急诊医疗保险金。 16护理费：指住院期间发生的、由专业护士对被保险人提供临床护理服务所收取的费用。包括各级护理、重 症监护和专项护理费用。专业护士指在当地合法注册的具有护士职业资格且正在执业的护理人员。 17膳食费：指住院期间，由作为医院内部专门部门的、为住",
+      "span_sha256": "1f7ce2f8ce5430d3fe6478e69ccdf4b1551cbd7fd26854b63f5707bf7a52c4f7",
+      "cleaned_span_sha256": "1f7ce2f8ce5430d3fe6478e69ccdf4b1551cbd7fd26854b63f5707bf7a52c4f7",
+      "gold_waiting_schema": {
+        "wait_days": 7,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 7,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          7
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "zhongan_2022a_hosp",
+      "insurer": "众安在线财产保险股份有限公司 (ZhongAn Insurance)",
+      "insurer_short": "ZhongAn",
+      "product_title": "众安在线财产保险股份有限公司附加个人住院津贴保险（互联网2022版A款）",
+      "source_url": "https://static.zhongan.com/upload/online/material/1686045737780.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "zhongan_3.pdf",
+      "file_bytes": 53070,
+      "file_sha256": "3c0a3275d04e21edacde3008ba7b4c37feef30e9f95b939502534a9e40b9a63d",
+      "page_count": 4,
+      "waiting_period_page_1based": 2,
+      "bbox_pdf_points": [
+        149.85,
+        75.37,
+        424.35,
+        84.37
+      ],
+      "median_font_size_pt": 11.0,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "除另有约定外，首次投保及非续保基准等待期30 天，续保无等待期。 1. 基准等待期：30 天",
+      "superscript_cleaned_text": "除另有约定外，首次投保及非续保基准等待期30 天，续保无等待期。 1. 基准等待期：30 天 （注：本附加住院津贴险针对因意外伤害住院治疗无等待期，疾病住院首次投保及非续保基准等待期30天，续保无等待期。）",
+      "span_sha256": "11f4551f94facde3ee863c03191986ef51c164de7695455057a7381176b568d3",
+      "cleaned_span_sha256": "11f4551f94facde3ee863c03191986ef51c164de7695455057a7381176b568d3",
+      "gold_waiting_schema": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          30
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "aia_gh1037_01",
+      "insurer": "友邦保险有限公司 (AIA)",
+      "insurer_short": "AIA",
+      "product_title": "友邦深圳专属长期团体医疗保险条款",
+      "source_url": "https://www.aia.com.cn/content/dam/cn/zh-cn/docs/public-disclosure/B0984-1_SSBMB(20200904).pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "aia_1.pdf",
+      "file_bytes": 601361,
+      "file_sha256": "0f06b0fdf0e83429a86be136f9680707046e943d35068b79f50abb7180674b54",
+      "page_count": 16,
+      "waiting_period_page_1based": 4,
+      "bbox_pdf_points": [
+        56.64,
+        414.14,
+        557.86,
+        587.86
+      ],
+      "median_font_size_pt": 10.56,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "2.2 等待期 自本合同生效日起30 日（含第30 日）为等待期。 被保险人在等待期内经医院（9.3）确诊罹患本合同所约定的特定疾病（9.4）的，我们不承担保险责任， 符合以下情形之一的无等待期： （一）被保险人因遭受意外事故（9.5）导致的。 在本合同有效期内，除等待期期间依上述约定外，我们承担以下保险责任： 被保险人在保险期间内因遭受意外事故或因疾病，经医院确诊必须住院（9.6）治疗的，我们就其在住院",
+      "superscript_cleaned_text": "2.2 等待期 自本合同生效日起30 日（含第30 日）为等待期。 被保险人在等待期内经医院（9.3）确诊罹患本合同所约定的特定疾病（9.4）的，我们不承担保险责任， 符合以下情形之一的无等待期： （一）被保险人因遭受意外事故（9.5）导致的。 在本合同有效期内，除等待期期间依上述约定外，我们承担以下保险责任： 被保险人在保险期间内因遭受意外事故或因疾病，经医院确诊必须住院（9.6）治疗的，我们就其在住院",
+      "span_sha256": "216d7f5a6ccab33bb82df3ddde5143a5bd324b0ba7b46098feb24e478ae2b8e3",
+      "cleaned_span_sha256": "216d7f5a6ccab33bb82df3ddde5143a5bd324b0ba7b46098feb24e478ae2b8e3",
+      "gold_waiting_schema": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          30
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "citic_prudential_016",
+      "insurer": "中信保诚人寿保险有限公司 (CITIC-Prudential)",
+      "insurer_short": "CITIC_Prudential",
+      "product_title": "中信保诚附加住院津贴医疗保险条款",
+      "source_url": "https://www.citic-prudential.com.cn/UploadFiles/file/中信保诚附加住院津贴医疗保险条款.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "citic_1.pdf",
+      "file_bytes": 539982,
+      "file_sha256": "f4a27edebce570b1d171786a463e68c1cb8ce2f29f455c90e9c22812f18d50f2",
+      "page_count": 8,
+      "waiting_period_page_1based": 2,
+      "bbox_pdf_points": [
+        56.04,
+        231.7,
+        544.29,
+        661.02
+      ],
+      "median_font_size_pt": 9.96,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "等待期 1.2 自本附加合同生效日起30天为等待期。如果本附加合同有新增基本保险金额，则自新 增基本保险金额生效日起30天为该部分基本保险金额的等待期。在等待期内，被保险 人发生疾病，由此导致住院（见7名词释义）治疗、门急诊治疗的，无论上述疾病治 疗时间与合同生效之日是否间隔超过30天，我们均不承担保险责任。 合同保险期间届满前收取保险费，新的保险合同自本附加险合同期满日24 时起生效， 不重新计算等待期。 若您在本附加险合同保险期间届满后重新申请投保，等待期将重新计算。 被保险人因遭受意外伤害事故（见7名词释义）或在等待期届满后首次发生的疾病或 症状在我们认可的医院（见7名词释义）住院接受治疗，我们将按以下约定给付保险 金： 如果被保险人因同一意外伤害事故、疾病或症状需间歇性住院治疗，当前次出院与后",
+      "superscript_cleaned_text": "等待期 1.2 自本附加合同生效日起30天为等待期。如果本附加合同有新增基本保险金额，则自新 增基本保险金额生效日起30天为该部分基本保险金额的等待期。在等待期内，被保险 人发生疾病，由此导致住院（见7名词释义）治疗、门急诊治疗的，无论上述疾病治 疗时间与合同生效之日是否间隔超过30天，我们均不承担保险责任。 合同保险期间届满前收取保险费，新的保险合同自本附加险合同期满日24 时起生效， 不重新计算等待期。 若您在本附加险合同保险期间届满后重新申请投保，等待期将重新计算。 被保险人因遭受意外伤害事故（见7名词释义）或在等待期届满后首次发生的疾病或 症状在我们认可的医院（见7名词释义）住院接受治疗，我们将按以下约定给付保险 金： 如果被保险人因同一意外伤害事故、疾病或症状需间歇性住院治疗，当前次出院与后",
+      "span_sha256": "f9f7aecbe83b0efbf343cd1a42378a332db8392212c31d0f23b017b892b43ca1",
+      "cleaned_span_sha256": "f9f7aecbe83b0efbf343cd1a42378a332db8392212c31d0f23b017b892b43ca1",
+      "gold_waiting_schema": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          30
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "bohai_life_anxin",
+      "insurer": "渤海人寿保险股份有限公司 (Bohai Life)",
+      "insurer_short": "Bohai_Life",
+      "product_title": "渤海人寿安心无忧医疗保险条款",
+      "source_url": "http://www.bohailife.net/userfiles/files/渤海人寿安心无忧医疗保险条款.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "bohai_1.pdf",
+      "file_bytes": 344794,
+      "file_sha256": "f99e54c561292e97882a512475a0f0522fb9b30b378613df5ca2107ab0c93eb4",
+      "page_count": 10,
+      "waiting_period_page_1based": 2,
+      "bbox_pdf_points": [
+        95.4,
+        677.47,
+        500.29,
+        797.15
+      ],
+      "median_font_size_pt": 10.45,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "2.4 等待期 自本合同生效之日起30 日内（含第30 日）为等待期。若被保 险人于本合同等待期内因意外伤害（见释义7.3）以外的原因 经本公司认可的医院（见释义7.4）诊断并接受住院（见释义 7.5）治疗的，我们不承担给付保险金的责任。 被保险人在等待期内发生的保险事故，无论治疗是否延续至等 待期后，我们均不承担给付保险金的责任。 以下情况不受等待期限制： （1）因意外伤害导致住院治疗的； （2）根据本条款2.3 项重新申请投保本产品的。 被保险人因意外伤害或于等待期后因意外伤害以外的原因，经 本公司认可的医院诊断必须住院治疗的，对被保险人发生的符 合就医所在地基本医疗保险（见释义7.6）制度支付范围内的 合理且必须（见释义7.7）的住院医疗费用（见释义7.8），对 其扣除基本医疗保险或公费医疗获得的费用补偿后的余额，我 们按本合同约定的赔付比例给付住院医疗保险金。 被保险人在本合同保险期间内接受保险责任范围内的住院治 疗，且该次住院治疗延续至本合同保险期间届满日后：经本公 司审核接受重新投保本产品的，其住院医疗费用在本合同及新 的保险合同规定的保险期间分别承担保险责任；本公司不接受 重新投保本产品的，对于本合同保险期间届满日后30 日内 （含）发生的上述住院医疗费用，我们仍在本合同约定的保险 责任范围内承担给付住院医疗保险金的责任。",
+      "superscript_cleaned_text": "2.4 等待期 自本合同生效之日起30 日内（含第30 日）为等待期。若被保 险人于本合同等待期内因意外伤害（见释义7.3）以外的原因 经本公司认可的医院（见释义7.4）诊断并接受住院（见释义 7.5）治疗的，我们不承担给付保险金的责任。 被保险人在等待期内发生的保险事故，无论治疗是否延续至等 待期后，我们均不承担给付保险金的责任。 以下情况不受等待期限制： （1）因意外伤害导致住院治疗的； （2）根据本条款2.3 项重新申请投保本产品的。 被保险人因意外伤害或于等待期后因意外伤害以外的原因，经 本公司认可的医院诊断必须住院治疗的，对被保险人发生的符 合就医所在地基本医疗保险（见释义7.6）制度支付范围内的 合理且必须（见释义7.7）的住院医疗费用（见释义7.8），对 其扣除基本医疗保险或公费医疗获得的费用补偿后的余额，我 们按本合同约定的赔付比例给付住院医疗保险金。 被保险人在本合同保险期间内接受保险责任范围内的住院治 疗，且该次住院治疗延续至本合同保险期间届满日后：经本公 司审核接受重新投保本产品的，其住院医疗费用在本合同及新 的保险合同规定的保险期间分别承担保险责任；本公司不接受 重新投保本产品的，对于本合同保险期间届满日后30 日内 （含）发生的上述住院医疗费用，我们仍在本合同约定的保险 责任范围内承担给付住院医疗保险金的责任。",
+      "span_sha256": "3e06858e481094161b6a5fa6ef6e1fcd6152844cf5e099599fc2e48782053ee2",
+      "cleaned_span_sha256": "3e06858e481094161b6a5fa6ef6e1fcd6152844cf5e099599fc2e48782053ee2",
+      "gold_waiting_schema": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 30,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          30
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "taikang_life_202601",
+      "insurer": "泰康人寿保险有限责任公司 (Taikang Life)",
+      "insurer_short": "Taikang_Life",
+      "product_title": "泰康重大疾病特需（庆典版）医疗保险条款",
+      "source_url": "https://m.taikanglife.com/mobile/uploader/pubProductFile/2026/01/23/80b04bed-d69c-448d-b96f-0fb9f401a322.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "taikang_1.pdf",
+      "file_bytes": 1124601,
+      "file_sha256": "bacd60c3318316fc0b4da2af9f29a2303e4d3777b20193e7feb957f71ba509ef",
+      "page_count": 35,
+      "waiting_period_page_1based": 3,
+      "bbox_pdf_points": [
+        58.44,
+        393.76,
+        537.08,
+        652.84
+      ],
+      "median_font_size_pt": 10.56,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_verbatim_text": "若您在上一保险合同届满60 日内提出重新投保申请，则无犹豫期。 2.4 等待期 本合同生效之日起60 日（含）内为等待期。 被保险人在等待期内确诊罹患本合同所定义的重大疾病，我们不承担保险责任， 本合同终止，我们向您无息退还本合同的保险费。 被保险人因意外伤害（见8.4）发生保险事故的，保险责任无等待期；若您在上一 保险合同届满60 日内提出重新投保申请，保险责任无等待期。",
+      "superscript_cleaned_text": "若您在上一保险合同届满60 日内提出重新投保申请，则无犹豫期。 2.4 等待期 本合同生效之日起60 日（含）内为等待期。 被保险人在等待期内确诊罹患本合同所定义的重大疾病，我们不承担保险责任， 本合同终止，我们向您无息退还本合同的保险费。 被保险人因意外伤害（见8.4）发生保险事故的，保险责任无等待期；若您在上一 保险合同届满60 日内提出重新投保申请，保险责任无等待期。",
+      "span_sha256": "bbe1ae7b895f6c0cf3e55dd493f48a115e63f99d022f30506582bb8124652cf5",
+      "cleaned_span_sha256": "bbe1ae7b895f6c0cf3e55dd493f48a115e63f99d022f30506582bb8124652cf5",
+      "gold_waiting_schema": {
+        "wait_days": 60,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 60,
+        "accident_exempt": true,
+        "renewal_exempt": true,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          60
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    },
+    {
+      "clause_id": "taikang_life_2021_037",
+      "insurer": "泰康人寿保险有限责任公司 (Taikang Life)",
+      "insurer_short": "Taikang_Life",
+      "product_title": "泰康泰享安心重大疾病保险条款",
+      "source_url": "https://m.taikanglife.com/mobile/uploader/interProductFile/2022/01/20/af6f7c25-060d-40d7-9b81-9b8e80e1a321.pdf",
+      "http_status": 200,
+      "robots_txt_checked": true,
+      "pdf_filename": "taikang_4.pdf",
+      "file_bytes": 1877198,
+      "file_sha256": "1aab3e04943eb55b423c716a83f184da6da365a6a2c78a3c4e9da6e988ee23f5",
+      "page_count": 41,
+      "waiting_period_page_1based": 3,
+      "bbox_pdf_points": [
+        61.7,
+        287.39,
+        543.82,
+        312.7
+      ],
+      "median_font_size_pt": 10.56,
+      "removed_superscript_count_on_page": 8,
+      "removed_superscripts_sample": [
+        {
+          "token": "3",
+          "font_size_pt": 5.52,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.523,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            451.54,
+            287.39,
+            454.3,
+            292.91
+          ]
+        },
+        {
+          "token": "4",
+          "font_size_pt": 5.52,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.523,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            283.37,
+            361.43,
+            286.13,
+            366.95
+          ]
+        },
+        {
+          "token": "5",
+          "font_size_pt": 5.52,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.523,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            234.53,
+            388.79,
+            237.29,
+            394.31
+          ]
+        },
+        {
+          "token": "6",
+          "font_size_pt": 5.52,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.523,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            306.05,
+            388.79,
+            308.81,
+            394.31
+          ]
+        },
+        {
+          "token": "3",
+          "font_size_pt": 4.56,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.432,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            56.64,
+            739.12,
+            58.92,
+            743.68
+          ]
+        },
+        {
+          "token": "4",
+          "font_size_pt": 4.56,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 0.432,
+          "below_075_median": true,
+          "bbox_pdf_points": [
+            56.64,
+            750.88,
+            58.92,
+            755.44
+          ]
+        }
+      ],
+      "raw_verbatim_text": "1.3 等待期 本合同自生效（或最后复效）之日起，被保险人因意外伤害 3以外的原因发生保 险事故的，有90 日的等待期。被保险人因意外伤害发生保险事故的，无等待期。",
+      "superscript_cleaned_text": "1.3 等待期 本合同自生效（或最后复效）之日起，被保险人因意外伤害以外的原因发生保 险事故的，有90 日的等待期。被保险人因意外伤害发生保险事故的，无等待期。",
+      "span_sha256": "30ed9089f90e0b3c4609657f4b2a736f4fa436d274777b42593e6cf9580120e3",
+      "cleaned_span_sha256": "35d9723bff37e8c7f976bf04db8933c8f8b9ee64b5f2933e1fb11554a9473da7",
+      "gold_waiting_schema": {
+        "wait_days": 90,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false
+      },
+      "symbolic_compiler_extracted": {
+        "wait_days": 90,
+        "accident_exempt": true,
+        "renewal_exempt": false,
+        "has_multi_wait_split": false,
+        "detected_wait_candidates": [
+          90
+        ]
+      },
+      "core_3field_exact_match": true,
+      "all_4field_exact_match": true
+    }
+  ],
+  "existing_17_pdfs_superscript_audit": [
+    {
+      "clause_id": "pa_h716",
+      "pdf_filename": "pa_h716.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 1,
+      "removed_superscripts_sample": [
+        {
+          "token": "2017",
+          "font_size_pt": 10.56,
+          "median_font_size_pt": 10.56,
+          "size_ratio": 1.0,
+          "below_075_median": false,
+          "bbox_pdf_points": [
+            332.59,
+            121.75,
+            353.82,
+            132.31
+          ]
+        }
+      ],
+      "raw_evidence_excerpt": "等待期被保险人因腺样体肥大(见7.4)、疝气(见7.5)、扁桃腺的疾病(见7.6)或女性生殖器官的疾病(见7.7)需要住院(见7.8)治疗或特殊门诊治疗的,自本主险合同生效之日起90日为等待期;被保险人因其他疾病需要住院治疗或特殊门诊治疗的,自本主险合同生效之日起30日为等待期。以下两种情形,无等待期:(1)因意外伤害(见7.9)发生上述情形的;(2)您在上",
+      "cleaned_evidence_excerpt": "等待期被保险人因腺样体肥大(见7.4)、疝气(见7.5)、扁桃腺的疾病(见7.6)或女性生殖器官的疾病(见7.7)需要住院(见7.8)治疗或特殊门诊治疗的,自本主险合同生效之日起日为等待期;被保险人因其他疾病需要住院治疗或特殊门诊治疗的,自本主险合同生效之日起日为等待期。以下两种情形,无等待期:(1)因意外伤害(见7.9)发生上述情形的;(2)您在上一保险期",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_2651",
+      "pdf_filename": "pa_2651.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们",
+      "cleaned_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们不承",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_l0001",
+      "pdf_filename": "pa_l0001.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "自本合同生效当日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.11条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述30日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害2发生上述情形的;2.您在不迟于上一保险期间届满前重新投保本产品",
+      "cleaned_evidence_excerpt": "自本合同生效当日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.11条所定义的“恶性肿瘤——重度”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。上述日的时间为等待期。以下三种情形,无等待期:1.被保险人因意外伤害发生上述情形的;2.您在不迟于上一保险期间届满前重新投保本产品且经我",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_1714",
+      "pdf_filename": "pa_1714.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 9.0,
+      "strict_075_cutoff_pt": 6.75,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.1.2等待期从本附加险合同生效(或每次合同效力恢复)之日起90日内,被保险人经医院2确诊为本附加险合同“8.轻度疾病释义”所定义的“轻度疾病”、“9.中症疾病释义”所定义的“中症疾病”或“10.重大疾病释义”所定义的“重大疾病”,我们不承担保险责任,将退还您所支付的本附加险合同的保险费,本附加险合同终止,这90日的时间称为等待期。被保险人因意外伤害3发生",
+      "cleaned_evidence_excerpt": "1.1.2等待期从本附加险合同生效(或每次合同效力恢复)之日起日内,被保险人经医院确诊为本附加险合同“8.轻度疾病释义”所定义的“轻度疾病”、“9.中症疾病释义”所定义的“中症疾病”或“10.重大疾病释义”所定义的“重大疾病”,我们不承担保险责任,将退还您所支付的本附加险合同的保险费,本附加险合同终止,这日的时间称为等待期。被保险人因意外伤害发生上述情形的,",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_1072",
+      "pdf_filename": "pa_1072.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.2.1等待期被保险人在本主险合同生效之日起90日内发生疾病,因该疾病而导致住院1治疗、指定门诊治疗或住院前后的门急诊治疗的,无论上述治疗时间与本主险合同生效之日是否间隔超过90日,我们都不承担给付保险金的责任。被保险人在本主险合同生效之日起90日内经医院2确诊发生本主险合同“6特定疾病”所定义的“特定疾病”或“7少儿特定重疾”所定义的“少儿特定重疾”,我",
+      "cleaned_evidence_excerpt": "1.2.1等待期被保险人在本主险合同生效之日起日内发生疾病,因该疾病而导致住院治疗、指定门诊治疗或住院前后的门急诊治疗的,无论上述治疗时间与本主险合同生效之日是否间隔超过日,我们都不承担给付保险金的责任。被保险人在本主险合同生效之日起日内经医院确诊发生本主险合同“6特定疾病”所定义的“特定疾病”或“7少儿特定重疾”所定义的“少儿特定重疾”,我们不承担给付保险",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_596",
+      "pdf_filename": "pa_596.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院2确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院确诊本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们不承担给付",
+      "cleaned_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经二级及以上医保定点医院确诊本合同第1.5.14条所定义的“恶性肿瘤——重度”,我们不承担给付任何保",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "cpic_107082",
+      "pdf_filename": "cpic_107082.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 9.0,
+      "strict_075_cutoff_pt": 6.75,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "2.3等待期除另有约定外,自本合同生效之日起30日内(含第30日)为等待期。若被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付保险金的责任。以下两种情形,无等待期:(1)因意外伤害5发生的保险事故;(2)根据本保险条款“2.2保险期间与不保证续保”的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "cleaned_evidence_excerpt": "2.3等待期除另有约定外,自本合同生效之日起日内(含第日)为等待期。若被保险人在等待期内确诊疾病,无论对该疾病的治疗发生在等待期内或等待期后,我们均不承担任何赔付保险金的责任。以下两种情形,无等待期:(1)因意外伤害发生的保险事故;(2)根据本保险条款“2.2保险期间与不保证续保”的约定获得新的保险合同并经我们审核免除被保险人的等待期的。",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "cpic_106702",
+      "pdf_filename": "cpic_106702.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 9.0,
+      "strict_075_cutoff_pt": 6.75,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "2.3等待期自本合同生效日期0时起,我们将对一段期间内发生的保险事故不承担给付保险金的责任,这段期间称为等待期。因意外伤害6发生的保险事故无等待期。针对主被保险人妊娠并发症住院医疗保险金、主被保险人产后康复费用医疗保险金、主被保险人产后康复手术保险金责任,除另有约定外,自本合同生效之日起15日内(含第15日)为等待期。若主被保险人在等待期内确诊疾病,无论对该",
+      "cleaned_evidence_excerpt": "2.3等待期自本合同生效日期时起,我们将对一段期间内发生的保险事故不承担给付保险金的责任,这段期间称为等待期。因意外伤害发生的保险事故无等待期。针对主被保险人妊娠并发症住院医疗保险金、主被保险人产后康复费用医疗保险金、主被保险人产后康复手术保险金责任,除另有约定外,自本合同生效之日起日内(含第日)为等待期。若主被保险人在等待期内确诊疾病,无论对该疾病的治疗发",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "cpic_60201",
+      "pdf_filename": "cpic_60201.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "2.3等待期投保人首次投保或在本附加险合同保险期间届满后第31日起提出继续投保申请,且经本公司同意的,除另有约定外,自合同生效日起30日内为等待期。投保人在本附加险合同保险期间届满后30日内为同一被保险人提出继续投保申请且经本公司同意的,为续保。续保不受等待期的限制。",
+      "cleaned_evidence_excerpt": "2.3等待期投保人首次投保或在本附加险合同保险期间届满后第日起提出继续投保申请,且经本公司同意的,除另有约定外,自合同生效日起日内为等待期。投保人在本附加险合同保险期间届满后日内为同一被保险人提出继续投保申请且经本公司同意的,为续保。续保不受等待期的限制。",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "cpic_79920",
+      "pdf_filename": "cpic_79920.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 12.0,
+      "strict_075_cutoff_pt": 9.0,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "(七)等待期自本合同生效日起30日(含第30日)为等待期。被保险人在等待期内经医院确诊罹患本合同所约定的特定疾病的,我们不承担保险责任,向您返还该被保险人所对应的保险费,对该被保险人的保险责任终止。符合以下情形之一的无等待期:1、根据“保证续保”进行续保的;2、在上一保证续保期间届满60日内,您申请重新投保本产品并经我们审核同意的;3、被保险人因遭受意外事故",
+      "cleaned_evidence_excerpt": "(七)等待期自本合同生效日起日(含第日)为等待期。被保险人在等待期内经医院确诊罹患本合同所约定的特定疾病的,我们不承担保险责任,向您返还该被保险人所对应的保险费,对该被保险人的保险责任终止。符合以下情形之一的无等待期:1、根据“保证续保”进行续保的;2、在上一保证续保期间届满日内,您申请重新投保本产品并经我们审核同意的;3、被保险人因遭受意外事故导致的。",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "cpic_85050",
+      "pdf_filename": "cpic_85050.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "2、疾病观察期自合同生效之日起90日内为疾病观察期,续保无疾病观察期。若被保险人在疾病观察期内确诊疾病,无论对该疾病的治疗发生在疾病观察期内或疾病观察期后,本公司均不承担任何给付保险金的责任。3、保险责任在合同保险期间内,且合同有效的前提下,本产品提供以下保障:住院医疗保险金:若被保险人遭受意外伤害或在疾病观察期后因意外伤害以外的原因发生疾病,在本公司指定医",
+      "cleaned_evidence_excerpt": "2、疾病观察期自合同生效之日起日内为疾病观察期,续保无疾病观察期。若被保险人在疾病观察期内确诊疾病,无论对该疾病的治疗发生在疾病观察期内或疾病观察期后,本公司均不承担任何给付保险金的责任。3、保险责任在合同保险期间内,且合同有效的前提下,本产品提供以下保障:住院医疗保险金:若被保险人遭受意外伤害或在疾病观察期后因意外伤害以外的原因发生疾病,在本公司指定医疗机",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_2650",
+      "pdf_filename": "pa_2650.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.13条所定义的“恶性肿瘤——重度”,我们",
+      "cleaned_evidence_excerpt": "1.5.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”或本合同第1.5.13条所定义的“恶性肿瘤——重度”,我们不承",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_1071",
+      "pdf_filename": "pa_1071.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "等待期从本主险合同生效之日起90日内,被保险人经医院1确诊为本主险合同“6重大疾病释义”所定义的“重大疾病”,我们按本主险合同的所交保险费给付重大疾病保险金,本主险合同终止。这90日的时间称为等待期。以下两种情形,无等待期:(1)被保险人因意外伤害2发生上述情形的;(2)您按本主险合同“1.2保险期间与续保”的约定续保本主险合同。在本主险合同有效期内,除等待",
+      "cleaned_evidence_excerpt": "等待期从本主险合同生效之日起日内,被保险人经医院确诊为本主险合同“6重大疾病释义”所定义的“重大疾病”,我们按本主险合同的所交保险费给付重大疾病保险金,本主险合同终止。这日的时间称为等待期。以下两种情形,无等待期:(1)被保险人因意外伤害发生上述情形的;(2)您按本主险合同“1.2保险期间与续保”的约定续保本主险合同。在本主险合同有效期内,除等待期期间依前款",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_1073",
+      "pdf_filename": "pa_1073.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.56,
+      "strict_075_cutoff_pt": 7.92,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.3.1等待期自本主险合同生效之日起30日内,被保险人经医院1确诊2初次发生本主险合同所定义的恶性肿瘤3,因该恶性肿瘤而发生恶性肿瘤特种药品4费用的,无论该药品费用发生时间与本主险合同生效之日间隔是否超过30日,我们都不承担给付保险金的责任,将退还您所支付的本主险合同的保险费,本主险合同终止。这30日的时间称为等待期。",
+      "cleaned_evidence_excerpt": "1.3.1等待期自本主险合同生效之日起日内,被保险人经医院确诊初次发生本主险合同所定义的恶性肿瘤3,因该恶性肿瘤而发生恶性肿瘤特种药品费用的,无论该药品费用发生时间与本主险合同生效之日间隔是否超过日,我们都不承担给付保险金的责任,将退还您所支付的本主险合同的保险费,本主险合同终止。这日的时间称为等待期。",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_595",
+      "pdf_filename": "pa_595.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承",
+      "cleaned_evidence_excerpt": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承担给",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_597",
+      "pdf_filename": "pa_597.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过30日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承",
+      "cleaned_evidence_excerpt": "1.6.1等待期自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效之日起(含生效当日)30日内,被保险人经医院确诊本合同“7.重大疾病”所定义的“重大疾病”或本合同第1.6.19条所定义的“恶性肿瘤——重度”,我们不承担给",
+      "inline_superscript_detected": true
+    },
+    {
+      "clause_id": "pa_l0002",
+      "pdf_filename": "pa_l0002.pdf",
+      "page_1based": 1,
+      "median_font_size_pt": 10.45,
+      "strict_075_cutoff_pt": 7.84,
+      "removed_superscript_count_on_page": 0,
+      "removed_superscripts_sample": [],
+      "raw_evidence_excerpt": "1.5等待期自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过90日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终",
+      "cleaned_evidence_excerpt": "1.5等待期自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊疾病,无论治疗该疾病的时间与本合同生效之日是否间隔超过日,因治疗该疾病发生的费用,我们都不承担给付任何保险金的责任。自本合同生效当日起(含生效当日)90日内,被保险人经医院确诊本合同“7.重大疾病释义”所定义的“重大疾病”,我们不承担给付任何保险金的责任,向您返还所交保险费,本合同终止。",
+      "inline_superscript_detected": true
+    }
+  ]
+}
