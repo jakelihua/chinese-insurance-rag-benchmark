@@ -3,7 +3,11 @@
 
 \usepackage[margin=0.75in]{geometry}
 \usepackage[UTF8,scheme=plain,fontset=fandol]{ctex}
-\usepackage{times}
+% XeLaTeX: the Type-1 "times" package has no TU-encoded shapes (bold/italic/mono were
+% silently substituted), so select OpenType TeX Gyre clones of Times/Helvetica/Courier.
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmonofont{TeX Gyre Cursor}
 \usepackage{microtype}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
@@ -183,7 +187,7 @@ We compare an initial literal regex guard (\texttt{v1\_strict\_regex}) against o
 \textbf{Diagnostic Metric} & \texttt{ordinary} & \texttt{cond\_prompt} & \texttt{ordinary} & \texttt{cond\_prompt} & \texttt{ordinary} & \texttt{cond\_prompt} \\
 \midrule
 Lenient Single-Line Valid Rate (/20) & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & 100\% (20/20) & \textbf{100\% (20/20)} \\
-Strict Single-`?` Rate (/20) & 90\% (18/20) & 75\% (15/20) & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} \\
+Strict Single-`?' Rate (/20) & 90\% (18/20) & 75\% (15/20) & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} & \textbf{100\% (20/20)} \\
 \midrule
 Slot Missing/Mismatch: Product ID (/20) & 70\% (14/20) & \textbf{5\% (1/20)} & 100\% (20/20) & \textbf{0\% (0/20)} & 50\% (10/20) & \textbf{0\% (0/20)} \\
 Slot Missing/Mismatch: Enrollment (/20) & 35\% (7/20) & \textbf{0\% (0/20)} & 5\% (1/20) & \textbf{0\% (0/20)} & 30\% (6/20) & \textbf{0\% (0/20)} \\
