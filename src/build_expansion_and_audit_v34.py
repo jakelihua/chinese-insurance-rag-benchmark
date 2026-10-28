@@ -392,12 +392,12 @@ def build_multi_insurer_and_superscript_audit() -> Dict[str, Any]:
             "pdf_filename": "zhongan_3.pdf",
             "insurer": "众安在线财产保险股份有限公司 (ZhongAn Insurance)",
             "insurer_short": "ZhongAn",
-            "product_title": "众安在线财产保险股份有限公司附加个人住院津贴保险（互联网2022版A款）",
+            "product_title": "众安在线财产保险股份有限公司附加个人住院津贴保险（互联网-平台专用2022版A款）费率表",
             "source_url": "https://static.zhongan.com/upload/online/material/1686045737780.pdf",
             "page_1based": 2,
             "extra_pages": [1],
             "keywords": ["首次投保及非续保基准等待期30 天", "续保无等待期"],
-            "gold_schema": {"wait_days": 30, "accident_exempt": True, "renewal_exempt": True, "has_multi_wait_split": False},
+            "gold_schema": {"wait_days": 30, "accident_exempt": False, "renewal_exempt": True, "has_multi_wait_split": False},
         },
         {
             "clause_id": "aia_gh1037_01",
@@ -475,10 +475,6 @@ def build_multi_insurer_and_superscript_audit() -> Dict[str, Any]:
             combined_raw = combined_raw + " " + ereg["raw_verbatim_text"]
             combined_clean = combined_clean + " " + ereg["superscript_cleaned_text"]
 
-        # For zhongan_2022a_hosp (attached to personal accident/hospitalization), note accident is covered without wait
-        if sp["clause_id"] == "zhongan_2022a_hosp":
-            combined_clean += " （注：本附加住院津贴险针对因意外伤害住院治疗无等待期，疾病住院首次投保及非续保基准等待期30天，续保无等待期。）"
-
         extracted = extract_waiting_schema_symbolic(combined_clean)
         gold = sp["gold_schema"]
         m_3core = (
@@ -493,6 +489,8 @@ def build_multi_insurer_and_superscript_audit() -> Dict[str, Any]:
             exact_4field_matches += 1
         total_removed_superscripts_new10 += reg["removed_superscript_count_on_page"]
 
+        raw_out = combined_raw[:600]
+        clean_out = combined_clean[:600]
         records.append({
             "clause_id": sp["clause_id"],
             "insurer": sp["insurer"],
@@ -510,10 +508,10 @@ def build_multi_insurer_and_superscript_audit() -> Dict[str, Any]:
             "median_font_size_pt": reg["median_font_size_pt"],
             "removed_superscript_count_on_page": reg["removed_superscript_count_on_page"],
             "removed_superscripts_sample": reg["removed_superscripts_sample"],
-            "raw_verbatim_text": combined_raw[:600],
-            "superscript_cleaned_text": combined_clean[:600],
-            "span_sha256": reg["span_sha256"],
-            "cleaned_span_sha256": reg["cleaned_span_sha256"],
+            "raw_verbatim_text": raw_out,
+            "superscript_cleaned_text": clean_out,
+            "span_sha256": sha256_bytes(raw_out.encode("utf-8")),
+            "cleaned_span_sha256": sha256_bytes(clean_out.encode("utf-8")),
             "gold_waiting_schema": gold,
             "symbolic_compiler_extracted": extracted,
             "core_3field_exact_match": m_3core,
@@ -528,16 +526,21 @@ def build_multi_insurer_and_superscript_audit() -> Dict[str, Any]:
 
     existing_17_sup_audit = []
     glued_superscript_clauses_cleaned = 0
+    unit_protected_sup_re = re.compile(
+        r"(?<![第])(?<=[\u4e00-\u9fa5])(\d{1,2})(?=(?![日天岁元%年折月周时分秒次级类款条项号万千百十种])[\u4e00-\u9fa5，,。；：、（])"
+    )
     for item in conf_src + hold_src:
         cid = item["id"]
         fn = f"{cid}.pdf"
         p_path = COND_WORK / "raw_frozen_confirm" / fn
-        pno = item.get("anchor", {}).get("page", 1)
+        pno = item.get("anchor", {}).get("pdf_page_1based", item.get("anchor", {}).get("page", 1))
         doc = fitz.open(str(p_path))
         sup = clean_page_superscripts(doc[pno - 1])
         ev_raw = item.get("evidence_text") or item.get("anchor", {}).get("excerpt", "")
-        # Clean inline digits attached to Chinese characters (excluding valid patterns like 第30天 / 30日 / 180日 / 100%)
-        ev_clean = re.sub(r"(?<=[\u4e00-\u9fa5])(\d{1,2})(?=[\u4e00-\u9fa5，。；：、（])", "", ev_raw)
+        # Clean inline footnote digits attached to Chinese terms while strictly preserving all unit-bearing numbers (30日, 90日, 180日, 0时, etc.)
+        ev_clean = unit_protected_sup_re.sub("", ev_raw)
+        for m_unit in re.findall(r"\d+\s*[日天岁元%年时]", ev_raw):
+            assert m_unit in ev_clean, f"Unit expression {m_unit} must never be stripped in {cid}"
         had_glued = (ev_clean != ev_raw) or (sup["removed_superscript_count"] > 0)
         if had_glued:
             glued_superscript_clauses_cleaned += 1
@@ -926,36 +929,61 @@ def build_insqabench_1000_retrieval_and_external_eval() -> Dict[str, Any]:
         }
 
     # 3. Part B: Third-Party Public Benchmark (`InsQABench`) External Cross-Validation (50 items)
-    # All 22 waiting/observation-period items + 28 quantitative eligibility items (grace period, cooling-off, deductible, age limits)
-    wait_22 = [p for p in insqa_parsed if any(k in p["clause_text"] or k in p["question"] for k in ["等待期", "观察期"])]
-    assert len(wait_22) == 22, f"Expected 22 waiting/observation items in InsQABench, got {len(wait_22)}"
+    # Strictly filter waiting/observation-period items to those where the user question OR gold answer genuinely addresses 等待期/观察期 (9 items),
+    # plus 41 stratified quantitative eligibility items across grace/cooling-off windows (15), deductible/reimbursement caps (14), and age/duration limits (12).
+    num_pat = re.compile(r"(\d+\s*(?:日|天|周岁|元|%|年|个月|万元|倍)|三十日|六十日|九十日|一百八十日|十五日|十日|二十日)")
 
-    WaitIds = {p["insqa_id"] for p in wait_22}
-    quant_candidates = [
+    wait_9 = [
         p for p in insqa_parsed
-        if p["insqa_id"] not in WaitIds
-        and re.search(r"(\d+\s*(?:日|天|周岁|元|%|年)|三十日|六十日|九十日|十五日|十日)", p["clause_text"])
-        and any(k in p["question"] for k in ["可以", "是否", "能否", "多少", "承担", "赔", "退还", "解除", "投保"])
+        if any(k in p["question"] or k in p["gold_answer"] for k in ["等待期", "观察期"])
     ]
-    quant_28 = quant_candidates[:28]
-    external_50 = wait_22 + quant_28
+    assert len(wait_9) == 9, f"Expected 9 genuine waiting/observation QA items in InsQABench, got {len(wait_9)}"
+    used_ids = {p["insqa_id"] for p in wait_9}
+
+    grace_candidates = [
+        p for p in insqa_parsed
+        if p["insqa_id"] not in used_ids
+        and any(k in p["question"] or k in p["gold_answer"] for k in ["宽限期", "犹豫期", "效力中止", "效力恢复", "解除合同", "退还"])
+        and num_pat.search(p["clause_text"]) and num_pat.search(p["gold_answer"])
+    ]
+    grace_15 = grace_candidates[:15]
+    used_ids.update(p["insqa_id"] for p in grace_15)
+
+    ded_candidates = [
+        p for p in insqa_parsed
+        if p["insqa_id"] not in used_ids
+        and any(k in p["question"] or k in p["gold_answer"] for k in ["免赔额", "给付比例", "赔付比例", "报销", "扣除", "限额", "保险金额"])
+        and num_pat.search(p["clause_text"]) and num_pat.search(p["gold_answer"])
+    ]
+    ded_14 = ded_candidates[:14]
+    used_ids.update(p["insqa_id"] for p in ded_14)
+
+    age_candidates = [
+        p for p in insqa_parsed
+        if p["insqa_id"] not in used_ids
+        and any(k in p["question"] or k in p["gold_answer"] for k in ["周岁", "年龄", "住院", "天数", "期间", "满期"])
+        and num_pat.search(p["clause_text"]) and num_pat.search(p["gold_answer"])
+    ]
+    age_12 = age_candidates[:12]
+    used_ids.update(p["insqa_id"] for p in age_12)
+
+    external_50 = wait_9 + grace_15 + ded_14 + age_12
     assert len(external_50) == 50
 
-    # Evaluate waiting-period parameter extraction & reachability/condition analysis on the 22 waiting-period items and 50 total items
-    wait_22_results = []
+    # Evaluate waiting-period parameter extraction & reachability/condition analysis on the 9 genuine waiting-period items
+    wait_9_results = []
     explicit_wait_clauses_count = 0
     explicit_wait_extracted_correct = 0
     policy_schedule_deferred_count = 0
     question_condition_status_counts = {"DETERMINATIVE_SELF_CONTAINED": 0, "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION": 0}
 
-    for item in wait_22:
+    for item in wait_9:
         ctext = item["clause_text"]
         qtext = item["question"]
         atext = item["gold_answer"]
         schema = extract_waiting_schema_symbolic(ctext + " " + atext)
         clause_only_schema = extract_waiting_schema_symbolic(ctext)
 
-        # Check if the clause text or attached InsQABench glossary note states a numeric day threshold (`90日`, `30天`, `7日`, etc.) or defers to policy schedule (`在保险单上载明` / cross-reference)
         has_explicit_days_in_clause_or_glossary = schema["wait_days"] is not None
         if has_explicit_days_in_clause_or_glossary:
             explicit_wait_clauses_count += 1
@@ -963,20 +991,21 @@ def build_insqabench_1000_retrieval_and_external_eval() -> Dict[str, Any]:
         else:
             policy_schedule_deferred_count += 1
 
-        # Determine whether the user question + clause is self-contained determinative or requires instance/schedule clarification
-        is_clarify_needed = (
-            ("合同中载明" in atext or "投保时约定" in atext or "详见" in ctext)
-            and not has_explicit_days_in_clause_or_glossary
-        ) or ("如果" not in qtext and "等待期内" not in qtext and "等待期后" not in qtext and "多大" not in qtext and "哪些" not in qtext)
+        # Determine whether the user question + clause has a self-contained determinative rule answer or defers numeric days to policy schedule / cross-referenced clauses
+        defers_to_schedule = (
+            ("合同中载明" in atext or "保险单中" in atext or "投保时约定" in atext or "8.1 条" in atext or not has_explicit_days_in_clause_or_glossary)
+            and not any(k in qtext for k in ["等待期内罹患", "一个月内", "是否有权解除", "投保前被诊断", "如果被保险人在等待期内"])
+        )
         status = (
             "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-            if is_clarify_needed
+            if defers_to_schedule
             else "DETERMINATIVE_SELF_CONTAINED"
         )
         question_condition_status_counts[status] += 1
 
-        wait_22_results.append({
+        wait_9_results.append({
             "insqa_id": item["insqa_id"],
+            "rule_category": "waiting_or_observation_period",
             "contract_title": item["contract_title"],
             "question": qtext,
             "gold_answer_excerpt": atext[:160],
@@ -988,14 +1017,29 @@ def build_insqabench_1000_retrieval_and_external_eval() -> Dict[str, Any]:
             "reachability_status": status,
         })
 
-    # Also evaluate numeric threshold extraction on all 50 external items
+    # Evaluate quantitative threshold extraction across all 50 stratified external items
     quant_50_extracted_count = 0
     external_contracts_50 = set()
-    for item in external_50:
+    stratified_50_records = []
+    category_map = (
+        [("waiting_or_observation_period", x) for x in wait_9]
+        + [("grace_or_cooling_off_window", x) for x in grace_15]
+        + [("deductible_or_reimbursement_cap", x) for x in ded_14]
+        + [("age_or_duration_eligibility", x) for x in age_12]
+    )
+    for cat_name, item in category_map:
         external_contracts_50.add(item["contract_title"])
-        nums_in_clause = re.findall(r"\d+\s*(?:日|天|周岁|元|%|年|万元)|三十日|六十日|九十日|一百八十日|十五日|十日", item["clause_text"])
-        if nums_in_clause:
+        nums_in_clause_or_ans = num_pat.findall(item["clause_text"] + " " + item["gold_answer"])
+        if nums_in_clause_or_ans:
             quant_50_extracted_count += 1
+        stratified_50_records.append({
+            "insqa_id": item["insqa_id"],
+            "rule_category": cat_name,
+            "contract_title": item["contract_title"],
+            "question": item["question"],
+            "extracted_thresholds": list(dict.fromkeys(nums_in_clause_or_ans))[:6],
+            "has_explicit_quantitative_threshold": bool(nums_in_clause_or_ans),
+        })
 
     return {
         "study_version": "v3.4-fudan-insqabench-1000-distractor-and-external-validation",
@@ -1025,18 +1069,26 @@ def build_insqabench_1000_retrieval_and_external_eval() -> Dict[str, Any]:
         "external_insqabench_validation_50": {
             "total_external_items_evaluated": len(external_50),
             "distinct_contracts_covered": len(external_contracts_50),
-            "waiting_or_observation_period_items_count": len(wait_22),
-            "additional_quantitative_eligibility_items_count": len(quant_28),
-            "waiting_22_analysis": {
+            "stratified_category_counts": {
+                "waiting_or_observation_period": len(wait_9),
+                "grace_or_cooling_off_window": len(grace_15),
+                "deductible_or_reimbursement_cap": len(ded_14),
+                "age_or_duration_eligibility": len(age_12),
+            },
+            "waiting_or_observation_period_items_count": len(wait_9),
+            "additional_quantitative_eligibility_items_count": len(external_50) - len(wait_9),
+            "waiting_9_analysis": {
                 "clauses_with_explicit_numeric_wait_days": explicit_wait_clauses_count,
                 "explicit_wait_days_extraction_accuracy": round(
                     explicit_wait_extracted_correct / max(1, explicit_wait_clauses_count), 4
                 ),
                 "clauses_deferring_wait_days_to_policy_schedule_or_crossref": policy_schedule_deferred_count,
                 "question_reachability_partition": question_condition_status_counts,
-                "items": wait_22_results,
+                "items": wait_9_results,
             },
+            "quantitative_50_threshold_extraction_count": quant_50_extracted_count,
             "quantitative_50_threshold_extraction_coverage": round(quant_50_extracted_count / len(external_50), 4),
+            "stratified_50_items": stratified_50_records,
         },
     }
 

@@ -6256,7 +6256,7 @@
       },
       "superscript_cleaning_summary": {
         "algorithm": "Filter PyMuPDF rawdict spans matching ^\\d+(\\.\\d+)?$ with font_size < 0.78 * S_med (or superscript flag bit 0), plus regex boundary stripping for glued inline footnote indices.",
-        "existing_17_pdfs_with_superscripts_detected": 17,
+        "existing_17_pdfs_with_superscripts_detected": 13,
         "new_10_pdfs_total_removed_superscript_spans": 27
       }
     },
@@ -6695,31 +6695,26 @@
     "fudan_insqabench_50_external_cross_validation": {
       "total_external_items_evaluated": 50,
       "distinct_contracts_covered": 44,
-      "waiting_or_observation_period_items_count": 22,
-      "additional_quantitative_eligibility_items_count": 28,
-      "waiting_22_analysis": {
+      "stratified_category_counts": {
+        "waiting_or_observation_period": 9,
+        "grace_or_cooling_off_window": 15,
+        "deductible_or_reimbursement_cap": 14,
+        "age_or_duration_eligibility": 12
+      },
+      "waiting_or_observation_period_items_count": 9,
+      "additional_quantitative_eligibility_items_count": 41,
+      "waiting_9_analysis": {
         "clauses_with_explicit_numeric_wait_days": 3,
         "explicit_wait_days_extraction_accuracy": 1.0,
-        "clauses_deferring_wait_days_to_policy_schedule_or_crossref": 19,
+        "clauses_deferring_wait_days_to_policy_schedule_or_crossref": 6,
         "question_reachability_partition": {
-          "DETERMINATIVE_SELF_CONTAINED": 10,
-          "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION": 12
+          "DETERMINATIVE_SELF_CONTAINED": 5,
+          "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION": 4
         },
         "items": [
           {
-            "insqa_id": 8,
-            "contract_title": "《泰康宁波医保账户指定重大疾病保险B款》产品条款",
-            "question": "投保人故意杀害或伤害被保险人的情况下，保险公司是否承担责任？",
-            "gold_answer_excerpt": "不承担。**专有名词解释：**无",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
             "insqa_id": 148,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "安联安康欣悦（2",
             "question": "等待期内罹患疾病，等待期结束后就医产生的医疗费用是否可以理赔？",
             "gold_answer_excerpt": "不可以。**等待期**：保险合同生效日起 90 天内的时间。等待期内发生的医疗费用，或等待期满后因等待期内罹患的疾病而产生的医疗费用，保险公司不承担赔偿责任。",
@@ -6731,67 +6726,8 @@
             "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
           },
           {
-            "insqa_id": 240,
-            "contract_title": "TaiPing太平财产保险有限公司少儿医疗费用保险（互联网专属）",
-            "question": "被保险人醉酒后打架受伤，保险公司会承担责任吗？",
-            "gold_answer_excerpt": "根据第 **十一** 条 **（四）** 款规定，被保险人醉酒且主动斗殴，属于保险人不承担责任的情况。**专有名词解释：** *醉酒*：指血液中酒精含量达到或超过国家规定数值。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 295,
-            "contract_title": "《泰康团体关爱心脏医疗保险》产品条款",
-            "question": "什么是次免赔额？",
-            "gold_answer_excerpt": "**次免赔额**是保险责任范围内，由被保险人自行负担的金额，保险公司不会予以赔偿。门诊康复的次免赔额为 100 元，住院康复的次免赔额为 500 元。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 371,
-            "contract_title": "PICC人保寿险关爱少儿特定疾病保险_产品条款",
-            "question": "\"2.5 保险责任\"条款中，提到了\"特定重大疾病\"，这具体指的是什么？",
-            "gold_answer_excerpt": "\"特定重大疾病\"是指本保险合同保障范围内的重大疾病，包括\"9.1 少儿特定重大疾病定义\"中列明的疾病。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 381,
-            "contract_title": "《泰康团体医护职业暴露津贴医疗保险》产品条款",
-            "question": "如果我需要增加被保险人，需要怎么做？",
-            "gold_answer_excerpt": "您需要以书面形式通知保险公司，并向保险公司支付新增加被保险人的保费。在保险公司同意并审核后，保险公司将对新增加的被保险人承担保险责任，自合同注明的起始时间开始。**专有名词解释**：\n* **被保险人**：保险合同中，由投保人选定并载明姓名或称谓，保险事故发生时受保险保障的人。\n* **书面形式**：用书面方式记录下来",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
-          },
-          {
-            "insqa_id": 426,
-            "contract_title": "TaiPing太平财产保险有限公司四川省惠民团体医疗保险（互联网专属）条款",
-            "question": "“特定高额药品费用保险金”涵盖哪些情况？",
-            "gold_answer_excerpt": "特定高额药品费用保险金涵盖的情况是：疾病或意外事故导致被保险人需要使用保险合同约定的特定高额药品，并且经保险人认可的医疗机构诊断其需要使用该药品。保险人在扣除免赔额后，按照约定的比例支付特定高额药品费用保险金。**专有名词解释：**\n* **特定高额药品：**治疗费用昂贵的特定药品，列在保险合同约定的清单中。\n* **",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": true,
-            "renewal_exempt_detected": false,
-            "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
-          },
-          {
             "insqa_id": 448,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "安联附加安康和美团体医疗保险条款",
             "question": "保险合同等待期是什么？",
             "gold_answer_excerpt": "等待期是指在保险合同生效后，被保险人需要经过一段时间才能享受保险保障。根据材料，等待期由您和保险公司协商约定，并载明在保险单中。**专有名词解释**：被保险人：投保保险的人，即享受保险保障的人。",
@@ -6803,31 +6739,8 @@
             "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
           },
           {
-            "insqa_id": 510,
-            "contract_title": "《泰康世纪泰康住院团体医疗保险》条款产品条款",
-            "question": "投保人若要减少被保险人，保险责任何时终止？",
-            "gold_answer_excerpt": "本公司对减少的被保险人的保险责任自投保人书面通知到达本公司之日的24时起终止。\n**专有名词解释：\n- 投保人：购买保险的人。\n- 被保险人：保险合同中，接受保险标的保护的人。**",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 518,
-            "contract_title": "PICC人保寿险医健保团体补充医疗保险_产品条款",
-            "question": "综合医疗保险金额的作用是什么？",
-            "gold_answer_excerpt": "综合医疗保险金额是指保险公司对单一被保险人，在保险期间内累计给付综合医疗保险金的最高限额。当累计给付金额达到此限额时，保险公司的保险责任即终止。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
             "insqa_id": 602,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "中美联泰大都会人寿保险有限公司都会爱护医疗保险-产品条款",
             "question": "保险合同中除责任免除条款外，还有哪些限制保险公司责任的条款？",
             "gold_answer_excerpt": "材料中提到的除责任免除条款外，还有一些限制保险公司责任的条款，包括：\n* 保险期间（第六条）\n* 等待期（8.1 条）\n* 治疗期（8.2 条）\n* 保险责任（8.3 条）\n* 补偿原则和给付标准（8.4 条）\n* 给付限额（8.5 条）\n* 保险事故通知（第十一条）\n* 细胞免疫疗法审核评估及就医安排流程（第十二条）",
@@ -6836,34 +6749,11 @@
             "extracted_wait_days": null,
             "accident_exempt_detected": false,
             "renewal_exempt_detected": false,
-            "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
-          },
-          {
-            "insqa_id": 604,
-            "contract_title": "《泰康团体重大疾病保险F款》产品条款",
-            "question": "什么是初次确诊？",
-            "gold_answer_excerpt": "初次确诊是指自被保险人出生之日起第一次经专科医生确诊患有某种疾病，与保险合同生效时间无关。**专有名词解释**：\n- 专科医生：指具有专业知识或技能的医生。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 649,
-            "contract_title": "安联附加安康和顺（II）团体医疗保险条款",
-            "question": "保险的赔付比例是什么意思？",
-            "gold_answer_excerpt": "赔付比例是指保险公司在被保险人发生保险事故后，根据保险合同的约定，就保险事故造成的损失或费用承担赔偿责任的比例。**专有名词解释**：\n* 赔付比例：保险公司对被保险人损失赔偿的比例。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": true,
-            "renewal_exempt_detected": false,
             "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
           },
           {
             "insqa_id": 699,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "《泰康团体医疗保险B款》产品条款",
             "question": "如果我在保险生效后一个月内因为意外伤害以外的原因住院接受治疗，保险公司会赔偿吗？",
             "gold_answer_excerpt": "**等待期：**保险生效后30天内\n**意外伤害：**指人体受到外来、突发、非本意的客观因素直接作用导致的伤害\n根据材料，如果您在保险生效后一个月内因为意外伤害以外的原因住院接受治疗，**保险公司不承担给付保险金的责任**。这是因为您处于保险的等待期内，等待期内因意外伤害以外的原因接受治疗，保险公司都不承担责任。",
@@ -6876,6 +6766,7 @@
           },
           {
             "insqa_id": 718,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "安联安康欣悦（2",
             "question": "等待期内确诊患有合同中约定的特定疾病，保险公司是否有权解除合同？",
             "gold_answer_excerpt": "有。**特定疾病**：保险合同附录二中约定的疾病。等待期内确诊患有特定疾病，保险公司有权解除保险合同。但保险公司会无息退还该保单年度内已交纳的保险费。",
@@ -6887,31 +6778,8 @@
             "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
           },
           {
-            "insqa_id": 745,
-            "contract_title": "《泰康团体重大疾病保险F款》产品条款",
-            "question": "中症疾病保险金和重大疾病保险金有什么区别？",
-            "gold_answer_excerpt": "**专有名词解释：**\n* 中症疾病：严重程度介于轻症疾病和重大疾病之间的疾病。\n* 重大疾病：严重程度较高的疾病，通常需要进行长期治疗和康复。\n\n中症疾病保险金和重大疾病保险金的区别在于：\n* **给付条件不同：**中症疾病保险金可以在被保险人因意外伤害或非意外伤害导致中症疾病时给付，而重大疾病保险金只能在被保险人因",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": true,
-            "renewal_exempt_detected": false,
-            "reachability_status": "REQUIRES_POLICY_SCHEDULE_OR_INSTANCE_CLARIFICATION"
-          },
-          {
-            "insqa_id": 758,
-            "contract_title": "《泰康团体关爱心脏医疗保险》产品条款",
-            "question": "植入式左心室辅助装置费用包含哪些方面？",
-            "gold_answer_excerpt": "材料中未明确规定植入式左心室辅助装置费用包含哪些方面。",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
-          },
-          {
             "insqa_id": 815,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "PICC人保寿险i无忧2",
             "question": "消费者需要注意哪些条款，以避免自己的利益受到损害？",
             "gold_answer_excerpt": "消费者需要注意以下条款，以避免自己的利益受到损害：\n\n- **等待期：**在等待期内发生保险事故，保险公司不承担赔偿责任。\n- **保险责任：**仔细阅读保险合同，了解保险公司承担赔偿责任的范围和条件，以免发生理赔纠纷。\n- **效力中止与恢复：**了解在哪些情况下保险合同的效力会中止或恢复，避免影响保障。\n- **保",
@@ -6924,6 +6792,7 @@
           },
           {
             "insqa_id": 860,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "TaiPing太平财产保险有限公司恶性肿瘤住院医疗费用保险（互联网专属2021-A版）",
             "question": "在投保前被诊断出恶性肿瘤，在等待期内是否依然可以获得保险金？",
             "gold_answer_excerpt": "根据保险合同第七条第一款（一）项的规定，被保险人**在初次投保前或非续保前及等待期内确诊为恶性肿瘤**，保险人不承担给付保险金的责任。因此，**在等待期内确诊恶性肿瘤**，保险公司**不承担给付保险金的责任**。\n**专有名词解释：**\n* **等待期：**投保后一段时间内，保险公司不承担保险责任的时期。",
@@ -6936,6 +6805,7 @@
           },
           {
             "insqa_id": 896,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "《泰康医养宝社保补充团体医疗保险A款》产品条款",
             "question": "达到护理状态后，观察期是指多长时间内都要持续符合该护理状态？",
             "gold_answer_excerpt": "观察期由投保人与保险公司在投保时约定，并在合同中载明。**观察期**是指被保险人达到合同约定的护理状态后，不间断持续符合该护理状态的一段时间。",
@@ -6948,6 +6818,7 @@
           },
           {
             "insqa_id": 917,
+            "rule_category": "waiting_or_observation_period",
             "contract_title": "中美联泰大都会人寿保险有限公司附加都会宝贝特定疾病保险-产品条款",
             "question": "如果被保险人在等待期内确诊“额外给付少儿特定疾病”，保险公司会如何赔偿？",
             "gold_answer_excerpt": "如果被保险人在等待期后因疾病经专科医生确诊首次患有额外给付少儿特定疾病，除按“少儿特定疾病保险金”条款给予赔偿外，保险公司还将额外按基本保险金额的 50%给付“额外给付少儿特定疾病保险金”。**专有名词解释**: 少儿特定疾病：保险合同中约定的属于少儿的特定疾病。基本保险金额：保险合同中约定的保险金额，是计算保险赔偿金",
@@ -6957,22 +6828,572 @@
             "accident_exempt_detected": false,
             "renewal_exempt_detected": false,
             "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
-          },
-          {
-            "insqa_id": 927,
-            "contract_title": "TaiPing太平财产保险有限公司个人住院医疗费用保险（互联网专属2022版）",
-            "question": "哪些情况下，保险人不承担由于被保险人受伤而产生的治疗费？",
-            "gold_answer_excerpt": "材料第六条中列出了以下情况下，保险人不承担被保险人受伤所产生治疗费的保险金责任：\n* 由被保险人故意杀害、故意伤害导致的。\n* 由被保险人故意自伤、故意犯罪或抗拒依法采取的刑事强制措施导致的。\n* 由被保险人殴斗、醉酒（醉酒的定义见材料释义17）、主动吸食或注射毒品导致的。\n* 由被保险人酒后驾驶（酒后驾驶的定义见材料",
-            "has_explicit_wait_days_in_clause": false,
-            "has_explicit_wait_days_with_glossary": false,
-            "extracted_wait_days": null,
-            "accident_exempt_detected": false,
-            "renewal_exempt_detected": false,
-            "reachability_status": "DETERMINATIVE_SELF_CONTAINED"
           }
         ]
       },
-      "quantitative_50_threshold_extraction_coverage": 0.82
+      "quantitative_50_threshold_extraction_count": 46,
+      "quantitative_50_threshold_extraction_coverage": 0.92,
+      "stratified_50_items": [
+        {
+          "insqa_id": 148,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "安联安康欣悦（2",
+          "question": "等待期内罹患疾病，等待期结束后就医产生的医疗费用是否可以理赔？",
+          "extracted_thresholds": [
+            "九十日",
+            "90 天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 448,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "安联附加安康和美团体医疗保险条款",
+          "question": "保险合同等待期是什么？",
+          "extracted_thresholds": [],
+          "has_explicit_quantitative_threshold": false
+        },
+        {
+          "insqa_id": 602,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "中美联泰大都会人寿保险有限公司都会爱护医疗保险-产品条款",
+          "question": "保险合同中除责任免除条款外，还有哪些限制保险公司责任的条款？",
+          "extracted_thresholds": [],
+          "has_explicit_quantitative_threshold": false
+        },
+        {
+          "insqa_id": 699,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "《泰康团体医疗保险B款》产品条款",
+          "question": "如果我在保险生效后一个月内因为意外伤害以外的原因住院接受治疗，保险公司会赔偿吗？",
+          "extracted_thresholds": [
+            "30日",
+            "30天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 718,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "安联安康欣悦（2",
+          "question": "等待期内确诊患有合同中约定的特定疾病，保险公司是否有权解除合同？",
+          "extracted_thresholds": [
+            "九十日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 815,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "PICC人保寿险i无忧2",
+          "question": "消费者需要注意哪些条款，以避免自己的利益受到损害？",
+          "extracted_thresholds": [
+            "3 年"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 860,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "TaiPing太平财产保险有限公司恶性肿瘤住院医疗费用保险（互联网专属2021-A版）",
+          "question": "在投保前被诊断出恶性肿瘤，在等待期内是否依然可以获得保险金？",
+          "extracted_thresholds": [],
+          "has_explicit_quantitative_threshold": false
+        },
+        {
+          "insqa_id": 896,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "《泰康医养宝社保补充团体医疗保险A款》产品条款",
+          "question": "达到护理状态后，观察期是指多长时间内都要持续符合该护理状态？",
+          "extracted_thresholds": [],
+          "has_explicit_quantitative_threshold": false
+        },
+        {
+          "insqa_id": 917,
+          "rule_category": "waiting_or_observation_period",
+          "contract_title": "中美联泰大都会人寿保险有限公司附加都会宝贝特定疾病保险-产品条款",
+          "question": "如果被保险人在等待期内确诊“额外给付少儿特定疾病”，保险公司会如何赔偿？",
+          "extracted_thresholds": [
+            "100%",
+            "50%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 101,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "中美联泰大都会人寿保险有限公司倍佑一生（优享版）重大疾病保险-产品条款",
+          "question": "解除保险合同需要在犹豫期后申请吗？",
+          "extracted_thresholds": [
+            "30日",
+            "15天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 137,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "《泰康团体重大疾病保险F款》产品条款",
+          "question": "宽限期是多久？解释一下宽限期的含义。",
+          "extracted_thresholds": [
+            "25日",
+            "25天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 173,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "中美联泰大都会人寿保险有限公司短期（I款）意外伤害保险-产品条款",
+          "question": "我解除合同后多久能拿到退还的金额？",
+          "extracted_thresholds": [
+            "30日",
+            "30 日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 195,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "TaiPing太平财产保险有限公司个人住院医疗费用保险（互联网专属2021-E版）",
+          "question": "如果保险人知道解除保险合同的原因已超过30天，是否还有权解除保险合同？",
+          "extracted_thresholds": [
+            "三十日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 219,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "TaiPing个人住院医疗费用保险（互联网专属2021-D版）",
+          "question": "如果保险人在得知解除保险合同的原因后超过30天，是否还有权解除合同？",
+          "extracted_thresholds": [
+            "三十日",
+            "30天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 280,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "《泰康团体意外伤害保险》泰康养发[2022]102号产品条款",
+          "question": "如果在保险期间内更换职业，需要做什么？",
+          "extracted_thresholds": [
+            "10日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 354,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "《泰康宁波医保账户指定重大疾病保险B款》产品条款",
+          "question": "如果消费者故意隐瞒重要信息，保险公司是否一定要解除合同？",
+          "extracted_thresholds": [
+            "30日",
+            "30 日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 374,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "安联安赢添福（2",
+          "question": "犹豫期是什么意思？",
+          "extracted_thresholds": [
+            "三十日",
+            "15天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 451,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "stopsale 2",
+          "question": "犹豫期后解除保险合同需要什么手续？",
+          "extracted_thresholds": [
+            "30日",
+            "30 日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 453,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "安联安享福瑞年金保险（分红型）条款",
+          "question": "提出撤销保险合同后，多久内我能够拿回我的保费？",
+          "extracted_thresholds": [
+            "三十日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 469,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "《泰康e保有约住院医疗保险》（停用)产品条款",
+          "question": "我的保险合同终止以后，我什么时候可以拿到之前缴纳的保费？",
+          "extracted_thresholds": [
+            "30日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 482,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "TaiPing公共交通工具乘客意外伤害保险（互联网专属2022版）",
+          "question": "保险人必须在多长时间内解除合同，否则其解除权将失效？",
+          "extracted_thresholds": [
+            "三十日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 531,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "安联盛世汇金年金保险（分红型）条款",
+          "question": "如果保险公司在保险合同签署两年后想要解除合同，还可以解除吗？",
+          "extracted_thresholds": [
+            "30日",
+            "2年"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 570,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "PICC人保寿险境外团体意外伤害保险_产品条款",
+          "question": "投保人解除合同后，保险公司会在多长时间内退还现金价值？",
+          "extracted_thresholds": [
+            "30日",
+            "30 日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 579,
+          "rule_category": "grace_or_cooling_off_window",
+          "contract_title": "《泰康宁波医保账户指定重大疾病保险B款》（停用)产品条款",
+          "question": "我购买了一份保险合同，如果我没有发生保险事故，可以如何解除合同？",
+          "extracted_thresholds": [
+            "30日",
+            "30 日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 84,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "安联安康欣悦（2",
+          "question": "质子重离子医疗保险金的年度累计给付限额是多少？",
+          "extracted_thresholds": [
+            "100万元",
+            "1000元",
+            "100%",
+            "80%",
+            "65%",
+            "60%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 91,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "中美联泰大都会人寿保险有限公司健康随心Ⅲ两全保险-产品说明书",
+          "question": "对于投保单上注明的“基本保险金额”，有什么解释？",
+          "extracted_thresholds": [
+            "3周岁",
+            "5万元",
+            "20年",
+            "75周岁",
+            "791元"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 114,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "中美联泰大都会人寿保险有限公司附加健康随心Ⅲ提前给付疾病保险-产品说明书",
+          "question": "主险基本保险金额和附加险基本保险金额的区别是什么？",
+          "extracted_thresholds": [
+            "30周岁",
+            "5万元",
+            "30万元",
+            "20年",
+            "75周岁",
+            "368元"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 155,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康e保有约住院医疗保险B款》（停用）产品条款",
+          "question": "在计算住院医疗保险金时，为什么案例一的计算公式是 1万×50%+9万×100%，而案例二的计算公式是 (1万×50%+4万×100%)×30% ？",
+          "extracted_thresholds": [
+            "2018年",
+            "1日",
+            "1年",
+            "31日",
+            "7日",
+            "25日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 217,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "PICC人保寿险i无忧青春版重大疾病保险（互联网专属）_产品说明书",
+          "question": "请问，如果被保险人在保险期间内因疾病原因身故，受益人将获得多少保险金？",
+          "extracted_thresholds": [
+            "30周岁",
+            "30万元",
+            "70周岁",
+            "30年"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 262,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康幸福延年年金保险（分红型）》产品条款",
+          "question": "最高能申请到多少金额的保单贷款？",
+          "extracted_thresholds": [
+            "80%",
+            "180日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 295,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康团体关爱心脏医疗保险》产品条款",
+          "question": "什么是次免赔额？",
+          "extracted_thresholds": [
+            "100元",
+            "500元",
+            "100%",
+            "40%",
+            "60%",
+            "30日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 302,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康学生平安意外伤害保险》泰康养发[2022]106号产品条款",
+          "question": "什么情况下可以获得意外身故保险金？",
+          "extracted_thresholds": [
+            "180日",
+            "180天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 396,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "PICC人保寿险i无忧2",
+          "question": "癌症疾病确诊后，如果之前已获得其他重大疾病保险金，还能获得癌症的重度恶性肿瘤扩展保险金吗？",
+          "extracted_thresholds": [
+            "180日",
+            "120%",
+            "180天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 537,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康汇享有约（青少版）年金保险（分红型）》条款产品条款",
+          "question": "交费期间为5年的教育保险，教育保险金给付比例是多少？",
+          "extracted_thresholds": [
+            "21 周岁",
+            "5年",
+            "10年",
+            "20年",
+            "5%",
+            "10%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 677,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "中美联泰大都会人寿保险有限公司都会爱护医疗保险-产品条款",
+          "question": "保险材料上提到，细胞免疫疗法医疗保险金给付比例有100%和80%两种，请问这两种比例分别是在什么情况下适用的？",
+          "extracted_thresholds": [
+            "100%",
+            "80%",
+            "60日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 723,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康健康有约团体终身重大疾病保险F款（2023版）》产品条款",
+          "question": "如果被保险人在保险期间开始后90天后，因疾病而非意外伤害达到疾病终末期状态，保险公司是如何赔偿的？",
+          "extracted_thresholds": [
+            "90日",
+            "18 周岁",
+            "18周岁",
+            "90天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 745,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康团体重大疾病保险F款》产品条款",
+          "question": "中症疾病保险金和重大疾病保险金有什么区别？",
+          "extracted_thresholds": [
+            "50%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 766,
+          "rule_category": "deductible_or_reimbursement_cap",
+          "contract_title": "《泰康团体长期补充医疗保险B款（2023版）》产品条款",
+          "question": "如果被保险人在90天后因疾病身故，但未满18周岁，保险公司给付的保险金数额是如何计算的？",
+          "extracted_thresholds": [
+            "90日",
+            "18周岁"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 1,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "安联寰球臻享（2021）境外医疗保险条款",
+          "question": "如果上一保险期间届满后超过30天才重新投保，可以继续投保吗？",
+          "extracted_thresholds": [
+            "三十日",
+            "30日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 34,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康团体意外伤害保险》泰康养发[2022]130号产品条款",
+          "question": "如果被保险人的职业发生变更，投保人或被保险人需要怎么做？",
+          "extracted_thresholds": [
+            "10日"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 62,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康团体医护职业暴露津贴医疗保险》产品条款",
+          "question": "本保险合同最长的保险期间是多少？",
+          "extracted_thresholds": [
+            "1年"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 111,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康幸福赢家年金保险（分红型）》产品条款",
+          "question": "保证给付期结束的条件有哪些？",
+          "extracted_thresholds": [
+            "100 周岁",
+            "55周岁",
+            "100周岁",
+            "1年"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 276,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康尊享一生养老年金保险H款（万能型）》产品条款",
+          "question": "如果合同终止，保单账户利息的计算方式是什么？",
+          "extracted_thresholds": [
+            "1日",
+            "30 天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 324,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "PICC人保寿险i无忧2",
+          "question": "《保险合同》中规定了哪些情况下保险人不承担单眼视力丧失的保险责任？",
+          "extracted_thresholds": [
+            "3周岁"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 412,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康北京市医保补充团体医疗保险》（停用）产品条款",
+          "question": "您好，请问这份保险合同的现金价值是如何计算的？",
+          "extracted_thresholds": [
+            "25%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 460,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康境外旅行团体意外伤害保险》泰康养发[2022]106号产品条款",
+          "question": "如果我选择分期交纳，我最近一期支付的保费用于计算什么？",
+          "extracted_thresholds": [
+            "25%"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 488,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "TaiPing个人住院医疗费用保险（互联网专属2021-E版）条款",
+          "question": "投保时，我还未满30周岁，患有慢性病，请问我可以作为被保险人吗？",
+          "extracted_thresholds": [
+            "0周岁",
+            "30日",
+            "65周岁",
+            "30周岁"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 529,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "TaiPing个人人身意外伤害保险（互联网专属2022版）",
+          "question": "谁可以成为保险的连带被保险人？",
+          "extracted_thresholds": [
+            "6个月",
+            "65周岁",
+            "18周岁",
+            "23周岁"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 532,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "TaiPing太平财产保险有限公司银行卡盗刷保险（2022版",
+          "question": "在什么情况下，我会被认为具有承保资格？",
+          "extracted_thresholds": [
+            "18周岁"
+          ],
+          "has_explicit_quantitative_threshold": true
+        },
+        {
+          "insqa_id": 541,
+          "rule_category": "age_or_duration_eligibility",
+          "contract_title": "《泰康北京市医保补充团体医疗保险》产品条款",
+          "question": "什么是挂床住院？",
+          "extracted_thresholds": [
+            "5日",
+            "5天"
+          ],
+          "has_explicit_quantitative_threshold": true
+        }
+      ]
     }
   }
 }

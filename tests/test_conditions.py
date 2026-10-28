@@ -1426,7 +1426,59 @@ class ConditionTests(unittest.TestCase):
             places=4,
         )
         self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['total_external_items_evaluated'], 50)
-        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['waiting_or_observation_period_items_count'], 22)
+        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['waiting_or_observation_period_items_count'], 9)
+        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['additional_quantitative_eligibility_items_count'], 41)
+        self.assertEqual(exp5['fudan_insqabench_50_external_cross_validation']['quantitative_50_threshold_extraction_count'], 46)
+        self.assertAlmostEqual(exp5['fudan_insqabench_50_external_cross_validation']['quantitative_50_threshold_extraction_coverage'], 0.92, places=4)
+
+        # Verify multi_insurer_official_sources.json SHA-256 integrity, zero synthetic note injection, and unit-protected superscript cleaning
+        import hashlib
+        multi_ins = json.loads((root / 'data_v3' / 'multi_insurer_official_sources.json').read_text(encoding='utf-8'))
+        self.assertEqual(
+            multi_ins['superscript_cleaning_summary']['existing_17_pdfs_with_superscripts_detected'],
+            13,
+        )
+        self.assertEqual(
+            multi_ins['superscript_cleaning_summary']['new_10_pdfs_total_removed_superscript_spans'],
+            27,
+        )
+        for p_rec in multi_ins['new_cross_insurer_official_pdfs']:
+            self.assertEqual(
+                p_rec['span_sha256'],
+                hashlib.sha256(p_rec['raw_verbatim_text'].encode('utf-8')).hexdigest(),
+            )
+            self.assertEqual(
+                p_rec['cleaned_span_sha256'],
+                hashlib.sha256(p_rec['superscript_cleaned_text'].encode('utf-8')).hexdigest(),
+            )
+            self.assertNotIn('[费率参数表说明', p_rec['raw_verbatim_text'])
+            self.assertNotIn('[费率参数表说明', p_rec['superscript_cleaned_text'])
+            self.assertTrue(p_rec['core_3field_exact_match'])
+            self.assertTrue(p_rec['all_4field_exact_match'])
+        zhongan_rec = [
+            p_rec for p_rec in multi_ins['new_cross_insurer_official_pdfs']
+            if p_rec['clause_id'] == 'zhongan_2022a_hosp'
+        ][0]
+        self.assertFalse(zhongan_rec['gold_waiting_schema']['accident_exempt'])
+        self.assertTrue(zhongan_rec['gold_waiting_schema']['renewal_exempt'])
+        self.assertEqual(zhongan_rec['gold_waiting_schema']['wait_days'], 30)
+
+        # Verify InsQABench 50-item external audit: all 9 waiting items genuinely ask/answer about waiting/observation period
+        insqa_ext = json.loads((root / 'data_v3' / 'insqabench_large_scale_retrieval_and_external_eval.json').read_text(encoding='utf-8'))
+        ext_50 = insqa_ext['external_insqabench_validation_50']
+        self.assertEqual(len(ext_50['waiting_9_analysis']['items']), 9)
+        for w_item in ext_50['waiting_9_analysis']['items']:
+            qa_str = w_item['question'] + ' ' + w_item['gold_answer_excerpt']
+            self.assertTrue('等待期' in qa_str or '观察期' in qa_str)
+        self.assertEqual(len(ext_50['stratified_50_items']), 50)
+        non_wait_41 = [x for x in ext_50['stratified_50_items'] if x['rule_category'] != 'waiting_or_observation_period']
+        self.assertEqual(len(non_wait_41), 41)
+        for q_item in non_wait_41:
+            self.assertIn(
+                q_item['rule_category'],
+                ('grace_or_cooling_off_window', 'deductible_or_reimbursement_cap', 'age_or_duration_eligibility'),
+            )
+            self.assertTrue(q_item['has_explicit_quantitative_threshold'])
 
         decomp = exp4['component_gain_and_role_decomposition']
         self.assertIn('+86.93 pp', decomp['stage1_explicit_slot_prompting_gain']['symbolic_usability_delta'])
