@@ -42,7 +42,7 @@ Across our experiments, unconstrained conversational rewrites reach up to 100.0%
 
 To evaluate semantic validity without regex circularity while distinguishing protocol-guided cross-checking from zero-hint pure-verbatim adjudication, a dual-mode 3-flagship panel (kimi-k3, deepseek-v4-pro, qwen3.8-max; Confirmation-40 3-way semantic kappa=0.8578 protocol-guided / kappa=0.8366 pure-verbatim, binary usability kappa=0.7411 / 0.7008) shows 87.19% (558/640) exact agreement with our verifier and 96.56% (618/640) direct agreement between protocol-guided and pure-verbatim modes; under panel majority (161/176 = 91.48%), slot_guard_repair eliminates the label corruption of ordinary_style (27.27%) and two-line JSON baselines (67.05%–73.86%, p <= 0.015625) and performs comparably to strong single-pass condition_prompt (161/176 = 91.48%) and structured_json_untruncated_320 (161/176 = 91.48%, p=1.0).
 
-Across 9 real cloud LLM end-to-end RAG pipelines (L1–L9, including model-matched abstaining vs. forced-binary pairs) and an independent External Holdout-48 benchmark, zero-call symbolic reachability re-certification (zero_call_verifier_dynamic_relabel) slashes single-arm evaluation MAE on unverified ordinary_style queries from 0.6556 / 0.5250 (tau = -0.8792 / -0.6973) to 0.0889 / 0.1222 (tau = +0.8890 / +0.7812) without re-generating a single query, while verified synthesis reduces External Holdout-48 MAE to 0.0264–0.0583 (tau in [+0.7701, +0.9412]). Finally, three flagship models recover 16/17–17/17 (94.12%–100.0%) waiting-period schemas across all 17 waiting-period insurance PDFs.
+Across 9 real cloud LLM end-to-end RAG pipelines (L1–L9, including model-matched abstaining vs. forced-binary pairs) and an independent External Holdout-48 benchmark, zero-call symbolic reachability re-certification (zero_call_verifier_dynamic_relabel) slashes single-arm evaluation MAE on unverified ordinary_style queries from 0.6556 / 0.5250 (tau = -0.8792 / -0.6973) to 0.0936 / 0.1222 (tau = +0.9062 / +0.7812)—and on an 80-query mixed uncurated pool (where a constant-CLARIFY counter-baseline fails at MAE 0.4222 / 0.4333) from 0.3292 / 0.2986 down to 0.0504 / 0.0816 (tau = +0.8125 / +0.7062)—without re-generating a single query, while verified synthesis reduces External Holdout-48 MAE to 0.0264–0.0583 (tau in [+0.7701, +0.9412]). Finally, three flagship models recover 16/17–17/17 (94.12%–100.0%) waiting-period schemas across all 17 waiting-period insurance PDFs.
 ```
 
 ### 5. 关键词（Keywords，通常输入 4–6 个，用回车或分号隔开）
@@ -93,7 +93,7 @@ In this work, we demonstrate that unconstrained conversational query synthesis a
 
 To address this challenge, we introduce a neuro-symbolic reachability verification and slot-guard repair framework grounded in 26 official Chinese commercial insurance policy PDFs and 8 multi-threshold rule families:
 1. We formalize eligibility clauses into threshold-partitioned reachability equivalence regions, separating surface slot completeness from reference-independent decision determinacy.
-2. We demonstrate that zero-call symbolic reachability detection and dynamic label re-certification (with zero additional LLM calls and no query editing) slashes single-arm RAG evaluation MAE from 0.6556 down to 0.0889 (an 86.4% error reduction) and flips rank correlation tau from -0.8792 to +0.8890.
+2. We demonstrate that zero-call symbolic reachability detection and dynamic label re-certification (with zero additional LLM calls and no query editing) slashes single-arm RAG evaluation MAE on unverified conversational queries from 0.6556 down to 0.0936 (an 85.7% error reduction, flipping rank correlation tau from -0.8792 to +0.9062), and on an 80-query mixed uncurated pool from 0.3292 down to 0.0504 (outperforming a constant-CLARIFY counter-baseline at MAE 0.4222 by 88.1%).
 3. We provide a 4-stage marginal gain decomposition across all 176 pooled pairs (88 seeds across 25 clause clusters and 21 independent source documents), demonstrating that targeted second-pass repair reaches 98.86% deterministic symbolic validity (p_Holm_doc <= 0.015625 against all six baselines).
 4. All experiments are verified with a dual-mode 3-flagship adjudication panel (Kimi-K3, DeepSeek-V4-Pro, Qwen3.8-Max), 9 end-to-end cloud LLM RAG pipelines, an independent 48-query External Holdout Benchmark, and an uncontaminated 17-PDF zero-shot schema extraction audit.
 
@@ -140,28 +140,28 @@ During the preparation of this work, the authors used large language models (Qwe
 
 ## 五、建议审稿人（Suggested Reviewers，通常填 3–4 位）
 
-期刊系统会要求提供 3–4 位不具利益冲突的领域国际专家。以下为你精选 4 位长期在金融/医疗法律 NLP、信息检索与 RAG 评测领域发表高水平论文的学者信息：
+期刊系统会要求提供 3–4 位不具利益冲突的领域国际专家。以下为你精选 4 位**直接发表过本论文核心参考文献（SIGIR 2024 合成测试集、ACL 2025 RAGEval、EMNLP 2024 RC-RAG、ACL 2024 CLAMBER）的一线青年/中年学者与通讯作者**（相比超资深大牛院长，一线青年教授/研究员接审率最高、研究方向 100% 精准对口）：
 
-1. **审稿人 1**
-   - **Name**: Prof. Min-Yen Kan
-   - **Affiliation**: National University of Singapore (NUS), School of Computing
-   - **Email**: `kanmy@comp.nus.edu.sg`
-   - **Reason**: Expert in Information Retrieval, NLP benchmark construction, and scholarly/domain evaluation.
-2. **审稿人 2**
-   - **Name**: Prof. Sophia Ananiadou
-   - **Affiliation**: University of Manchester, Department of Computer Science
-   - **Email**: `sophia.ananiadou@manchester.ac.uk`
-   - **Reason**: Leading expert in text mining, biomedical/clinical information extraction, and rule-governed NLP evaluation.
-3. **审稿人 3**
-   - **Name**: Dr. Emine Yilmaz
-   - **Affiliation**: University College London (UCL) & Amazon
-   - **Email**: `emine.yilmaz@ucl.ac.uk`
-   - **Reason**: Renowned authority on Information Retrieval evaluation methodology, synthetic test collections, and search system selection.
-4. **审稿人 4**
-   - **Name**: Prof. Tat-Seng Chua
-   - **Affiliation**: National University of Singapore (NUS)
-   - **Email**: `dcscts@nus.edu.sg`
-   - **Reason**: Renowned researcher in question answering, clarification dialogue benchmarks, and domain knowledge-grounded LLM systems.
+1. **审稿人 1（合成检索测试集与系统排序偏差方向）**
+   - **Name**: Dr. Hossein A. Rahmani
+   - **Affiliation**: University College London (UCL), Department of Computer Science
+   - **Email**: `h.rahmani@ucl.ac.uk`
+   - **Reason**: First author of "Synthetic Test Collections for Retrieval Evaluation" (SIGIR 2024); directly researches how LLM-generated synthetic queries affect retrieval system evaluation and ranking stability.
+2. **审稿人 2（垂直领域 Schema 驱动 RAG 评测基准生成方向）**
+   - **Name**: Prof. Zhenghao Liu
+   - **Affiliation**: Northeastern University (China), School of Computer Science and Engineering
+   - **Email**: `liuzhenghao@mail.neu.edu.cn`
+   - **Reason**: Corresponding author of "RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework" (ACL 2025); expert in schema-grounded synthetic RAG benchmark generation across financial, legal, and medical domains.
+3. **审稿人 3（RAG 风险控制、拒答机制与反事实鲁棒性方向）**
+   - **Name**: Prof. Ruqing Zhang
+   - **Affiliation**: Institute of Computing Technology, Chinese Academy of Sciences (ICT, CAS)
+   - **Email**: `zhangruqing@ict.ac.cn`
+   - **Reason**: Corresponding author of "Controlling Risk of Retrieval-augmented Generation: A Counterfactual Prompting Framework (RC-RAG)" (Findings of EMNLP 2024); specialist in selective abstention and reliability evaluation for RAG systems.
+4. **审稿人 4（大模型歧义检测与澄清追问评测方向）**
+   - **Name**: Prof. Yang Deng
+   - **Affiliation**: Singapore Management University (SMU), School of Computing and Information Systems
+   - **Email**: `ydeng@smu.edu.sg`
+   - **Reason**: Co-first/corresponding author of "CLAMBER: A Benchmark of Identifying and Clarifying Ambiguous Information Needs in Large Language Models" (ACL 2024); expert in ambiguity detection and clarifying question generation in rule-governed QA.
 
 ---
 

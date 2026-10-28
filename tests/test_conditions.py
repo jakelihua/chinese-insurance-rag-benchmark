@@ -1317,15 +1317,92 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(comp_audit['deepseek_v4_pro']['exact_schema_matches'], 16)
         self.assertEqual(comp_audit['deepseek_v4_pro']['exact_4field_matches'], 16)
 
-        # 5. Zero-Call Symbolic Reachability Relabeling & 4-Stage Marginal Gain Decomposition
+        # 5. Zero-Call Symbolic Reachability Relabeling, Counter-Baseline & 4-Stage Marginal Gain Decomposition
+        # AST probe on the production ver_relabel block: must reject CONDITION_MUTATED and is_parse_uncertain
+        relabel_block = None
+        for node in ast.walk(fn_tree):
+            body = getattr(node, 'body', None)
+            if not isinstance(body, list):
+                continue
+            for idx_stmt, stmt in enumerate(body[:-1]):
+                if isinstance(stmt, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == 'ver_relabel' for t in stmt.targets
+                ):
+                    if isinstance(stmt.value, ast.Constant) and stmt.value.value is None:
+                        relabel_block = body[idx_stmt : idx_stmt + 2]
+        self.assertIsNotNone(relabel_block)
+        relabel_fn_node = ast.FunctionDef(
+            name='production_relabel',
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg='r'), ast.arg(arg='gold_seed_dec')],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[],
+            ),
+            body=relabel_block + [ast.Return(ast.Name('ver_relabel', ast.Load()))],
+            decorator_list=[],
+        )
+        relabel_ns = {}
+        exec(
+            compile(ast.fix_missing_locations(ast.Module(body=[relabel_fn_node], type_ignores=[])), '<relabel_probe>', 'exec'),
+            relabel_ns,
+        )
+        prod_relabel = relabel_ns['production_relabel']
+        for bad_outcome, extra_fields in [
+            ('CONDITION_MUTATED', {'fine_outcome': 'DECISION_CHANGED'}),
+            ('PARSE_UNCERTAIN', {'parse_uncertainty': {'is_parse_uncertain': True}}),
+            ('DEGRADED_TO_CLARIFY', {'parse_uncertainty': {'is_parse_uncertain': True}}),
+            ('UNRECOGNIZED_OUTCOME', {}),
+        ]:
+            rec_probe = dict(format_and_slot_usable=False, format_valid=True, outcome=bad_outcome, **extra_fields)
+            self.assertIsNone(prod_relabel(rec_probe, 'WAIT_EXCLUDED'))
+        self.assertEqual(
+            prod_relabel(
+                dict(
+                    format_and_slot_usable=False,
+                    format_valid=True,
+                    outcome='DEGRADED_TO_CLARIFY',
+                    parse_uncertainty={'is_parse_uncertain': False},
+                ),
+                'WAIT_EXCLUDED',
+            ),
+            'CLARIFY',
+        )
+        self.assertEqual(
+            prod_relabel(
+                dict(format_and_slot_usable=True, format_valid=True, outcome='PRESERVED_DECISION'),
+                'WAIT_EXCLUDED',
+            ),
+            'WAIT_EXCLUDED',
+        )
+
         relabel_qwen = exp3['by_generator_family']['qwen_plus']['ordinary_style']['zero_call_verifier_dynamic_relabel']
         relabel_ds = exp3['by_generator_family']['deepseek']['ordinary_style']['zero_call_verifier_dynamic_relabel']
-        self.assertEqual(relabel_qwen['relabel_accepted_queries'], 40)
-        self.assertAlmostEqual(relabel_qwen['mae_vs_raw_clause_panel_truth'], 0.0889, places=4)
-        self.assertAlmostEqual(relabel_qwen['kendall_tau_vs_panel_truth'], 0.8890, places=4)
+        self.assertEqual(relabel_qwen['relabel_accepted_queries'], 38)
+        self.assertAlmostEqual(relabel_qwen['mae_vs_raw_clause_panel_truth'], 0.0936, places=4)
+        self.assertAlmostEqual(relabel_qwen['mae_vs_panel_truth_abstaining_6'], 0.0614, places=4)
+        self.assertAlmostEqual(relabel_qwen['kendall_tau_vs_panel_truth'], 0.9062, places=4)
+        self.assertAlmostEqual(relabel_qwen['kendall_tau_vs_panel_truth_abstaining_6'], 0.7857, places=4)
         self.assertEqual(relabel_ds['relabel_accepted_queries'], 40)
         self.assertAlmostEqual(relabel_ds['mae_vs_raw_clause_panel_truth'], 0.1222, places=4)
+        self.assertAlmostEqual(relabel_ds['mae_vs_panel_truth_abstaining_6'], 0.0833, places=4)
         self.assertAlmostEqual(relabel_ds['kendall_tau_vs_panel_truth'], 0.7812, places=4)
+        self.assertAlmostEqual(relabel_ds['kendall_tau_vs_panel_truth_abstaining_6'], 0.5000, places=4)
+
+        # Mixed 80-query uncurated pool (ordinary_style + condition_prompt): dynamic relabel vs constant-CLARIFY
+        mix_qwen = exp3['by_generator_family']['qwen_plus']['mixed_ordinary_and_prompt_80']['zero_call_verifier_dynamic_relabel']
+        mix_ds = exp3['by_generator_family']['deepseek']['mixed_ordinary_and_prompt_80']['zero_call_verifier_dynamic_relabel']
+        self.assertEqual(mix_qwen['relabel_accepted_queries'], 75)
+        self.assertAlmostEqual(mix_qwen['mae_vs_raw_clause_panel_truth'], 0.0504, places=4)
+        self.assertAlmostEqual(mix_qwen['constant_clarify_counterbaseline']['mae_vs_raw_clause_panel_truth'], 0.4222, places=4)
+        self.assertEqual(mix_ds['relabel_accepted_queries'], 79)
+        self.assertAlmostEqual(mix_ds['mae_vs_raw_clause_panel_truth'], 0.0816, places=4)
+        self.assertAlmostEqual(mix_ds['constant_clarify_counterbaseline']['mae_vs_raw_clause_panel_truth'], 0.4333, places=4)
+
+        for cid_k, cmeta in upg.NON_WAITING_RULE_CLAUSES.items():
+            self.assertIn('verbatim_pdf_spans', cmeta)
+            self.assertIn('modeling_scope_note', cmeta)
 
         decomp = exp4['component_gain_and_role_decomposition']
         self.assertIn('+86.93 pp', decomp['stage1_explicit_slot_prompting_gain']['symbolic_usability_delta'])

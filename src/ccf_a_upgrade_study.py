@@ -1291,8 +1291,11 @@ def run_or_load_real_llm_rag_study(
     results_by_family = {}
     for fam_name, rows in all_method_rows_by_family.items():
         fam_eval = {}
-        for m_name in eval_methods:
-            m_rows = [r for r in rows if r["method"] == m_name]
+        for m_name in eval_methods + ["mixed_ordinary_and_prompt_80"]:
+            if m_name == "mixed_ordinary_and_prompt_80":
+                m_rows = [r for r in rows if r["method"] in ("ordinary_style", "condition_prompt")]
+            else:
+                m_rows = [r for r in rows if r["method"] == m_name]
             if m_name in ("verify_only_filter", "slot_guard_repair"):
                 accepted = [r for r in m_rows if r.get("format_and_slot_usable")]
             else:
@@ -1306,10 +1309,12 @@ def run_or_load_real_llm_rag_study(
             paired_hit_mat = {p: [] for p in pipe_names}
             relabel_hit_mat = {p: [] for p in pipe_names}
             relabel_panel_hit_mat = {p: [] for p in pipe_names}
+            const_clarify_hit_mat = {p: [] for p in pipe_names}
             corrupted = 0
             panel_corrupted = 0
             relabel_accepted_count = 0
             relabel_Residual_panel_mismatch = 0
+            relabel_label_dist = {}
             for r in accepted:
                 sid = r["seed_id"]
                 dom_type, seed = seeds_by_id[sid]
@@ -1325,15 +1330,20 @@ def run_or_load_real_llm_rag_study(
                     panel_corrupted += 1
                 # Zero-call symbolic reachability dynamic label re-certification:
                 # - If format_and_slot_usable: keep gold_seed_dec
-                # - If format_valid and outcome != "INVERTED_DECISION": dynamically relabel as "CLARIFY"
-                # - If format_invalid or outcome == "INVERTED_DECISION": reject corrupted/inverted query
+                # - If format_valid and outcome == "DEGRADED_TO_CLARIFY" and not parse_uncertain: dynamically relabel as "CLARIFY"
+                # - Otherwise (format_invalid, CONDITION_MUTATED, or parse_uncertain): reject query (None)
                 ver_relabel = None
                 if r.get("format_and_slot_usable"):
                     ver_relabel = gold_seed_dec
-                elif r.get("format_valid") and r.get("outcome") != "INVERTED_DECISION":
+                elif (
+                    r.get("format_valid")
+                    and r.get("outcome") == "DEGRADED_TO_CLARIFY"
+                    and not (r.get("parse_uncertainty") or {}).get("is_parse_uncertain", False)
+                ):
                     ver_relabel = "CLARIFY"
                 if ver_relabel is not None:
                     relabel_accepted_count += 1
+                    relabel_label_dist[ver_relabel] = relabel_label_dist.get(ver_relabel, 0) + 1
                     if ver_relabel != panel_lbl:
                         relabel_Residual_panel_mismatch += 1
                 ret_fn = retrievers_by_domain[dom_type]
@@ -1355,6 +1365,7 @@ def run_or_load_real_llm_rag_study(
                     hit_mat[pipe_name].append(h_naive)
                     panel_hit_mat[pipe_name].append(h_panel)
                     paired_hit_mat[pipe_name].append(0.5 * float(h_naive) + 0.5 * float(h_amb))
+                    const_clarify_hit_mat[pipe_name].append(1 if pred == "CLARIFY" else 0)
                     if ver_relabel is not None:
                         relabel_hit_mat[pipe_name].append(1 if pred == ver_relabel else 0)
                         relabel_panel_hit_mat[pipe_name].append(h_panel)
@@ -1468,15 +1479,25 @@ def run_or_load_real_llm_rag_study(
                 p: round(float(np.mean(relabel_panel_hit_mat[p])), 4) if relabel_accepted_count > 0 else 0.0
                 for p in pipe_names
             }
+            const_clarify_scores = {
+                p: round(float(np.mean(const_clarify_hit_mat[p])), 4) if n_eval > 0 else 0.0
+                for p in pipe_names
+            }
             relabel_vec = [relabel_scores[p] for p in pipe_names]
             relabel_panel_vec = [relabel_panel_scores[p] for p in pipe_names]
+            const_clarify_vec = [const_clarify_scores[p] for p in pipe_names]
             mae_relabel_vs_panel = round(
                 float(np.mean(np.abs(np.asarray(relabel_vec) - np.asarray(relabel_panel_vec)))), 4
+            )
+            mae_const_clarify_vs_panel = round(
+                float(np.mean(np.abs(np.asarray(const_clarify_vec) - np.asarray(panel_vec)))), 4
             )
             kt_rel_p, _ = kendalltau(relabel_panel_vec, relabel_vec)
             sr_rel_p, _ = spearmanr(relabel_panel_vec, relabel_vec)
             kt_rel_val = round(float(0.0 if np.isnan(kt_rel_p) else kt_rel_p), 4)
             sr_rel_val = round(float(0.0 if np.isnan(sr_rel_p) else sr_rel_p), 4)
+            kt_const_p, _ = kendalltau(panel_vec, const_clarify_vec)
+            kt_const_val = round(float(0.0 if np.isnan(kt_const_p) else kt_const_p), 4)
             rel_selected_top1 = max(pipe_names, key=lambda p: (relabel_scores[p], -pipe_names.index(p)))
             rel_panel_best = max(pipe_names, key=lambda p: (relabel_panel_scores[p], -pipe_names.index(p)))
             rel_regret_vs_panel = round(
@@ -1484,11 +1505,17 @@ def run_or_load_real_llm_rag_study(
             )
             abst_rel_vec = [relabel_scores[p] for p in ABSTAINING_6_PIPELINES]
             abst_rel_panel_vec = [relabel_panel_scores[p] for p in ABSTAINING_6_PIPELINES]
+            abst_const_vec = [const_clarify_scores[p] for p in ABSTAINING_6_PIPELINES]
             mae_rel_abst6 = round(
                 float(np.mean(np.abs(np.asarray(abst_rel_vec) - np.asarray(abst_rel_panel_vec)))), 4
             )
+            mae_const_abst6 = round(
+                float(np.mean(np.abs(np.asarray(abst_const_vec) - np.asarray(abst_panel_vec)))), 4
+            )
             kt_rel_abst6, _ = kendalltau(abst_rel_panel_vec, abst_rel_vec)
             kt_rel_abst6_val = round(float(0.0 if np.isnan(kt_rel_abst6) else kt_rel_abst6), 4)
+            kt_const_abst6, _ = kendalltau(abst_panel_vec, abst_const_vec)
+            kt_const_abst6_val = round(float(0.0 if np.isnan(kt_const_abst6) else kt_const_abst6), 4)
 
             fam_eval[m_name] = {
                 "total_seeds": n_total,
@@ -1506,10 +1533,12 @@ def run_or_load_real_llm_rag_study(
                 "single_label_selected_top1": selected_top1,
                 "zero_call_verifier_dynamic_relabel": {
                     "relabel_accepted_queries": relabel_accepted_count,
+                    "relabel_label_distribution": relabel_label_dist,
                     "residual_panel_label_mismatch_rate": round(
                         relabel_Residual_panel_mismatch / max(1, relabel_accepted_count), 4
                     ),
                     "relabel_pipeline_scores": relabel_scores,
+                    "relabel_panel_true_pipeline_scores": relabel_panel_scores,
                     "mae_vs_raw_clause_panel_truth": mae_relabel_vs_panel,
                     "kendall_tau_vs_panel_truth": kt_rel_val,
                     "spearman_rho_vs_panel_truth": sr_rel_val,
@@ -1517,6 +1546,13 @@ def run_or_load_real_llm_rag_study(
                     "selected_top1": rel_selected_top1,
                     "mae_vs_panel_truth_abstaining_6": mae_rel_abst6,
                     "kendall_tau_vs_panel_truth_abstaining_6": kt_rel_abst6_val,
+                    "constant_clarify_counterbaseline": {
+                        "pipeline_scores": const_clarify_scores,
+                        "mae_vs_raw_clause_panel_truth": mae_const_clarify_vs_panel,
+                        "kendall_tau_vs_panel_truth": kt_const_val,
+                        "mae_vs_panel_truth_abstaining_6": mae_const_abst6,
+                        "kendall_tau_vs_panel_truth_abstaining_6": kt_const_abst6_val,
+                    },
                 },
                 "paired_80_pipeline_scores": paired_scores,
                 "mae_complete_only_vs_reference_40": mae_complete_vs_ref40,
@@ -1579,6 +1615,11 @@ NON_WAITING_RULE_CLAUSES = {
         "source_sha256_prefix": "7fa649061fe0",
         "pdf_page": 17,
         "pdf_pages": [17, 47],
+        "verbatim_pdf_spans": {
+            "page_17_section_1_6": "1.6 保险金计算方法 一般医疗保险金=（有效医疗费用-年免赔额余额）×给付比例。（2）若被保险人以参加社会医疗保险身份投保，但未以参加社会医疗保险身份结算的，给付比例为60%；其他情形下，给付比例为100%。（4）根据上述公式计算所得金额小于或等于零时，本主险合同需要给付的保险金金额为零。",
+            "page_47_appendix_2_schedule": "附录2 计划表 一般医疗保险金年免赔额：计划一 1万元，计划二 2万元，计划三 3万元。",
+        },
+        "modeling_scope_note": "Cross-page composite combining main-body Section 1.6 (page 17) and Appendix 2 Schedule Table (page 47); evaluates first-claim annual deductible eligibility where remaining annual deductible balance (年免赔额余额) equals the full annual plan deductible (10,000 / 20,000 / 30,000 RMB) with no prior deductible offset in the policy year.",
         "clause_text": (
             "【原文第17页 1.6 保险金计算方法】一般医疗保险金=（有效医疗费用-年免赔额）×给付比例。"
             "（2）若被保险人以参加社会医疗保险身份投保，但未以参加社会医疗保险身份结算的，给付比例为60%；其他情形下，给付比例为100%。"
@@ -1596,6 +1637,11 @@ NON_WAITING_RULE_CLAUSES = {
         "source_sha256_prefix": "cbf26584a59f",
         "pdf_page": 9,
         "pdf_pages": [1, 3, 4, 9],
+        "verbatim_pdf_spans": {
+            "page_3_4_section_1_3": "1.3.2 恶性肿瘤特种药品费用保险金 被保险人经医院确诊初次发生恶性肿瘤，自确诊之日起1年为用药期；我们对被保险人在用药期外发生的恶性肿瘤特种药品费用不承担给付保险金的责任。1.3.3 给付比例（1）基本医疗保险目录外恶性肿瘤特种药品：给付比例100%；（2）基本医疗保险目录内恶性肿瘤特种药品：已从基本医疗保险获得费用补偿的，给付比例100%；以有基本医疗保险身份参保，但未从基本医疗保险获得费用补偿的，给付比例60%。1.3.4 保险金额 累计给付金额以投保档次对应的保险金额为限。",
+            "page_9_appendix_1_schedule": "附录1 计划表 保险金额：一档10万元，二档20万元，三档50万元；起付线0元。",
+        },
+        "modeling_scope_note": "Cross-page composite combining main-body Sections 1.3.2-1.3.4 (pages 3-4) and Appendix 1 Schedule Table (page 9).",
         "clause_text": (
             "【原文第3–4页 1.3.2–1.3.4 恶性肿瘤特种药品费用保险金】被保险人经医院确诊初次发生恶性肿瘤，自确诊之日起1年为用药期；"
             "我们对被保险人在用药期外发生的恶性肿瘤特种药品费用不承担给付保险金的责任。"
@@ -1616,6 +1662,12 @@ NON_WAITING_RULE_CLAUSES = {
         "source_sha256_prefix": "9d93c137aac3",
         "pdf_page": 49,
         "pdf_pages": [3, 4, 6, 49],
+        "verbatim_pdf_spans": {
+            "page_3_section_1_5_2": "1.5.2.3 住院前后门急诊医疗费用 被保险人因疾病或意外伤害在医院住院治疗，对被保险人在住院前30日内或出院后30日内（含住院和出院当日），因与该次住院治疗相同原因而发生的门诊急诊医疗费用，按约定给付保险金。",
+            "page_4_footnotes_3_4": "脚注3 医院：指中华人民共和国境内（港、澳、台地区除外）合法经营的二级以上（含二级）公立医院普通部，不包括特需医疗部、国际医疗部、外宾医疗部、VIP部、干部病房。脚注4 住院：不包括入住门诊观察室、家庭病床、挂床住院（连续1日无任何治疗，只发生护理费、诊疗费、床位费的视为挂床住院）等不合理住院。",
+            "page_49_appendix_2": "附录2 不包括康复医院等非约定医疗机构。",
+        },
+        "modeling_scope_note": "Cross-page composite combining main-body Section 1.5.2.3 (page 3), Glossary Footnotes 3 & 4 (page 4), and Appendix 2 (page 49).",
         "clause_text": (
             "【原文第3–4页及第49页 1.5.2 一般医疗保险金、脚注3医院、脚注4住院、附录2】"
             "（1）医院范围：指中华人民共和国境内（港、澳、台地区除外）合法经营的二级以上（含二级）公立医院普通部，不包括特需医疗部、国际医疗部、外宾医疗部、VIP部、干部病房，也不包括康复医院等非约定医疗机构。"
@@ -1633,6 +1685,12 @@ NON_WAITING_RULE_CLAUSES = {
         "source_sha256_prefix": "cbf26584a59f",
         "pdf_page": 3,
         "pdf_pages": [3, 7, 10],
+        "verbatim_pdf_spans": {
+            "page_7_section_6_3": "6.3 投保年龄 投保时被保险人的年龄为0周岁至60周岁（0周岁指出生满28日且已健康出院的婴儿）。6.4 年龄错误 被保险人真实年龄不符合6.3条约定的投保年龄限制的，我们有权解除合同，并向您退还本合同的现金价值。",
+            "page_3_section_1_3_2": "1.3.2 恶性肿瘤特种药品费用保险金 每次恶性肿瘤特种药品处方剂量不超过1个月，且须由医院专科医生开具、属于本合同约定的特种药品目录内且为当前治疗必备的药品。",
+            "page_10_appendix_2": "附录2 指定药店的购药流程 在指定药店购买前须经特药服务商药品处方审核通过并提供完整购药凭证；若药品处方审核未通过，我们不承担给付保险金的责任。",
+        },
+        "modeling_scope_note": "Cross-page composite combining Sections 6.3-6.4 (page 7), Section 1.3.2 (page 3), and Appendix 2 (page 10); normalizes the contract phrase 不超过1个月 (<= 1 month) to the standard 30-day prescription cycle (<= 30 days) for deterministic day-level evaluation.",
         "clause_text": (
             "【原文第7页 6.3–6.4 投保年龄与年龄错误】投保时被保险人的年龄为0周岁至60周岁（0周岁指出生满28日且已健康出院的婴儿）；"
             "被保险人真实年龄不符合6.3条约定的投保年龄限制的，我们有权解除合同，并向您退还本合同的现金价值。"
@@ -4104,6 +4162,10 @@ def main():
     d_ord_rel = exp3_summary["by_generator_family"]["deepseek"]["ordinary_style"]["zero_call_verifier_dynamic_relabel"]
     q_ord_raw = exp3_summary["by_generator_family"]["qwen_plus"]["ordinary_style"]
     d_ord_raw = exp3_summary["by_generator_family"]["deepseek"]["ordinary_style"]
+    q_mix_rel = exp3_summary["by_generator_family"]["qwen_plus"]["mixed_ordinary_and_prompt_80"]["zero_call_verifier_dynamic_relabel"]
+    d_mix_rel = exp3_summary["by_generator_family"]["deepseek"]["mixed_ordinary_and_prompt_80"]["zero_call_verifier_dynamic_relabel"]
+    q_mix_raw = exp3_summary["by_generator_family"]["qwen_plus"]["mixed_ordinary_and_prompt_80"]
+    d_mix_raw = exp3_summary["by_generator_family"]["deepseek"]["mixed_ordinary_and_prompt_80"]
 
     component_decomposition = {
         "stage1_explicit_slot_prompting_gain": {
@@ -4122,14 +4184,16 @@ def main():
             "role": "Separates genuine LLM generation errors from artificial mid-sentence truncation and incomplete 5-slot rendering.",
         },
         "stage3_zero_call_symbolic_detection_and_dynamic_relabeling": {
-            "comparison": "ordinary_style (naive seed label) -> ordinary_style + zero_call_verifier_dynamic_relabel (0 LLM calls)",
+            "comparison": "ordinary_style & mixed_ordinary_and_prompt_80 (naive seed label vs. constant-CLARIFY counterbaseline vs. zero_call_verifier_dynamic_relabel, 0 LLM calls)",
             "qwen_plus_mae_vs_panel_all9": f"{q_ord_raw['mae_vs_raw_clause_panel_truth']} -> {q_ord_rel['mae_vs_raw_clause_panel_truth']}",
             "qwen_plus_kendall_tau_vs_panel_all9": f"{q_ord_raw['kendall_tau_vs_panel_truth']} -> {q_ord_rel['kendall_tau_vs_panel_truth']}",
             "qwen_plus_kendall_tau_vs_panel_abstaining6": f"{q_ord_raw['same_protocol_abstaining_6_pipelines']['kendall_tau_vs_panel_truth_abstaining_6']} -> {q_ord_rel['kendall_tau_vs_panel_truth_abstaining_6']}",
             "deepseek_mae_vs_panel_all9": f"{d_ord_raw['mae_vs_raw_clause_panel_truth']} -> {d_ord_rel['mae_vs_raw_clause_panel_truth']}",
             "deepseek_kendall_tau_vs_panel_all9": f"{d_ord_raw['kendall_tau_vs_panel_truth']} -> {d_ord_rel['kendall_tau_vs_panel_truth']}",
             "deepseek_kendall_tau_vs_panel_abstaining6": f"{d_ord_raw['same_protocol_abstaining_6_pipelines']['kendall_tau_vs_panel_truth_abstaining_6']} -> {d_ord_rel['kendall_tau_vs_panel_truth_abstaining_6']}",
-            "role": "Even without prompt engineering or second-pass LLM calls, symbolic reachability verification detects dropped pivotal conditions and dynamically re-certifies degraded queries to CLARIFY, eliminating single-arm RAG ranking inversion.",
+            "mixed_80_qwen_plus_mae_naive_vs_const_vs_dynamic": f"Naive {q_mix_raw['mae_vs_raw_clause_panel_truth']} / Const-CLARIFY {q_mix_rel['constant_clarify_counterbaseline']['mae_vs_raw_clause_panel_truth']} -> Dynamic {q_mix_rel['mae_vs_raw_clause_panel_truth']} (tau: {q_mix_raw['kendall_tau_vs_panel_truth']} -> {q_mix_rel['kendall_tau_vs_panel_truth']})",
+            "mixed_80_deepseek_mae_naive_vs_const_vs_dynamic": f"Naive {d_mix_raw['mae_vs_raw_clause_panel_truth']} / Const-CLARIFY {d_mix_rel['constant_clarify_counterbaseline']['mae_vs_raw_clause_panel_truth']} -> Dynamic {d_mix_rel['mae_vs_raw_clause_panel_truth']} (tau: {d_mix_raw['kendall_tau_vs_panel_truth']} -> {d_mix_rel['kendall_tau_vs_panel_truth']})",
+            "role": "Even without prompt engineering or second-pass LLM calls, symbolic reachability verification detects dropped pivotal conditions, rejects mutated/parse-uncertain queries, and dynamically re-certifies degraded queries to CLARIFY—eliminating single-arm RAG ranking inversion while avoiding the 0.42-0.83 MAE collapse of trivial constant-CLARIFY baselines on complete or mixed query pools.",
         },
         "stage4_targeted_diagnostic_second_pass_repair": {
             "comparison_vs_condition_prompt": "condition_prompt -> slot_guard_repair (N=176 pooled pairs)",
