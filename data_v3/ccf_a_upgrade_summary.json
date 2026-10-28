@@ -6224,7 +6224,7 @@
         "symbolic_usability_delta_vs_condition_prompt": "155/176 (88.07%) -> 174/176 (98.86%) (+10.8 pp, p_Holm_doc = 0.01171875)",
         "symbolic_usability_delta_vs_generic_self_refine": "160/176 (90.91%) -> 174/176 (98.86%) (+7.95 pp, p_Holm_doc = 0.015625)",
         "panel_majority_usability_note": "Ties condition_prompt (161/176 vs 161/176, p=1.0) and generic_self_refine (161/176 vs 163/176, p=0.50) under frontier LLM panel adjudication because panel judges forgive minor surface-alias or date-format variations that strict symbolic extractors flag.",
-        "role": "Restores determinate scenario coverage (from 82.5%-92.5% under verify_only_filter to 97.5%-100.0%), guarantees strict deterministic slot extractability (98.86%), and repairs residual threshold/title omissions especially on smaller or noisier generators (e.g., Qwen2.5-7B 66.7% -> 95.8%)."
+        "role": "Restores determinate scenario coverage (from 82.5%-92.5% under verify_only_filter to 97.5%-100.0%), guarantees strict deterministic slot extractability (98.86%), and repairs residual threshold/title omissions especially on smaller or noisier generators (e.g., Qwen2.5-1.5B multi-threshold: 43.8% -> 75.0% standalone / 93.8% granted-clause)."
       }
     }
   },

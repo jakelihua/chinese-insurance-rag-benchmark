@@ -1503,5 +1503,24 @@ class ConditionTests(unittest.TestCase):
         self.assertIn('+64.2 pp', decomp['stage1_explicit_slot_prompting_gain']['panel_majority_usability_delta'])
         self.assertIn('+10.8 pp', decomp['stage4_targeted_diagnostic_second_pass_repair']['symbolic_usability_delta_vs_condition_prompt'])
 
+        # Verify panel_robustness_results.json (Art. A30) and main.tex artifact map
+        pr_res = json.loads((root / 'data_v3' / 'panel_robustness_results.json').read_text(encoding='utf-8'))
+        self.assertEqual(len(pr_res['A_reproduction']), 14)
+        for k, v in pr_res['A_reproduction'].items():
+            self.assertTrue(v['all_18_scores_match'], f"Score mismatch on {k}")
+        self.assertEqual(pr_res['B_constructed_gold']['protocol_guided']['majority_3']['accuracy'], 0.8523)
+        self.assertEqual(pr_res['B_constructed_gold']['protocol_guided']['majority_3']['flipped_decision'], 0)
+        self.assertEqual(pr_res['B_constructed_gold']['pure_verbatim']['majority_3']['flipped_decision'], 0)
+        clean78 = pr_res['E_clean_subset_sensitivity']['pooled_usability_by_subset']['clean_78_seeds_156_pairs_excl_mismatch_and_cross']
+        self.assertEqual(clean78['slot_guard_repair']['strict_symbolic_usable'], 154)
+        self.assertEqual(clean78['slot_guard_repair']['panel_usable'], 150)
+        self.assertEqual(clean78['condition_prompt']['strict_symbolic_usable'], 137)
+        self.assertEqual(clean78['condition_prompt']['panel_usable'], 150)
+        clean34 = pr_res['E_clean_subset_sensitivity']['confirmation_clean_34_seeds_rag_eval']
+        self.assertEqual(clean34['qwen_plus/slot_guard_repair']['naive_mae'], 0.0)
+        self.assertEqual(clean34['qwen_plus/slot_guard_repair']['naive_tau'], 1.0)
+        self.assertEqual(clean34['deepseek/slot_guard_repair']['naive_mae'], 0.0)
+        self.assertEqual(clean34['deepseek/slot_guard_repair']['naive_tau'], 1.0)
+
 
 if __name__=='__main__':unittest.main()
