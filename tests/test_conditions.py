@@ -1522,5 +1522,14 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(clean34['deepseek/slot_guard_repair']['naive_mae'], 0.0)
         self.assertEqual(clean34['deepseek/slot_guard_repair']['naive_tau'], 1.0)
 
+        # Verify missing_probe_summary.json (Art. A33)
+        mp_sum = json.loads((root / 'data_v3' / 'missing_probe_summary.json').read_text(encoding='utf-8'))
+        self.assertEqual(mp_sum['n_calls_expected'], 480)
+        self.assertEqual(mp_sum['n_calls_completed'], 480)
+        self.assertEqual(mp_sum['isolated/protocol_guided']['by_judge']['majority_3']['missing_critical'], '31/40')
+        self.assertEqual(mp_sum['isolated/pure_verbatim']['by_judge']['majority_3']['missing_critical'], '31/40')
+        self.assertEqual(mp_sum['with_controls/protocol_guided']['by_judge']['majority_3']['missing_critical'], '38/40')
+        self.assertEqual(mp_sum['with_controls/pure_verbatim']['by_judge']['majority_3']['missing_critical'], '39/40')
+
 
 if __name__=='__main__':unittest.main()
