@@ -1133,6 +1133,28 @@
           "spearman_rho_vs_panel_truth": 0.5026,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.175,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+              "L3_bge_kimik3_abstaining": 0.8,
+              "L4_bm25_qwen38max_abstaining": 0.725,
+              "L5_bge_deepseek_v41_forced_binary": 0.975,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.85,
+              "L8_bm25_qwenplus_abstaining": 0.75,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0694,
+            "kendall_tau_vs_panel_truth": 0.3185,
+            "spearman_rho_vs_panel_truth": 0.5026,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0458,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.5
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.95,
@@ -1214,6 +1236,28 @@
           "spearman_rho_vs_panel_truth": 0.7067,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L9_bge_qwen38max_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.1,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.75,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.95,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.875,
+              "L8_bm25_qwenplus_abstaining": 0.85,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0611,
+            "kendall_tau_vs_panel_truth": 0.6003,
+            "spearman_rho_vs_panel_truth": 0.7067,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L9_bge_qwen38max_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.075,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.8875,
@@ -1295,6 +1339,28 @@
           "spearman_rho_vs_panel_truth": -0.9529,
           "subset_regret_vs_panel_truth": 0.725,
           "single_label_selected_top1": "L6_bm25_qwenplus_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.15,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.925,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.9,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.85,
+              "L5_bge_deepseek_v41_forced_binary": 0.0,
+              "L6_bm25_qwenplus_forced_binary": 0.0,
+              "L7_bge_deepseek_v41_abstaining": 0.7,
+              "L8_bm25_qwenplus_abstaining": 0.7,
+              "L9_bge_qwen38max_forced_binary": 0.0
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0889,
+            "kendall_tau_vs_panel_truth": 0.889,
+            "spearman_rho_vs_panel_truth": 0.9563,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L1_bge_qwen38max_abstaining",
+            "mae_vs_panel_truth_abstaining_6": 0.0583,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.7412
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.5125,
             "L2_rrf_deepseek_v4pro_abstaining": 0.55,
@@ -1376,6 +1442,28 @@
           "spearman_rho_vs_panel_truth": 0.9605,
           "subset_regret_vs_panel_truth": 0.0,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.125,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.825,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8,
+              "L3_bge_kimik3_abstaining": 0.825,
+              "L4_bm25_qwen38max_abstaining": 0.8,
+              "L5_bge_deepseek_v41_forced_binary": 0.925,
+              "L6_bm25_qwenplus_forced_binary": 0.925,
+              "L7_bge_deepseek_v41_abstaining": 0.85,
+              "L8_bm25_qwenplus_abstaining": 0.875,
+              "L9_bge_qwen38max_forced_binary": 0.925
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0361,
+            "kendall_tau_vs_panel_truth": 0.9032,
+            "spearman_rho_vs_panel_truth": 0.9605,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0417,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.7692
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.925,
             "L2_rrf_deepseek_v4pro_abstaining": 0.925,
@@ -1457,6 +1545,28 @@
           "spearman_rho_vs_panel_truth": -0.5939,
           "subset_regret_vs_panel_truth": 0.15,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 33,
+            "residual_panel_label_mismatch_rate": 0.0303,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8788,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8788,
+              "L3_bge_kimik3_abstaining": 0.9394,
+              "L4_bm25_qwen38max_abstaining": 0.8182,
+              "L5_bge_deepseek_v41_forced_binary": 0.9697,
+              "L6_bm25_qwenplus_forced_binary": 0.9697,
+              "L7_bge_deepseek_v41_abstaining": 0.9091,
+              "L8_bm25_qwenplus_abstaining": 0.9091,
+              "L9_bge_qwen38max_forced_binary": 0.9697
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0034,
+            "kendall_tau_vs_panel_truth": 0.9677,
+            "spearman_rho_vs_panel_truth": 0.9868,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.005,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.9231
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.85,
             "L2_rrf_deepseek_v4pro_abstaining": 0.8625,
@@ -1538,6 +1648,28 @@
           "spearman_rho_vs_panel_truth": 0.9565,
           "subset_regret_vs_panel_truth": 0.0,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.075,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.825,
+              "L3_bge_kimik3_abstaining": 0.9,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.925,
+              "L6_bm25_qwenplus_forced_binary": 0.9,
+              "L7_bge_deepseek_v41_abstaining": 0.9,
+              "L8_bm25_qwenplus_abstaining": 0.875,
+              "L9_bge_qwen38max_forced_binary": 0.925
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0528,
+            "kendall_tau_vs_panel_truth": 0.9375,
+            "spearman_rho_vs_panel_truth": 0.9565,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0542,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.9661
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9125,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
@@ -1619,6 +1751,28 @@
           "spearman_rho_vs_panel_truth": 0.6581,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L9_bge_qwen38max_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.125,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.725,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.95,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.875,
+              "L8_bm25_qwenplus_abstaining": 0.875,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0694,
+            "kendall_tau_vs_panel_truth": 0.5628,
+            "spearman_rho_vs_panel_truth": 0.6581,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L9_bge_qwen38max_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.075,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.875,
@@ -1700,6 +1854,28 @@
           "spearman_rho_vs_panel_truth": 0.9605,
           "subset_regret_vs_panel_truth": 0.0,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 37,
+            "residual_panel_label_mismatch_rate": 0.0541,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8919,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8649,
+              "L3_bge_kimik3_abstaining": 0.8919,
+              "L4_bm25_qwen38max_abstaining": 0.8649,
+              "L5_bge_deepseek_v41_forced_binary": 1.0,
+              "L6_bm25_qwenplus_forced_binary": 1.0,
+              "L7_bge_deepseek_v41_abstaining": 0.9189,
+              "L8_bm25_qwenplus_abstaining": 0.9459,
+              "L9_bge_qwen38max_forced_binary": 1.0
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0421,
+            "kendall_tau_vs_panel_truth": 0.9032,
+            "spearman_rho_vs_panel_truth": 0.9605,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0361,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.7692
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9324,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9324,
@@ -1781,6 +1957,28 @@
           "spearman_rho_vs_panel_truth": 0.9057,
           "subset_regret_vs_panel_truth": 0.0,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 39,
+            "residual_panel_label_mismatch_rate": 0.0769,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8718,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8462,
+              "L3_bge_kimik3_abstaining": 0.8718,
+              "L4_bm25_qwen38max_abstaining": 0.8462,
+              "L5_bge_deepseek_v41_forced_binary": 0.9744,
+              "L6_bm25_qwenplus_forced_binary": 0.9744,
+              "L7_bge_deepseek_v41_abstaining": 0.8974,
+              "L8_bm25_qwenplus_abstaining": 0.9231,
+              "L9_bge_qwen38max_forced_binary": 0.9744
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0428,
+            "kendall_tau_vs_panel_truth": 0.8486,
+            "spearman_rho_vs_panel_truth": 0.9057,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0385,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.7692
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9231,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9231,
@@ -1864,6 +2062,28 @@
           "spearman_rho_vs_panel_truth": 0.5026,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.175,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.875,
+              "L3_bge_kimik3_abstaining": 0.8,
+              "L4_bm25_qwen38max_abstaining": 0.725,
+              "L5_bge_deepseek_v41_forced_binary": 0.975,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.85,
+              "L8_bm25_qwenplus_abstaining": 0.75,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0694,
+            "kendall_tau_vs_panel_truth": 0.3185,
+            "spearman_rho_vs_panel_truth": 0.5026,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0458,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.5
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.95,
@@ -1945,6 +2165,28 @@
           "spearman_rho_vs_panel_truth": 0.7067,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L9_bge_qwen38max_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.1,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.75,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.95,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.875,
+              "L8_bm25_qwenplus_abstaining": 0.85,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0611,
+            "kendall_tau_vs_panel_truth": 0.6003,
+            "spearman_rho_vs_panel_truth": 0.7067,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L9_bge_qwen38max_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.075,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.8875,
@@ -2026,6 +2268,28 @@
           "spearman_rho_vs_panel_truth": -0.8413,
           "subset_regret_vs_panel_truth": 0.625,
           "single_label_selected_top1": "L6_bm25_qwenplus_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.2,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8,
+              "L3_bge_kimik3_abstaining": 0.725,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.025,
+              "L6_bm25_qwenplus_forced_binary": 0.025,
+              "L7_bge_deepseek_v41_abstaining": 0.55,
+              "L8_bm25_qwenplus_abstaining": 0.525,
+              "L9_bge_qwen38max_forced_binary": 0.025
+            },
+            "mae_vs_raw_clause_panel_truth": 0.1222,
+            "kendall_tau_vs_panel_truth": 0.7812,
+            "spearman_rho_vs_panel_truth": 0.913,
+            "subset_regret_vs_panel_truth": 0.1,
+            "selected_top1": "L2_rrf_deepseek_v4pro_abstaining",
+            "mae_vs_panel_truth_abstaining_6": 0.0833,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.5
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.6,
             "L2_rrf_deepseek_v4pro_abstaining": 0.6125,
@@ -2107,6 +2371,28 @@
           "spearman_rho_vs_panel_truth": 0.7331,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.2,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.825,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.825,
+              "L6_bm25_qwenplus_forced_binary": 0.8,
+              "L7_bge_deepseek_v41_abstaining": 0.85,
+              "L8_bm25_qwenplus_abstaining": 0.775,
+              "L9_bge_qwen38max_forced_binary": 0.8
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0806,
+            "kendall_tau_vs_panel_truth": 0.8009,
+            "spearman_rho_vs_panel_truth": 0.8751,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L3_bge_kimik3_abstaining",
+            "mae_vs_panel_truth_abstaining_6": 0.0667,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9,
@@ -2188,6 +2474,28 @@
           "spearman_rho_vs_panel_truth": 0.821,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 39,
+            "residual_panel_label_mismatch_rate": 0.0513,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8462,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8718,
+              "L3_bge_kimik3_abstaining": 0.9487,
+              "L4_bm25_qwen38max_abstaining": 0.7949,
+              "L5_bge_deepseek_v41_forced_binary": 0.9744,
+              "L6_bm25_qwenplus_forced_binary": 0.9231,
+              "L7_bge_deepseek_v41_abstaining": 0.9487,
+              "L8_bm25_qwenplus_abstaining": 0.7949,
+              "L9_bge_qwen38max_forced_binary": 0.9487
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0285,
+            "kendall_tau_vs_panel_truth": 0.8207,
+            "spearman_rho_vs_panel_truth": 0.8842,
+            "subset_regret_vs_panel_truth": 0.0256,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0256,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9125,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
@@ -2269,6 +2577,28 @@
           "spearman_rho_vs_panel_truth": 0.9598,
           "subset_regret_vs_panel_truth": 0.0,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.15,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.825,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.75,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.775,
+              "L5_bge_deepseek_v41_forced_binary": 0.875,
+              "L6_bm25_qwenplus_forced_binary": 0.875,
+              "L7_bge_deepseek_v41_abstaining": 0.8,
+              "L8_bm25_qwenplus_abstaining": 0.75,
+              "L9_bge_qwen38max_forced_binary": 0.875
+            },
+            "mae_vs_raw_clause_panel_truth": 0.1,
+            "kendall_tau_vs_panel_truth": 0.8352,
+            "spearman_rho_vs_panel_truth": 0.9287,
+            "subset_regret_vs_panel_truth": 0.0,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.1,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.7412
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9375,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9375,
@@ -2350,6 +2680,28 @@
           "spearman_rho_vs_panel_truth": 0.6581,
           "subset_regret_vs_panel_truth": 0.025,
           "single_label_selected_top1": "L9_bge_qwen38max_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 40,
+            "residual_panel_label_mismatch_rate": 0.125,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.75,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.725,
+              "L3_bge_kimik3_abstaining": 0.85,
+              "L4_bm25_qwen38max_abstaining": 0.75,
+              "L5_bge_deepseek_v41_forced_binary": 0.95,
+              "L6_bm25_qwenplus_forced_binary": 0.95,
+              "L7_bge_deepseek_v41_abstaining": 0.875,
+              "L8_bm25_qwenplus_abstaining": 0.875,
+              "L9_bge_qwen38max_forced_binary": 0.975
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0694,
+            "kendall_tau_vs_panel_truth": 0.5628,
+            "spearman_rho_vs_panel_truth": 0.6581,
+            "subset_regret_vs_panel_truth": 0.025,
+            "selected_top1": "L9_bge_qwen38max_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.075,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.875,
             "L2_rrf_deepseek_v4pro_abstaining": 0.875,
@@ -2431,6 +2783,28 @@
           "spearman_rho_vs_panel_truth": 0.5734,
           "subset_regret_vs_panel_truth": 0.0606,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 33,
+            "residual_panel_label_mismatch_rate": 0.0606,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.8485,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.8788,
+              "L3_bge_kimik3_abstaining": 0.9394,
+              "L4_bm25_qwen38max_abstaining": 0.7879,
+              "L5_bge_deepseek_v41_forced_binary": 1.0,
+              "L6_bm25_qwenplus_forced_binary": 0.9697,
+              "L7_bge_deepseek_v41_abstaining": 0.9394,
+              "L8_bm25_qwenplus_abstaining": 0.8182,
+              "L9_bge_qwen38max_forced_binary": 0.9697
+            },
+            "mae_vs_raw_clause_panel_truth": 0.0572,
+            "kendall_tau_vs_panel_truth": 0.4928,
+            "spearman_rho_vs_panel_truth": 0.5734,
+            "subset_regret_vs_panel_truth": 0.0606,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0606,
+            "kendall_tau_vs_panel_truth_abstaining_6": 1.0
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.9091,
             "L2_rrf_deepseek_v4pro_abstaining": 0.9394,
@@ -2512,6 +2886,28 @@
           "spearman_rho_vs_panel_truth": 0.7,
           "subset_regret_vs_panel_truth": 0.0256,
           "single_label_selected_top1": "L5_bge_deepseek_v41_forced_binary",
+          "zero_call_verifier_dynamic_relabel": {
+            "relabel_accepted_queries": 39,
+            "residual_panel_label_mismatch_rate": 0.0769,
+            "relabel_pipeline_scores": {
+              "L1_bge_qwen38max_abstaining": 0.7949,
+              "L2_rrf_deepseek_v4pro_abstaining": 0.7949,
+              "L3_bge_kimik3_abstaining": 0.9231,
+              "L4_bm25_qwen38max_abstaining": 0.7436,
+              "L5_bge_deepseek_v41_forced_binary": 1.0,
+              "L6_bm25_qwenplus_forced_binary": 0.9744,
+              "L7_bge_deepseek_v41_abstaining": 0.9231,
+              "L8_bm25_qwenplus_abstaining": 0.7949,
+              "L9_bge_qwen38max_forced_binary": 0.9744
+            },
+            "mae_vs_raw_clause_panel_truth": 0.057,
+            "kendall_tau_vs_panel_truth": 0.5398,
+            "spearman_rho_vs_panel_truth": 0.7,
+            "subset_regret_vs_panel_truth": 0.0256,
+            "selected_top1": "L5_bge_deepseek_v41_forced_binary",
+            "mae_vs_panel_truth_abstaining_6": 0.0512,
+            "kendall_tau_vs_panel_truth_abstaining_6": 0.8704
+          },
           "paired_80_pipeline_scores": {
             "L1_bge_qwen38max_abstaining": 0.8846,
             "L2_rrf_deepseek_v4pro_abstaining": 0.8974,
@@ -4230,6 +4626,40 @@
             }
           ]
         }
+      }
+    },
+    "component_gain_and_role_decomposition": {
+      "stage1_explicit_slot_prompting_gain": {
+        "comparison": "ordinary_style -> condition_prompt (N=176 pooled pairs)",
+        "symbolic_usability_delta": "2/176 (1.14%) -> 155/176 (88.07%) (+86.93 pp)",
+        "panel_majority_usability_delta": "48/176 (27.27%) -> 161/176 (91.48%) (+64.2 pp)",
+        "role": "Primary semantic preservation driver on frontier cloud LLMs; eliminates conversational omission of policy titles, elapsed days, and exemption qualifiers."
+      },
+      "stage2_output_budget_and_complete_schema_gain": {
+        "comparison_token_budget": "structured_json_rewrite (160 cap) -> structured_json_untruncated_320 (320 cap, N=176)",
+        "token_budget_symbolic_delta": "117/176 (66.48%) -> 159/176 (90.34%) (+23.86 pp)",
+        "token_budget_panel_delta": "118/176 (67.05%) -> 161/176 (91.48%) (+24.43 pp)",
+        "comparison_schema_completeness": "structured_json_schema_render (5-slot) -> complete_6slot_schema_render (6-slot, N=80 confirmation)",
+        "schema_completeness_symbolic_delta": "70/80 (87.50%) -> 78/80 (97.50%) (+10.00 pp)",
+        "schema_completeness_panel_delta": "66/80 (82.50%) -> 72/80 (90.00%) (+7.50 pp)",
+        "role": "Separates genuine LLM generation errors from artificial mid-sentence truncation and incomplete 5-slot rendering."
+      },
+      "stage3_zero_call_symbolic_detection_and_dynamic_relabeling": {
+        "comparison": "ordinary_style (naive seed label) -> ordinary_style + zero_call_verifier_dynamic_relabel (0 LLM calls)",
+        "qwen_plus_mae_vs_panel_all9": "0.6556 -> 0.0889",
+        "qwen_plus_kendall_tau_vs_panel_all9": "-0.8792 -> 0.889",
+        "qwen_plus_kendall_tau_vs_panel_abstaining6": "-0.7857 -> 0.7412",
+        "deepseek_mae_vs_panel_all9": "0.525 -> 0.1222",
+        "deepseek_kendall_tau_vs_panel_all9": "-0.6973 -> 0.7812",
+        "deepseek_kendall_tau_vs_panel_abstaining6": "-0.3571 -> 0.5",
+        "role": "Even without prompt engineering or second-pass LLM calls, symbolic reachability verification detects dropped pivotal conditions and dynamically re-certifies degraded queries to CLARIFY, eliminating single-arm RAG ranking inversion."
+      },
+      "stage4_targeted_diagnostic_second_pass_repair": {
+        "comparison_vs_condition_prompt": "condition_prompt -> slot_guard_repair (N=176 pooled pairs)",
+        "symbolic_usability_delta_vs_condition_prompt": "155/176 (88.07%) -> 174/176 (98.86%) (+10.8 pp, p_Holm_doc = 0.01171875)",
+        "symbolic_usability_delta_vs_generic_self_refine": "160/176 (90.91%) -> 174/176 (98.86%) (+7.95 pp, p_Holm_doc = 0.015625)",
+        "panel_majority_usability_note": "Ties condition_prompt (161/176 vs 161/176, p=1.0) and generic_self_refine (161/176 vs 163/176, p=0.50) under frontier LLM panel adjudication because panel judges forgive minor surface-alias or date-format variations that strict symbolic extractors flag.",
+        "role": "Restores determinate scenario coverage (from 82.5%-92.5% under verify_only_filter to 97.5%-100.0%), guarantees strict deterministic slot extractability (98.86%), and repairs residual threshold/title omissions especially on smaller or noisier generators (e.g., Qwen2.5-7B 66.7% -> 95.8%)."
       }
     }
   }

@@ -1317,5 +1317,20 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(comp_audit['deepseek_v4_pro']['exact_schema_matches'], 16)
         self.assertEqual(comp_audit['deepseek_v4_pro']['exact_4field_matches'], 16)
 
+        # 5. Zero-Call Symbolic Reachability Relabeling & 4-Stage Marginal Gain Decomposition
+        relabel_qwen = exp3['by_generator_family']['qwen_plus']['ordinary_style']['zero_call_verifier_dynamic_relabel']
+        relabel_ds = exp3['by_generator_family']['deepseek']['ordinary_style']['zero_call_verifier_dynamic_relabel']
+        self.assertEqual(relabel_qwen['relabel_accepted_queries'], 40)
+        self.assertAlmostEqual(relabel_qwen['mae_vs_raw_clause_panel_truth'], 0.0889, places=4)
+        self.assertAlmostEqual(relabel_qwen['kendall_tau_vs_panel_truth'], 0.8890, places=4)
+        self.assertEqual(relabel_ds['relabel_accepted_queries'], 40)
+        self.assertAlmostEqual(relabel_ds['mae_vs_raw_clause_panel_truth'], 0.1222, places=4)
+        self.assertAlmostEqual(relabel_ds['kendall_tau_vs_panel_truth'], 0.7812, places=4)
+
+        decomp = exp4['component_gain_and_role_decomposition']
+        self.assertIn('+86.93 pp', decomp['stage1_explicit_slot_prompting_gain']['symbolic_usability_delta'])
+        self.assertIn('+64.2 pp', decomp['stage1_explicit_slot_prompting_gain']['panel_majority_usability_delta'])
+        self.assertIn('+10.8 pp', decomp['stage4_targeted_diagnostic_second_pass_repair']['symbolic_usability_delta_vs_condition_prompt'])
+
 
 if __name__=='__main__':unittest.main()
